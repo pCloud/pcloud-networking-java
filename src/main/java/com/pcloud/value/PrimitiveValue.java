@@ -16,29 +16,9 @@
 
 package com.pcloud.value;
 
-public class StringValue extends PrimitiveValue {
-    protected String value;
-
-    public StringValue(String value) {
-        this.value = value;
-    }
-
+public class PrimitiveValue extends Value {
     @Override
-    public final boolean isString() {
+    public final boolean isPrimitive(){
         return true;
-    }
-
-    @Override
-    public final String asString() {
-        return value;
-    }
-
-    public final String getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        return "\"" + value + "\"";
     }
 }

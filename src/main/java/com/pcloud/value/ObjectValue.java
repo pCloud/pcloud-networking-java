@@ -1,13 +1,25 @@
+/*
+ * Copyright (c) 2016 Georgi Neykov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.pcloud.value;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-/**
- * Created by Georgi on 11/10/2016.
- */
 
 public class ObjectValue extends Value {
     private final Map<String, Value> properties = new TreeMap<String, Value>();
@@ -20,6 +32,11 @@ public class ObjectValue extends Value {
     @Override
     public final ObjectValue asObject() {
         return this;
+    }
+
+    @Override
+    public final boolean isPrimitive() {
+        return false;
     }
 
     public final void put(String name, Value value) {
@@ -42,7 +59,7 @@ public class ObjectValue extends Value {
         return properties.get(name);
     }
 
-    public final Set<Map.Entry<String, Value>> propertySet(){
+    public final Set<Map.Entry<String, Value>> propertySet() {
         return properties.entrySet();
     }
 
@@ -65,11 +82,11 @@ public class ObjectValue extends Value {
             if (hasMore = i.hasNext()) {
                 builder.append(',');
             }
-            if(prettyPrintEnabled) {
+            if (prettyPrintEnabled) {
                 builder.append("\n");
             }
         }
         builder.append('}');
-       return builder.toString();
+        return builder.toString();
     }
 }
