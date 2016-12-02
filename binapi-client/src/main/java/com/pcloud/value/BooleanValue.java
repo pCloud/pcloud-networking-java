@@ -23,6 +23,11 @@ public class BooleanValue extends PrimitiveValue {
         this.value = value;
     }
 
+    @Override
+    public boolean asBoolean() {
+        return value;
+    }
+
     public final boolean getValue() {
         return value;
     }

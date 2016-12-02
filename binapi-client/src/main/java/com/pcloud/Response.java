@@ -19,39 +19,57 @@ package com.pcloud;
 import com.pcloud.value.ObjectValue;
 import com.sun.istack.internal.Nullable;
 
-public class ApiResponse {
+import java.io.Closeable;
+import java.io.IOException;
+
+public class Response implements Closeable {
 
     private int resultCode;
     private String error;
     private ObjectValue responseBody;
+    private ResponseData data;
 
-    public ApiResponse(ObjectValue body) {
+    public Response(ObjectValue body, ResponseData data) {
         this.responseBody = body;
+        this.data = data;
         this.resultCode = (int) body.get("result").asNumber();
         if(!isSuccessful()) {
             this.error = body.get("error").asString();
         }
     }
 
-    ObjectValue getResponseBody() {
+    public ObjectValue values() {
         return responseBody;
+    }
+
+    public ResponseData data() {
+        return data;
+    }
+
+    public boolean hasBinaryData() {
+        return data != null;
     }
 
     public boolean isSuccessful() {
         return resultCode == 0;
     }
 
-    public int getResultCode() {
+    public int resultCode() {
         return resultCode;
     }
 
-    @Nullable
-    public String getErrorDescription() {
+    public String errorDescription() {
         return error;
     }
 
-    @Override
     public String toString() {
         return responseBody.toString();
+    }
+
+    @Override
+    public void close() {
+        if(data != null) {
+            data.close();
+        }
     }
 }

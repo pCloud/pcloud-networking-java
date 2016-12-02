@@ -19,8 +19,6 @@ package com.pcloud;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static com.pcloud.internal.IOUtils.closeQuietly;
-
 public class ConnectionPool {
 
     static {
@@ -90,7 +88,7 @@ public class ConnectionPool {
         return connections.pollLast();
     }
 
-    synchronized void recycle(Connection connection) {
+    synchronized void recycle(RealConnection connection) {
         if (!cleanupRunning) {
             cleanupRunning = true;
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
@@ -113,7 +111,7 @@ public class ConnectionPool {
         }
 
         for (Connection connection : evictedConnections) {
-            closeQuietly(connection);
+            IOUtils.closeQuietly(connection);
         }
     }
 
@@ -126,8 +124,7 @@ public class ConnectionPool {
         synchronized (this) {
             idleConnectionCount = connections.size();
             for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
-                Connection connection = i.next();
-
+                RealConnection connection = (RealConnection) i.next();
 
                 // If the connection is ready to be evicted, we're done.
                 long idleDurationNs = now - connection.idleAtNanos();
@@ -152,7 +149,7 @@ public class ConnectionPool {
             }
         }
 
-        closeQuietly(longestIdleConnection);
+        IOUtils.closeQuietly(longestIdleConnection);
 
         // Cleanup again immediately.
         return 0;

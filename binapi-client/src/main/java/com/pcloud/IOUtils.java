@@ -14,10 +14,16 @@
  * limitations under the License.
  */
 
-package com.pcloud.internal;
+package com.pcloud;
+
+import okio.Buffer;
+import okio.Source;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 public class IOUtils {
 
@@ -54,14 +60,30 @@ public class IOUtils {
                 && e.getMessage().contains("getsockname failed");
     }
 
-    public static long reverseBytesLong(long v) {
-        return (v & 0xff00000000000000L) >>> 56
-                |  (v & 0x00ff000000000000L) >>> 40
-                |  (v & 0x0000ff0000000000L) >>> 24
-                |  (v & 0x000000ff00000000L) >>>  8
-                |  (v & 0x00000000ff000000L)  <<  8
-                |  (v & 0x0000000000ff0000L)  << 24
-                |  (v & 0x000000000000ff00L)  << 40
-                |  (v & 0x00000000000000ffL)  << 56;
+    /**
+     * Reads until {@code in} is exhausted or the deadline has been reached. This is careful to not
+     * extend the deadline if one exists already.
+     */
+    public static boolean skipAll(Source source, int duration, TimeUnit timeUnit) throws IOException {
+        long now = System.nanoTime();
+        long originalDuration = source.timeout().hasDeadline()
+                ? source.timeout().deadlineNanoTime() - now
+                : Long.MAX_VALUE;
+        source.timeout().deadlineNanoTime(now + Math.min(originalDuration, timeUnit.toNanos(duration)));
+        try {
+            Buffer skipBuffer = new Buffer();
+            while (source.read(skipBuffer, 8192) != -1) {
+                skipBuffer.clear();
+            }
+            return true; // Success! The source has been exhausted.
+        } catch (InterruptedIOException e) {
+            return false; // We ran out of time before exhausting the source.
+        } finally {
+            if (originalDuration == Long.MAX_VALUE) {
+                source.timeout().clearDeadline();
+            } else {
+                source.timeout().deadlineNanoTime(now + originalDuration);
+            }
+        }
     }
 }

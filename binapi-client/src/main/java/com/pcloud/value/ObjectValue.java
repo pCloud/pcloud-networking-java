@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class ObjectValue extends Value {
+
     private final Map<String, Value> properties = new TreeMap<String, Value>();
 
     @Override
@@ -53,6 +54,10 @@ public class ObjectValue extends Value {
 
     public final void putBoolean(String name, boolean value) {
         properties.put(name, new BooleanValue(value));
+    }
+
+    public final boolean remove(String name) {
+        return properties.remove(name) != null;
     }
 
     public final Value get(String name) {

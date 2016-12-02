@@ -1,3 +1,4 @@
 rootProject.name = 'api-client'
 rootProject.name = 'api-client'
+include 'binapi-client'
 

@@ -16,11 +16,14 @@
 
 package com.pcloud;
 
+import com.pcloud.Data;
+import com.pcloud.Request;
+import com.pcloud.Response;
+import com.pcloud.ResponseData;
 import com.pcloud.value.*;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
-import okio.Source;
 
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -36,30 +39,24 @@ class BinaryProtocolCodec {
     private static final int REQUEST_PARAM_TYPE_STRING = 0;
     private static final int REQUEST_PARAM_TYPE_NUMBER = 1;
     private static final int REQUEST_PARAM_TYPE_BOOLEAN = 2;
-    private static final int REQUEST_PARAM_TYPE_LIMIT = 3;
     private static final int REQUEST_PARAM_COUNT_LIMIT = 255;
     private static final int REQUEST_PARAM_NAME_LENGTH_LIMIT = 63;
     private static final int REQUEST_SIZE_LIMIT_BYTES = 65535;
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
 
-    public void writeRequest(BufferedSink sink, String methodName, ObjectValue element) throws IOException {
-        writeRequest(sink, methodName, element, null, -1);
-    }
-
-    public void writeRequest(BufferedSink sink, String methodName, ObjectValue element, Source data, long dataLength) throws IOException {
-        if (data != null && dataLength < 0) {
-            throw new IOException("Invalid data length value of " + dataLength);
-        }
-
+    public long writeRequest(BufferedSink sink, Request request) throws IOException {
+        Data data = request.data();
         Buffer requestBuffer = new Buffer();
-        boolean hasBinaryData = data != null && dataLength > 0;
-        writeMethodName(requestBuffer, methodName, hasBinaryData);
+        final long binaryDataSize = data != null ? data.contentLength() : 0;
+        boolean hasBinaryData = binaryDataSize > 0;
+        writeMethodName(requestBuffer, request.methodName(), hasBinaryData);
         if (hasBinaryData) {
-            requestBuffer.writeLongLe(dataLength);
+            requestBuffer.writeLongLe(binaryDataSize);
         }
 
-        if (element != null) {
-            Set<Map.Entry<String, Value>> parameters = element.propertySet();
+        ObjectValue requestParameters = request.requestParameters();
+        if (requestParameters != null) {
+            Set<Map.Entry<String, Value>> parameters = requestParameters.propertySet();
             int parameterCount = parameters.size();
             if (parameterCount > REQUEST_PARAM_COUNT_LIMIT) {
                 throw new ProtocolException("Request parameter count exceed, max allowed is 255, current is " + parameterCount);
@@ -91,28 +88,34 @@ class BinaryProtocolCodec {
             throw new ProtocolException("The request is too big, max allowed size is 65535 bytes, current is " + requestSize);
         }
 
-        Buffer finalBuffer = new Buffer();
-
-        finalBuffer.writeShortLe((int) requestSize);
-        finalBuffer.write(requestBuffer, requestBuffer.size());
-        sink.writeAll(finalBuffer);
+        sink.writeShortLe((int) requestSize);
+        sink.write(requestBuffer, requestBuffer.size());
         if (hasBinaryData) {
-            Buffer buffer = new Buffer();
-            long bytesRead, totalBytesRead = 0;
-            while ((bytesRead = data.read(buffer, 4096)) != 1) {
-                totalBytesRead += bytesRead;
-                if (totalBytesRead > dataLength) {
-                    throw new IOException("Declared data size is less than the actual data source length.");
-                }
-                sink.write(buffer, bytesRead);
-            }
 
-            if (totalBytesRead < dataLength) {
-                throw new IOException("Declared data size is bigger than the actual data source length.");
-            }
+            data.writeTo(sink);
         }
 
         sink.flush();
+        return requestSize + binaryDataSize;
+    }
+
+    public Response readResponse(BufferedSource source) throws IOException {
+        DecodeContext context = new DecodeContext(source);
+        readNumber(context.source, 4); // Response parameters length, value not used, but still has to be read.
+
+        ObjectValue responseValues;
+        int type = readType(context.source);
+        if (type == 16) {
+            responseValues = readObject(context);
+        } else {
+            throw new ProtocolException("Response did not start with an object.");
+        }
+
+        ResponseData data = null;
+        if (context.hasData) {
+            data = new ResponseData(source, context.dataLength);
+        }
+        return new Response(responseValues, data);
     }
 
     private static void writeParameterTypeAndName(BufferedSink buffer, String name, int type) throws IOException {
@@ -165,40 +168,50 @@ class BinaryProtocolCodec {
         buffer.writeByte(methodNameLength);
         buffer.write(bytes);
     }
+    private static class DecodeContext {
+        private List<String> stringCache = new ArrayList<>();
+        private long dataLength;
+        private boolean hasData;
 
-    public ObjectValue readResponse(BufferedSource source) throws IOException {
-        List<String> stringsCache = new ArrayList<String>();
-        long responseLength = readNumber(source, 4);
-        int type = readType(source);
-
-        if (type == 16) {
-            return (ObjectValue) readValue(source, type, stringsCache);
-        } else {
-            throw new ProtocolException("Response did not start with an object.");
+        private BufferedSource source;
+        public DecodeContext(BufferedSource source) {
+            this.source = source;
         }
+
     }
 
-    private static Value readValue(BufferedSource source, int type, List<String> stringCache) throws IOException {
+    private static Value readValue(int type, DecodeContext context) throws IOException {
+        BufferedSource source = context.source;
         if (type >= 8 && type <= 15) {
             // Number, may a 1-8 byte long integer.
             return new NumberValue(readNumber(source, type - 7));
         } else if (type == 16) {
             // Object
-            return readObject(source, stringCache);
+            return readObject(context);
         } else if (type == 17) {
             // Array
-            return readArray(source, stringCache);
+            return readArray(context);
         } else if (type >= 18 && type <= 19) {
             // Boolean, 18 means 'false', 19 is 'true'
             return new BooleanValue(type - 18 > 0);
         } else if (type == 20) {
             // Data
-            throw new UnsupportedOperationException("No implemented yet.");
+            return readBinaryDataInfo(context);
         } else if (type >= 200 && type <= 219) {
             // Number, with compression optimization
             return new NumberValue(type - 200);
         } else {
-            return new StringValue(readStringValue(source, type, stringCache));
+            return new StringValue(readStringValue(type, context));
+        }
+    }
+
+    private static NumberValue readBinaryDataInfo(DecodeContext context) throws IOException {
+        if (!context.hasData) {
+            context.hasData = true;
+            context.dataLength = readNumber(context.source, 8);
+            return new NumberValue(context.dataLength);
+        } else {
+            throw new ProtocolException("More than one 'data' parameter in response.");
         }
     }
 
@@ -218,49 +231,53 @@ class BinaryProtocolCodec {
         return value;
     }
 
-    private static ValueArray readArray(BufferedSource source, List<String> stringCache) throws IOException {
+    private static ValueArray readArray(DecodeContext context) throws IOException {
         List<Value> values = new ArrayList<Value>();
         int type;
+        BufferedSource source = context.source;
         while ((type = readType(source)) != 255) {
-            values.add(readValue(source, type, stringCache));
+            values.add(readValue(type, context));
         }
 
         return new ValueArray(values);
     }
 
-    private static ObjectValue readObject(BufferedSource source, List<String> stringCache) throws IOException {
+    private static ObjectValue readObject(DecodeContext context) throws IOException {
         ObjectValue element = new ObjectValue();
         int type;
-        while ((type = readType(source)) != 255) {
-            element.put(readStringValue(source, type, stringCache), readValue(source, readType(source), stringCache));
+        while ((type = readType(context.source)) != 255) {
+            element.put(readStringValue(type, context), readValue(readType(context.source), context));
         }
 
         return element;
     }
 
-    private static String readStringValue(BufferedSource source, int type, List<String> stringCache) throws IOException {
+    private static String readStringValue(int type, DecodeContext context) throws IOException {
+        BufferedSource source = context.source;
         if (type >= 0 && type <= 3) {
             // String
             long stringLength = readNumber(source, type + 1);
             String value = source.readString(stringLength, PROTOCOL_CHARSET);
-            stringCache.add(value);
+            context.stringCache.add(value);
             return value;
         } else if (type >= 4 && type <= 7) {
             // String, existing value
             int cachedStringId = (int) readNumber(source, type - 3);
-            return stringCache.get(cachedStringId);
+            return context.stringCache.get(cachedStringId);
         } else if (type >= 100 && type <= 149) {
             // String, with compression optimization
             int stringLength = type - 100;
             String value = source.readString(stringLength, PROTOCOL_CHARSET);
-            stringCache.add(value);
+            context.stringCache.add(value);
             return value;
         } else if (type >= 150 && type <= 199) {
             // String, existing value, with compression optimization
-            return stringCache.get(type - 150);
+            return context.stringCache.get(type - 150);
         } else {
             throw new ProtocolException("Unkown value type " + type);
         }
     }
+
+
 
 }

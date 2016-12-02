@@ -14,29 +14,14 @@
  * limitations under the License.
  */
 
-package com.pcloud;
+package com.pcloud.internal.tls;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 
-public class Endpoint {
-    private final String host;
-    private final int port;
-
-    public Endpoint(String host, int port) {
-        this.host = host;
-        this.port = port;
-    }
-
-    public String host() {
-        return host;
-    }
-
-    public int port() {
-        return port;
-    }
-
-    public SocketAddress socketAddress() {
-        return new InetSocketAddress(host, port);
+public class DefaultHostnameVerifier implements HostnameVerifier {
+    @Override
+    public boolean verify(String s, SSLSession sslSession) {
+        return true;
     }
 }

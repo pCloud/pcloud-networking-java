@@ -16,7 +16,6 @@
 
 package com.pcloud;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -24,17 +23,16 @@ import java.util.concurrent.TimeUnit;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.pcloud.internal.IOUtils;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 
-public class Connection implements Closeable {
+class RealConnection implements Connection {
 
-    private Endpoint endpoint;
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -45,13 +43,14 @@ public class Connection implements Closeable {
 
     private long idleAtNanos;
 
-    public Connection(SocketFactory socketFactory, SSLSocketFactory sslSocketFactory, HostnameVerifier hostnameVerifier) {
+    RealConnection(SocketFactory socketFactory, SSLSocketFactory sslSocketFactory, HostnameVerifier hostnameVerifier) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    public void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws IOException {
+    @Override
+    public void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws com.pcloud.ConnectException{
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
         }
@@ -60,24 +59,27 @@ public class Connection implements Closeable {
             socket = createSocket(endpoint, connectTimeout, readTimeout, timeUnit);
             source = Okio.buffer(Okio.source(socket));
             sink = Okio.buffer(Okio.sink(socket));
-            this.endpoint = endpoint;
             success = true;
-        } finally {
+        } catch (IOException e) {
+            throw new ConnectException(e);
+        }finally {
             if (!success) {
                 close();
             }
         }
     }
 
-    public BufferedSource getSource() {
+    @Override
+    public BufferedSource source() {
         return source;
     }
 
+    @Override
     public BufferedSink getSink() {
         return sink;
     }
 
-    public boolean isHealthy(boolean doExtensiveChecks) {
+    boolean isHealthy(boolean doExtensiveChecks) {
         if (socket.isClosed() || socket.isInputShutdown() || socket.isOutputShutdown()) {
             return false;
         }
@@ -87,10 +89,7 @@ public class Connection implements Closeable {
                 int readTimeout = socket.getSoTimeout();
                 try {
                     socket.setSoTimeout(1);
-                    if (source.exhausted()) {
-                        return false; // Stream is exhausted; socket is closed.
-                    }
-                    return true;
+                    return !source.exhausted();
                 } finally {
                     socket.setSoTimeout(readTimeout);
                 }
@@ -120,7 +119,6 @@ public class Connection implements Closeable {
         socket = null;
         source = null;
         sink = null;
-        endpoint = null;
     }
 
     private Socket createSocket(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws IOException {
@@ -139,9 +137,9 @@ public class Connection implements Closeable {
             SSLSocket sslSocket = (SSLSocket) socket;
             sslSocket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
             sslSocket.startHandshake();
-            /*if (!hostnameVerifier.verify(endpoint.host(), sslSocket.getSession())) {
+            if (!hostnameVerifier.verify(endpoint.host(), sslSocket.getSession())) {
                 throw new SSLPeerUnverifiedException("Hostname " + endpoint.host() + " not verified:");
-            }*/
+            }
             connectionSucceeded = true;
             return socket;
 

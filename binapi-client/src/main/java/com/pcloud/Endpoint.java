@@ -16,8 +16,29 @@
 
 package com.pcloud;
 
-import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 
-public interface ConnectionFactory {
-    Connection openConnection() throws IOException;
+public class Endpoint {
+    public static final Endpoint DEFAULT = new Endpoint("binapi.pcloud.com", 443);
+
+    private final String host;
+    private final int port;
+
+    public Endpoint(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
+
+    public String host() {
+        return host;
+    }
+
+    public int port() {
+        return port;
+    }
+
+    public SocketAddress socketAddress() {
+        return new InetSocketAddress(host, port);
+    }
 }
