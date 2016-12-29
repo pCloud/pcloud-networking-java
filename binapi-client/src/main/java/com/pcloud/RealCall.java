@@ -16,6 +16,7 @@
 
 package com.pcloud;
 
+import com.pcloud.internal.IOUtils;
 import okio.*;
 
 import java.io.IOException;
@@ -23,34 +24,38 @@ import java.net.ProtocolException;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-class CommandExecutor {
+class RealCall implements Call {
+
+    private Request request;
+    private volatile boolean cancelled;
+    private volatile boolean executed;
+    private RealConnection connection;
 
     private BinaryProtocolCodec binaryProtocolCodec;
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
-    private Authenticator authenticator;
     private boolean eagerlyCheckConnectivity;
 
-    CommandExecutor(PCloudAPIClient apiClient, boolean eagerlyCheckConnectivity) {
-        this.binaryProtocolCodec = new BinaryProtocolCodec();
-        this.connectionPool = apiClient.connectionPool();
-        this.connectionFactory = new ConnectionFactory(apiClient);
-        this.authenticator = apiClient.authenticator();
+    RealCall(Request request, BinaryProtocolCodec binaryProtocolCodec, ConnectionPool connectionPool, ConnectionFactory connectionFactory, boolean eagerlyCheckConnectivity) {
+        this.request = request;
+        this.binaryProtocolCodec = binaryProtocolCodec;
+        this.connectionPool = connectionPool;
+        this.connectionFactory = connectionFactory;
         this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
     }
 
-    Response execute(Request request) throws IOException {
-        final RealConnection connection = obtainConnection();
-        System.out.println("Making request using connection " + connection);
-        Response response = execute(request, connection);
-        if (response.resultCode() == 1000 || response.resultCode() == 2000) {
-            request = authenticator.authenticate(request);
-            response = execute(request, connection);
+    @Override
+    public Response execute() throws IOException {
+        synchronized (this) {
+            if (executed) throw new IllegalStateException("Already Executed");
+            executed = true;
         }
-        return response;
-    }
 
-    private Response execute(Request request, RealConnection connection) throws IOException {
+        if (cancelled){
+            throw new IOException("Cancelled.");
+        }
+
+        connection = obtainConnection();
         boolean success = false;
         try {
             binaryProtocolCodec.writeRequest(connection.getSink(), request);
@@ -66,7 +71,13 @@ class CommandExecutor {
             if (!success) {
                 IOUtils.closeQuietly(connection);
             }
+            connection = null;
         }
+    }
+
+    @Override
+    public void execute(Callback callback) {
+        throw new UnsupportedOperationException();
     }
 
     private Response wrapBinaryDataSource(final RealConnection connection, final Response response) {
@@ -95,7 +106,31 @@ class CommandExecutor {
         }
 
         // No pooled connections available, just build a new one.
-        return connectionFactory.openConnection();
+        return connectionFactory.openConnection(Endpoint.DEFAULT);
+    }
+
+    @Override
+    public Request request() {
+        return request;
+    }
+
+
+    @Override
+    public synchronized boolean isExecuted() {
+        return executed;
+    }
+
+    @Override
+    public void cancel() {
+        cancelled = true;
+        if (connection != null){
+            connection.close();
+        }
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
     }
 
     private abstract static class FixedLengthSource implements Source {

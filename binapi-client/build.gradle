@@ -3,8 +3,6 @@ version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.7
-
 repositories {
     mavenCentral()
 }
@@ -20,3 +18,5 @@ dependencies {
 group 'com.pcloud'
 version '1.0-SNAPSHOT'
 
+sourceCompatibility = 1.6
+targetCompatibility = 1.6

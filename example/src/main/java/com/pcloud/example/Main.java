@@ -63,7 +63,7 @@ public class Main {
                 .build();
 
         System.out.println(request);
-        Response filesResponse = client.execute(request);
+        Response filesResponse = client.newCall(request).execute();
         System.out.println(filesResponse);
         return filesResponse;
     }
@@ -77,7 +77,7 @@ public class Main {
                         .addParameter("password", password)
                         .build();
         System.out.println(loginRequest);
-        Response loginResponse = client.execute(loginRequest);
+        Response loginResponse = client.newCall(loginRequest).execute();
         System.out.println(loginResponse);
         return loginResponse;
     }

@@ -16,10 +16,6 @@
 
 package com.pcloud;
 
-import com.pcloud.Data;
-import com.pcloud.Request;
-import com.pcloud.Response;
-import com.pcloud.ResponseData;
 import com.pcloud.value.*;
 import okio.Buffer;
 import okio.BufferedSink;
@@ -168,17 +164,6 @@ class BinaryProtocolCodec {
         buffer.writeByte(methodNameLength);
         buffer.write(bytes);
     }
-    private static class DecodeContext {
-        private List<String> stringCache = new ArrayList<>();
-        private long dataLength;
-        private boolean hasData;
-
-        private BufferedSource source;
-        public DecodeContext(BufferedSource source) {
-            this.source = source;
-        }
-
-    }
 
     private static Value readValue(int type, DecodeContext context) throws IOException {
         BufferedSource source = context.source;
@@ -278,6 +263,16 @@ class BinaryProtocolCodec {
         }
     }
 
+    private static class DecodeContext {
+        private List<String> stringCache = new ArrayList<String>();
+        private long dataLength;
+        private boolean hasData;
 
+        private BufferedSource source;
 
+        public DecodeContext(BufferedSource source) {
+            this.source = source;
+        }
+
+    }
 }

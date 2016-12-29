@@ -24,7 +24,7 @@ import okio.Source;
 import java.io.File;
 import java.io.IOException;
 
-import static com.pcloud.IOUtils.closeQuietly;
+import static com.pcloud.internal.IOUtils.closeQuietly;
 
 public abstract class Data {
 

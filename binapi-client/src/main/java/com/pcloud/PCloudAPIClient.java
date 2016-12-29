@@ -42,8 +42,9 @@ public class PCloudAPIClient {
     private final EndpointProvider endpointProvider;
     private final Authenticator authenticator;
 
-    private ConnectionPool connectionPool;
-    private CommandExecutor connector;
+    ConnectionPool connectionPool;
+    BinaryProtocolCodec binaryProtocolCodec;
+    ConnectionFactory connectionFactory;
 
     private PCloudAPIClient(Builder builder) {
         this.connectTimeoutMs = builder.connectTimeoutMs;
@@ -60,11 +61,12 @@ public class PCloudAPIClient {
         this.maxIdleConnections = builder.maxIdleConnectionCount;
 
         this.connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDurationMs, MILLISECONDS);
-        this.connector = new CommandExecutor(this, false);
+        this.binaryProtocolCodec = new BinaryProtocolCodec();
+        this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier, connectTimeoutMs, readTimeoutMs, MILLISECONDS);
     }
 
-    public Response execute(Request request) throws IOException {
-        return connector.execute(request);
+    public Call newCall(Request request){
+        return new RealCall(request, binaryProtocolCodec, connectionPool, connectionFactory, false);
     }
 
     public int maxIdleConnections() {

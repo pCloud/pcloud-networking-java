@@ -24,7 +24,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static com.pcloud.IOUtils.closeQuietly;
+import static com.pcloud.internal.IOUtils.closeQuietly;
 
 public class ResponseData extends Data implements Closeable{
 

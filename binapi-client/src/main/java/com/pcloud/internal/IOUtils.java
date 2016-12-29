@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.pcloud;
+package com.pcloud.internal;
 
 import okio.Buffer;
 import okio.Source;

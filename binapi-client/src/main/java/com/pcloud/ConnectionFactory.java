@@ -20,35 +20,39 @@ import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 class ConnectionFactory {
 
-    private EndpointProvider endpointProvider;
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
     private int connectTimeout;
     private int readTimeout;
+    private TimeUnit timeUnit;
 
-    ConnectionFactory(PCloudAPIClient cloudAPIClient) {
-        this.endpointProvider = cloudAPIClient.endpointProvider();
-        this.socketFactory = cloudAPIClient.socketFactory();
-        this.sslSocketFactory = cloudAPIClient.sslSocketFactory();
-        this.hostnameVerifier = cloudAPIClient.hostnameVerifier();
-        this.connectTimeout = cloudAPIClient.connectTimeout();
-        this.readTimeout = cloudAPIClient.readTimeout();
+    public ConnectionFactory(SocketFactory socketFactory,
+                             SSLSocketFactory sslSocketFactory,
+                             HostnameVerifier hostnameVerifier,
+                             int connectTimeout, int readTimeout, TimeUnit timeUnit) {
+        this.socketFactory = socketFactory;
+        this.sslSocketFactory = sslSocketFactory;
+        this.hostnameVerifier = hostnameVerifier;
+        this.connectTimeout = connectTimeout;
+        this.readTimeout = readTimeout;
+        this.timeUnit = timeUnit;
     }
 
-    RealConnection openConnection() throws IOException {
+    RealConnection openConnection(Endpoint endpoint) throws IOException {
+        if (endpoint == null) {
+            throw new AssertionError("null endpoint argument.");
+        }
+
         RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier);
         boolean connected = false;
         try {
-            Endpoint endpoint = endpointProvider.getEndpoint();
-            if (endpoint == null) {
-                throw new IllegalStateException("EndpointProvider returned a null Endpoint");
-            }
-            connection.connect(endpoint, connectTimeout, readTimeout, TimeUnit.MILLISECONDS);
+            connection.connect(endpoint, connectTimeout, readTimeout, timeUnit);
             connected = true;
         } finally {
             if (!connected) {
