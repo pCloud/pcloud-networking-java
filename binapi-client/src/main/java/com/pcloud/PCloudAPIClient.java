@@ -51,7 +51,7 @@ public class PCloudAPIClient {
 
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
         this.sslSocketFactory = builder.sslSocketFactory != null ? builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
-        this.hostnameVerifier = builder.hostnameVerifier != null ? builder.hostnameVerifier : new DefaultHostnameVerifier();
+        this.hostnameVerifier = builder.hostnameVerifier != null ? builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
         this.endpointProvider = builder.endpointProvider != null ? builder.endpointProvider : EndpointProvider.DEFAULT;
         this.authenticator = builder.authenticator != null ? builder.authenticator : new DefaultAuthenticator();
 
