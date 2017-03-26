@@ -16,8 +16,6 @@
 
 package com.pcloud;
 
-import com.pcloud.value.*;
-
 public class Request {
 
     public static Builder create() {
@@ -25,25 +23,25 @@ public class Request {
     }
 
     private String methodName;
-    private ObjectValue requestParameters;
-    private Data data;
+    private RequestBody body;
+    private DataSource dataSource;
 
     private Request(Builder builder) {
         this.methodName = builder.methodName;
-        this.requestParameters = builder.requestParameters;
-        this.data = builder.data;
+        this.body = builder.body;
+        this.dataSource = builder.dataSource;
     }
 
     public String methodName() {
         return methodName;
     }
 
-    public ObjectValue requestParameters() {
-        return requestParameters;
+    public RequestBody body() {
+        return body;
     }
 
-    public Data data() {
-        return data;
+    public DataSource dataSource() {
+        return dataSource;
     }
 
     public Builder newRequest() {
@@ -52,20 +50,20 @@ public class Request {
 
     @Override
     public String toString() {
-        return String.format("Method:\'%s\', hasData=%s\n%s", methodName, data!= null, requestParameters);
+        return String.format("Method:\'%s\', hasData=%s\n%s", methodName, dataSource!= null, body.toString());
     }
 
     public static class Builder {
         private String methodName;
-        private ObjectValue requestParameters = new ObjectValue();
-        private Data data;
+        private RequestBody body;
+        private DataSource dataSource;
 
         private Builder(){}
 
         private Builder(Request request) {
             methodName = request.methodName;
-            requestParameters = request.requestParameters;
-            data = request.data;
+            body = request.body;
+            dataSource = request.dataSource;
         }
 
         public Builder methodName(String methodName) {
@@ -73,38 +71,13 @@ public class Request {
             return this;
         }
 
-        public Builder addParameter(String name, PrimitiveValue value) {
-            requestParameters.put(name, value);
+        public Builder dataSource(DataSource source) {
+            this.dataSource = source;
             return this;
         }
 
-        public Builder addParameter(String name, String value) {
-            return addParameter(name, new StringValue(value));
-        }
-
-        public Builder addParameter(String name, boolean value) {
-            return addParameter(name, new BooleanValue(value));
-        }
-
-        public Builder addParameter(String name, int value) {
-            return addParameter(name, new NumberValue(value));
-        }
-
-        public Builder addParameter(String name, long value) {
-            return addParameter(name, new NumberValue(value));
-        }
-
-        public Builder addParameter(String name, byte value) {
-            return addParameter(name, new NumberValue(value));
-        }
-
-        public Builder removeParameter(String name) {
-            requestParameters.remove(name);
-            return this;
-        }
-
-        public Builder data(Data data) {
-            this.data = data;
+        public Builder setBody(RequestBody body) {
+            this.body = body;
             return this;
         }
 

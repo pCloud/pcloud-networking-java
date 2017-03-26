@@ -22,6 +22,7 @@ import okio.*;
 import java.io.IOException;
 import java.net.ProtocolException;
 
+import static com.pcloud.internal.IOUtils.closeQuietly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 class RealCall implements Call {
@@ -69,7 +70,7 @@ class RealCall implements Call {
             return response;
         } finally {
             if (!success) {
-                IOUtils.closeQuietly(connection);
+                closeQuietly(connection);
             }
             connection = null;
         }
@@ -87,7 +88,7 @@ class RealCall implements Call {
                 if (reuseSource) {
                     connectionPool.recycle(connection);
                 } else {
-                    IOUtils.closeQuietly(connection);
+                    closeQuietly(connection);
                 }
             }
         };
@@ -101,7 +102,7 @@ class RealCall implements Call {
             if (connection.isHealthy(eagerlyCheckConnectivity)) {
                 return connection;
             } else {
-                IOUtils.closeQuietly(connection);
+                closeQuietly(connection);
             }
         }
 

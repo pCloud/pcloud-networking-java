@@ -62,5 +62,5 @@ public abstract class Value {
         throw new IllegalStateException("Not a number value: " + this);
     }
 
-    public abstract boolean isPrimitive() ;
+    public abstract boolean isPrimitive();
 }

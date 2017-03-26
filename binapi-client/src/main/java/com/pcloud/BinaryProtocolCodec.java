@@ -20,6 +20,7 @@ import com.pcloud.value.*;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
+import okio.Okio;
 
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -40,8 +41,64 @@ class BinaryProtocolCodec {
     private static final int REQUEST_SIZE_LIMIT_BYTES = 65535;
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
 
+    public static void writeValues(BufferedSink sink, Map<String, Object> requestParameters) throws IOException {
+        Set<Map.Entry<String, Object>> parameters = requestParameters.entrySet();
+        int parameterCount = parameters.size();
+        if (parameterCount > REQUEST_PARAM_COUNT_LIMIT) {
+            throw new ProtocolException("Request parameter count exceed, max allowed is 255, current is " + parameterCount);
+        }
+        sink.writeByte(parameterCount);
+
+        String parameterName;
+        Object value;
+        Class<?> clazz;
+        for (Map.Entry<String, Object> parameter : parameters) {
+            value = parameter.getValue();
+            clazz = value.getClass();
+            parameterName = parameter.getKey();
+            if (clazz == String.class) {
+                writeStringParameter(sink, parameterName, (String) value);
+            } else if (clazz == Integer.class) {
+                writeNumberParameter(sink, parameterName, (Integer) value);
+            } else if (clazz == Long.class) {
+                writeNumberParameter(sink, parameterName, (Long) value);
+            } else if (clazz == Boolean.class) {
+                writeBooleanParameter(sink, parameterName, (Boolean) value);
+            } else {
+                throw new ProtocolException("Parameter '" + parameterName +
+                        "' has invalid type, requests can only contain Long, Integer, String and Boolean types.");
+            }
+        }
+    }
+
+    public static void writeValues(BufferedSink requestBuffer, ObjectValue requestParameters) throws IOException {
+        Set<Map.Entry<String, Value>> parameters = requestParameters.propertySet();
+        int parameterCount = parameters.size();
+        if (parameterCount > REQUEST_PARAM_COUNT_LIMIT) {
+            throw new ProtocolException("Request parameter count exceed, max allowed is 255, current is " + parameterCount);
+        }
+        requestBuffer.writeByte(parameterCount);
+
+        String parameterName;
+        Value value;
+        for (Map.Entry<String, Value> parameter : parameters) {
+            value = parameter.getValue();
+            parameterName = parameter.getKey();
+            if (value.isString()) {
+                writeStringParameter(requestBuffer, parameterName, value.asString());
+            } else if (value.isNumber()) {
+                writeNumberParameter(requestBuffer, parameterName, value.asNumber());
+            } else if (value.isBoolean()) {
+                writeBooleanParameter(requestBuffer, parameterName, value.asBoolean());
+            } else {
+                throw new ProtocolException("Parameter '" + parameterName +
+                        "' has invalid type, requests can only contain numbers, booleans and strings.");
+            }
+        }
+    }
+
     public long writeRequest(BufferedSink sink, Request request) throws IOException {
-        Data data = request.data();
+        DataSource data = request.dataSource();
         Buffer requestBuffer = new Buffer();
         final long binaryDataSize = data != null ? data.contentLength() : 0;
         boolean hasBinaryData = binaryDataSize > 0;
@@ -50,34 +107,8 @@ class BinaryProtocolCodec {
             requestBuffer.writeLongLe(binaryDataSize);
         }
 
-        ObjectValue requestParameters = request.requestParameters();
-        if (requestParameters != null) {
-            Set<Map.Entry<String, Value>> parameters = requestParameters.propertySet();
-            int parameterCount = parameters.size();
-            if (parameterCount > REQUEST_PARAM_COUNT_LIMIT) {
-                throw new ProtocolException("Request parameter count exceed, max allowed is 255, current is " + parameterCount);
-            }
-            requestBuffer.writeByte(parameterCount);
-
-            String parameterName;
-            Value value;
-            for (Map.Entry<String, Value> parameter : parameters) {
-                value = parameter.getValue();
-                parameterName = parameter.getKey();
-                if (value.isString()) {
-                    writeStringParameter(requestBuffer, parameterName, value.asString());
-                } else if (value.isNumber()) {
-                    writeNumberParameter(requestBuffer, parameterName, value.asNumber());
-                } else if (value.isBoolean()) {
-                    writeBooleanParameter(requestBuffer, parameterName, value.asBoolean());
-                } else {
-                    throw new ProtocolException("Parameter '" + parameterName +
-                            "' has invalid type, requests can only contain numbers, booleans and strings.");
-                }
-            }
-        } else {
-            requestBuffer.writeByte(0);
-        }
+        BufferedSink bodySink = Okio.buffer(Okio.sink(requestBuffer.outputStream()));
+        request.body().writeAll(bodySink);
 
         final long requestSize = requestBuffer.size();
         if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
@@ -93,25 +124,6 @@ class BinaryProtocolCodec {
 
         sink.flush();
         return requestSize + binaryDataSize;
-    }
-
-    public Response readResponse(BufferedSource source) throws IOException {
-        DecodeContext context = new DecodeContext(source);
-        readNumber(context.source, 4); // Response parameters length, value not used, but still has to be read.
-
-        ObjectValue responseValues;
-        int type = readType(context.source);
-        if (type == 16) {
-            responseValues = readObject(context);
-        } else {
-            throw new ProtocolException("Response did not start with an object.");
-        }
-
-        ResponseData data = null;
-        if (context.hasData) {
-            data = new ResponseData(source, context.dataLength);
-        }
-        return new Response(responseValues, data);
     }
 
     private static void writeParameterTypeAndName(BufferedSink buffer, String name, int type) throws IOException {
@@ -163,6 +175,25 @@ class BinaryProtocolCodec {
 
         buffer.writeByte(methodNameLength);
         buffer.write(bytes);
+    }
+
+    public Response readResponse(BufferedSource source) throws IOException {
+        DecodeContext context = new DecodeContext(source);
+        readNumber(context.source, 4); // Response parameters length, value not used, but still has to be read.
+
+        ObjectValue responseValues;
+        int type = readType(context.source);
+        if (type == 16) {
+            responseValues = readObject(context);
+        } else {
+            throw new ProtocolException("Response did not start with an object.");
+        }
+
+        ResponseData data = null;
+        if (context.hasData) {
+            data = new ResponseData(source, context.dataLength);
+        }
+        return new Response(responseValues, data);
     }
 
     private static Value readValue(int type, DecodeContext context) throws IOException {
