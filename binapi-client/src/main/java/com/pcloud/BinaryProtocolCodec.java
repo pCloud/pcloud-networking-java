@@ -177,23 +177,8 @@ class BinaryProtocolCodec {
         buffer.write(bytes);
     }
 
-    public Response readResponse(BufferedSource source) throws IOException {
-        DecodeContext context = new DecodeContext(source);
-        readNumber(context.source, 4); // Response parameters length, value not used, but still has to be read.
-
-        ObjectValue responseValues;
-        int type = readType(context.source);
-        if (type == 16) {
-            responseValues = readObject(context);
-        } else {
-            throw new ProtocolException("Response did not start with an object.");
-        }
-
-        ResponseData data = null;
-        if (context.hasData) {
-            data = new ResponseData(source, context.dataLength);
-        }
-        return new Response(responseValues, data);
+    public static long readResponseLength(BufferedSource source) throws IOException {
+        return readNumber(source, 4);
     }
 
     private static Value readValue(int type, DecodeContext context) throws IOException {

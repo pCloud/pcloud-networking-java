@@ -60,12 +60,9 @@ class RealCall implements Call {
         boolean success = false;
         try {
             binaryProtocolCodec.writeRequest(connection.getSink(), request);
-            Response response = binaryProtocolCodec.readResponse(connection.source());
-            if (response.hasBinaryData()) {
-                wrapBinaryDataSource(connection, response);
-            } else {
-                connectionPool.recycle(connection);
-            }
+            long contentLength = BinaryProtocolCodec.readResponseLength(connection.source());
+            FixedLengthSource responseStream = new RecyclingFixedLengthSource(connectionPool, connection, contentLength);
+            Response response = Response.create(ResponseBody.create(contentLength, Okio.buffer(responseStream)));
             success = true;
             return response;
         } finally {
@@ -79,21 +76,6 @@ class RealCall implements Call {
     @Override
     public void execute(Callback callback) {
         throw new UnsupportedOperationException();
-    }
-
-    private Response wrapBinaryDataSource(final RealConnection connection, final Response response) {
-        FixedLengthSource source = new FixedLengthSource(response.data().source(), response.data().contentLength()) {
-            @Override
-            protected void exhausted(boolean reuseSource) {
-                if (reuseSource) {
-                    connectionPool.recycle(connection);
-                } else {
-                    closeQuietly(connection);
-                }
-            }
-        };
-
-        return new Response(response.values(), new ResponseData(Okio.buffer(source), source.bytesRemaining));
     }
 
     private RealConnection obtainConnection() throws IOException {
@@ -193,6 +175,27 @@ class RealCall implements Call {
             oldDelegate.clearDeadline();
             oldDelegate.clearTimeout();
             exhausted(reuseSource);
+        }
+    }
+
+    private static class RecyclingFixedLengthSource extends FixedLengthSource {
+
+        private ConnectionPool connectionPool;
+        private Connection connection;
+
+        private RecyclingFixedLengthSource(ConnectionPool pool, Connection connection, long contentLength) {
+            super(connection.source(), contentLength);
+            this.connection = connection;
+            this.connectionPool = pool;
+        }
+
+        @Override
+        protected void exhausted(boolean reuseSource) {
+            if (reuseSource) {
+                connectionPool.recycle((RealConnection) connection);
+            } else {
+                closeQuietly(connection);
+            }
         }
     }
 }

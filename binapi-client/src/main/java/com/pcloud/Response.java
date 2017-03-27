@@ -16,50 +16,22 @@
 
 package com.pcloud;
 
-import com.pcloud.value.ObjectValue;
-import com.sun.istack.internal.Nullable;
-
 import java.io.Closeable;
-import java.io.IOException;
 
 public class Response implements Closeable {
 
-    private int resultCode;
-    private String error;
-    private ObjectValue responseBody;
-    private ResponseData data;
+    private ResponseBody responseBody;
 
-    public Response(ObjectValue body, ResponseData data) {
-        this.responseBody = body;
-        this.data = data;
-        this.resultCode = (int) body.get("result").asNumber();
-        if(!isSuccessful()) {
-            this.error = body.get("error").asString();
-        }
+    public static Response create(ResponseBody body){
+        return new Response(body);
     }
 
-    public ObjectValue values() {
+    private Response(ResponseBody responseBody) {
+        this.responseBody = responseBody;
+    }
+
+    public ResponseBody responseBody() {
         return responseBody;
-    }
-
-    public ResponseData data() {
-        return data;
-    }
-
-    public boolean hasBinaryData() {
-        return data != null;
-    }
-
-    public boolean isSuccessful() {
-        return resultCode == 0;
-    }
-
-    public int resultCode() {
-        return resultCode;
-    }
-
-    public String errorDescription() {
-        return error;
     }
 
     public String toString() {
@@ -68,8 +40,6 @@ public class Response implements Closeable {
 
     @Override
     public void close() {
-        if(data != null) {
-            data.close();
-        }
+        responseBody.close();
     }
 }
