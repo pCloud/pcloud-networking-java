@@ -1,5 +1,7 @@
-rootProject.name = 'api-client'
-rootProject.name = 'api-client'
+rootProject.name = 'pcloud-networking'
 include 'binapi-client'
 include 'example'
+include 'protocol'
+include 'utils'
+include 'serialization'
 
