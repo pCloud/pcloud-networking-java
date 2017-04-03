@@ -1,42 +1,21 @@
 package com.pcloud;
 
-import okio.BufferedSource;
+import com.pcloud.protocol.ValueReader;
+import com.pcloud.protocol.streaming.ProtocolReader;
 
 import java.io.Closeable;
-import java.io.InputStream;
-
-import static com.pcloud.internal.IOUtils.closeQuietly;
+import java.io.IOException;
+import java.util.Map;
 
 public abstract class ResponseBody implements Closeable{
 
-    public abstract BufferedSource source();
+    public abstract ProtocolReader reader();
 
-    public InputStream inputStream() {
-        return source().inputStream();
+    public Map<String,?> toValues() throws IOException {
+        return new ValueReader().readObject(reader());
     }
 
     public abstract long contentLength();
 
-    @Override
-    public void close() {
-        closeQuietly(source());
-    }
-
-    public static ResponseBody create(final long contentLength, final BufferedSource source){
-        if (source == null) {
-            throw new IllegalStateException("Source argument cannot be null.");
-        }
-
-        return new ResponseBody() {
-            @Override
-            public long contentLength() {
-                return contentLength;
-            }
-
-            @Override
-            public BufferedSource source() {
-                return source;
-            }
-        };
-    }
+    public abstract ResponseData data() throws IOException;
 }

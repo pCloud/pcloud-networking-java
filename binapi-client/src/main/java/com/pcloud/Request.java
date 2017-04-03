@@ -16,6 +16,8 @@
 
 package com.pcloud;
 
+import com.pcloud.protocol.DataSource;
+
 public class Request {
 
     public static Builder create() {
@@ -76,7 +78,7 @@ public class Request {
             return this;
         }
 
-        public Builder setBody(RequestBody body) {
+        public Builder body(RequestBody body) {
             this.body = body;
             return this;
         }

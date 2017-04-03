@@ -27,7 +27,7 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.pcloud.internal.IOUtils;
+import com.pcloud.internal.ClientIOUtils;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
@@ -76,7 +76,7 @@ class RealConnection implements Connection {
     }
 
     @Override
-    public BufferedSink getSink() {
+    public BufferedSink sink() {
         return sink;
     }
 
@@ -114,9 +114,9 @@ class RealConnection implements Connection {
 
     @Override
     public void close() {
-        IOUtils.closeQuietly(socket);
-        IOUtils.closeQuietly(source);
-        IOUtils.closeQuietly(sink);
+        ClientIOUtils.closeQuietly(socket);
+        ClientIOUtils.closeQuietly(source);
+        ClientIOUtils.closeQuietly(sink);
         socket = null;
         source = null;
         sink = null;
@@ -145,11 +145,11 @@ class RealConnection implements Connection {
             return socket;
 
         } catch (AssertionError e) {
-            if (IOUtils.isAndroidGetsocknameError(e)) throw new IOException(e);
+            if (ClientIOUtils.isAndroidGetsocknameError(e)) throw new IOException(e);
             throw e;
         } finally {
             if (!connectionSucceeded) {
-                IOUtils.closeQuietly(socket);
+                ClientIOUtils.closeQuietly(socket);
             }
         }
     }

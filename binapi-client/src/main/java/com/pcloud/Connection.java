@@ -28,7 +28,7 @@ interface Connection extends Closeable {
 
     BufferedSource source();
 
-    BufferedSink getSink();
+    BufferedSink sink();
 
     @Override
     void close();

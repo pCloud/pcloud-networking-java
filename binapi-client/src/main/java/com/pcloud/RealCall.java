@@ -16,14 +16,16 @@
 
 package com.pcloud;
 
-import com.pcloud.internal.IOUtils;
-import okio.*;
+import com.pcloud.protocol.streaming.BytesReader;
+import com.pcloud.protocol.streaming.BytesWriter;
+import com.pcloud.protocol.streaming.ProtocolReader;
+import com.pcloud.protocol.streaming.ProtocolWriter;
+import okio.BufferedSource;
+import okio.Okio;
 
 import java.io.IOException;
-import java.net.ProtocolException;
 
-import static com.pcloud.internal.IOUtils.closeQuietly;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static com.pcloud.internal.ClientIOUtils.closeQuietly;
 
 class RealCall implements Call {
 
@@ -32,14 +34,12 @@ class RealCall implements Call {
     private volatile boolean executed;
     private RealConnection connection;
 
-    private BinaryProtocolCodec binaryProtocolCodec;
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
     private boolean eagerlyCheckConnectivity;
 
-    RealCall(Request request, BinaryProtocolCodec binaryProtocolCodec, ConnectionPool connectionPool, ConnectionFactory connectionFactory, boolean eagerlyCheckConnectivity) {
+    RealCall(Request request, ConnectionPool connectionPool, ConnectionFactory connectionFactory, boolean eagerlyCheckConnectivity) {
         this.request = request;
-        this.binaryProtocolCodec = binaryProtocolCodec;
         this.connectionPool = connectionPool;
         this.connectionFactory = connectionFactory;
         this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
@@ -52,17 +52,27 @@ class RealCall implements Call {
             executed = true;
         }
 
-        if (cancelled){
+        if (cancelled) {
             throw new IOException("Cancelled.");
         }
 
         connection = obtainConnection();
         boolean success = false;
         try {
-            binaryProtocolCodec.writeRequest(connection.getSink(), request);
-            long contentLength = BinaryProtocolCodec.readResponseLength(connection.source());
-            FixedLengthSource responseStream = new RecyclingFixedLengthSource(connectionPool, connection, contentLength);
-            Response response = Response.create(ResponseBody.create(contentLength, Okio.buffer(responseStream)));
+            ProtocolWriter writer = new BytesWriter(connection.sink());
+            writer.beginRequest()
+                    .method(request.methodName());
+            if (request.dataSource() != null) {
+                writer.data(request.dataSource());
+            }
+            request.body().writeAll(writer);
+            writer.endRequest();
+            writer.flush();
+
+            Response response = Response.create()
+                    .request(request)
+                    .responseBody(createResponseBody(connection.source()))
+                    .build();
             success = true;
             return response;
         } finally {
@@ -71,6 +81,62 @@ class RealCall implements Call {
             }
             connection = null;
         }
+    }
+
+    private ResponseBody createResponseBody(final BufferedSource source) throws IOException {
+        final ProtocolReader reader = new BytesReader(source);
+        final long contentLength = reader.beginResponse();
+
+        return new ResponseBody() {
+
+            private ResponseData data;
+            private FixedLengthSource dataSource;
+
+            @Override
+            public ProtocolReader reader() {
+                return reader;
+            }
+
+            @Override
+            public long contentLength() {
+                return contentLength;
+            }
+
+            @Override
+            public ResponseData data() throws IOException {
+                {
+                    long dataLength = reader().dataContentLength();
+                    if (dataLength == -1) {
+                        throw new IOException("Cannot access data content before the response body has been completely read.");
+                    } else if (dataLength > 0) {
+                        synchronized (reader) {
+                            if (data == null) {
+                                dataSource = new RecyclingFixedLengthSource(connectionPool, connection, dataLength);
+                                data = new ResponseData(Okio.buffer(dataSource), dataLength);
+                            }
+                        }
+                    }
+                    return data;
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                final long dataContentLength;
+                final FixedLengthSource dataSource;
+                synchronized (reader) {
+                    dataContentLength = reader.dataContentLength();
+                    dataSource = this.dataSource;
+                }
+                if (dataContentLength == 0 || dataSource != null && dataSource.bytesRemaining() == 0) {
+                    // All possible data has been read, safe to reuse the connection.
+                    connectionPool.recycle(connection);
+                } else {
+                    // It is unknown whether all data from the response has been read, no connection reuse is possible.
+                    connection.close();
+                }
+            }
+        };
     }
 
     @Override
@@ -106,7 +172,7 @@ class RealCall implements Call {
     @Override
     public void cancel() {
         cancelled = true;
-        if (connection != null){
+        if (connection != null) {
             connection.close();
         }
     }
@@ -114,68 +180,6 @@ class RealCall implements Call {
     @Override
     public boolean isCancelled() {
         return cancelled;
-    }
-
-    private abstract static class FixedLengthSource implements Source {
-
-        int DISCARD_STREAM_TIMEOUT_MILLIS = 200;
-
-        private long bytesRemaining;
-        private boolean closed;
-        private Source source;
-        private ForwardingTimeout timeout;
-
-        FixedLengthSource(Source source, long contentLength) {
-            this.source = source;
-            this.timeout = new ForwardingTimeout(source.timeout());
-            this.bytesRemaining = contentLength;
-        }
-
-        public Timeout timeout() {
-            return timeout;
-        }
-
-        @Override
-        public long read(Buffer sink, long byteCount) throws IOException {
-            if (byteCount < 0) throw new IllegalArgumentException("byteCount < 0: " + byteCount);
-            if (closed) throw new IllegalStateException("closed");
-            if (bytesRemaining == 0) return -1;
-
-            long read = source.read(sink, Math.min(bytesRemaining, byteCount));
-            if (read == -1) {
-                scrap(false); // The server didn't supply the promised content length.
-                throw new ProtocolException("unexpected end of stream");
-            }
-
-            bytesRemaining -= read;
-            if (bytesRemaining == 0) {
-                scrap(true);
-            }
-            return read;
-        }
-
-
-        @Override
-        public synchronized void close() throws IOException {
-            if (!closed) {
-                if (bytesRemaining != 0 &&
-                        !IOUtils.skipAll(this, DISCARD_STREAM_TIMEOUT_MILLIS, MILLISECONDS)) {
-                    scrap(false);
-                }
-
-                closed = true;
-            }
-        }
-
-        protected abstract void exhausted(boolean reuseSource);
-
-        private void scrap(boolean reuseSource) {
-            Timeout oldDelegate = timeout.delegate();
-            timeout.setDelegate(Timeout.NONE);
-            oldDelegate.clearDeadline();
-            oldDelegate.clearTimeout();
-            exhausted(reuseSource);
-        }
     }
 
     private static class RecyclingFixedLengthSource extends FixedLengthSource {

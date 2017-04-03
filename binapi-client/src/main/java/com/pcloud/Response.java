@@ -17,17 +17,64 @@
 package com.pcloud;
 
 import java.io.Closeable;
+import java.io.IOException;
+
+import static com.pcloud.IOUtils.closeQuietly;
 
 public class Response implements Closeable {
 
-    private ResponseBody responseBody;
+    public static class Builder {
 
-    public static Response create(ResponseBody body){
-        return new Response(body);
+        private ResponseBody responseBody;
+        private Request request;
+
+        private Builder(){
+
+        }
+
+        public Builder request(Request request) {
+            if (request == null) {
+                throw new IllegalArgumentException("Request argument cannot be null.");
+            }
+            this.request = request;
+            return this;
+        }
+
+        public Builder responseBody(ResponseBody responseBody) {
+            if (responseBody == null) {
+                throw new IllegalArgumentException("ResponseBody argument cannot be null.");
+            }
+
+            this.responseBody = responseBody;
+            return this;
+        }
+
+        public Response build() {
+            if (request == null) {
+                throw new IllegalArgumentException("Request argument cannot be null.");
+            }
+            if (responseBody == null) {
+                throw new IllegalArgumentException("ResponseBody argument cannot be null.");
+            }
+
+            return new Response(this);
+        }
     }
 
-    private Response(ResponseBody responseBody) {
-        this.responseBody = responseBody;
+    private ResponseBody responseBody;
+    private Request request;
+
+    public static Builder create() {
+        return new Builder();
+    }
+
+    private Response(Builder builder) {
+        this.responseBody = builder.responseBody;
+        this.request = builder.request;
+    }
+
+    public Request request() {
+        return request;
     }
 
     public ResponseBody responseBody() {
@@ -40,6 +87,6 @@ public class Response implements Closeable {
 
     @Override
     public void close() {
-        responseBody.close();
+        closeQuietly(responseBody);
     }
 }

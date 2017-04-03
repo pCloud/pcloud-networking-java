@@ -42,7 +42,6 @@ public class PCloudAPIClient {
     private final Authenticator authenticator;
 
     ConnectionPool connectionPool;
-    BinaryProtocolCodec binaryProtocolCodec;
     ConnectionFactory connectionFactory;
 
     private PCloudAPIClient(Builder builder) {
@@ -60,12 +59,11 @@ public class PCloudAPIClient {
         this.maxIdleConnections = builder.maxIdleConnectionCount;
 
         this.connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDurationMs, MILLISECONDS);
-        this.binaryProtocolCodec = new BinaryProtocolCodec();
         this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier, connectTimeoutMs, readTimeoutMs, MILLISECONDS);
     }
 
     public Call newCall(Request request){
-        return new RealCall(request, binaryProtocolCodec, connectionPool, connectionFactory, false);
+        return new RealCall(request, connectionPool, connectionFactory, false);
     }
 
     public int maxIdleConnections() {

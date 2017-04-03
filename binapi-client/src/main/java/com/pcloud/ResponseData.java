@@ -24,13 +24,12 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static com.pcloud.internal.IOUtils.closeQuietly;
+import static com.pcloud.internal.ClientIOUtils.closeQuietly;
 
-public class ResponseData extends Data implements Closeable{
+public class ResponseData implements Closeable{
 
     private final BufferedSource source;
     private final long contentLength;
-
 
     public ResponseData(BufferedSource source, long contentLength) {
         this.source = source;
@@ -66,12 +65,10 @@ public class ResponseData extends Data implements Closeable{
         closeQuietly(source);
     }
 
-    @Override
     public long contentLength() {
         return contentLength;
     }
 
-    @Override
     public void writeTo(BufferedSink sink) throws IOException {
         try {
             sink.writeAll(source);

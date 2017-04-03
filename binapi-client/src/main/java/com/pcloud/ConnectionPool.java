@@ -16,7 +16,7 @@
 
 package com.pcloud;
 
-import com.pcloud.internal.IOUtils;
+import com.pcloud.internal.ClientIOUtils;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -113,7 +113,7 @@ public class ConnectionPool {
         }
 
         for (Connection connection : evictedConnections) {
-            IOUtils.closeQuietly(connection);
+            ClientIOUtils.closeQuietly(connection);
         }
     }
 
@@ -151,7 +151,7 @@ public class ConnectionPool {
             }
         }
 
-        IOUtils.closeQuietly(longestIdleConnection);
+        ClientIOUtils.closeQuietly(longestIdleConnection);
 
         // Cleanup again immediately.
         return 0;

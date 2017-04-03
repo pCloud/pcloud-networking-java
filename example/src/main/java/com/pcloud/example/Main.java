@@ -16,12 +16,17 @@
 
 package com.pcloud.example;
 
-import com.pcloud.Authenticator;
 import com.pcloud.PCloudAPIClient;
 import com.pcloud.Request;
+import com.pcloud.RequestBody;
 import com.pcloud.Response;
+import com.pcloud.networking.Cyclone;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.pcloud.IOUtils.closeQuietly;
 
 public class Main {
 
@@ -30,55 +35,36 @@ public class Main {
         final String username = System.getenv("pcloud_username");
         final String password = System.getenv("pcloud_password");
 
+        Cyclone cyclone = Cyclone.create()
+                .build();
+
         PCloudAPIClient client = PCloudAPIClient.newClient()
-                .setAuthenticator(new Authenticator() {
-                    public Request authenticate(Request request) {
-                        /*TODO: Add auth parameters to request here.*/
-                        request.newRequest().addParameter("username", username)
-                                .addParameter("password", password);
-                        return request;
-                    }
-                })
                 .create();
         try {
-            Response response = login(client, username, password);
-            if (response.isSuccessful()) {
-                listFiles(client, "/Automatic Upload", false);
-            } else {
-                System.out.println("Failed to login with the provided credentials.");
-            }
-        } catch (Exception e) {
+            String token = getAuthToken(client, username, password);
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             client.shutdown();
         }
     }
 
-    private static Response listFiles(PCloudAPIClient client, String path, boolean recursive) throws IOException {
-        Request request = Request.create()
-                .methodName("listfolder")
-                .addParameter("timeformat","timestamp")
-                .addParameter("path", path)
-                .addParameter("recursive", recursive)
-                .build();
+    private static String getAuthToken(PCloudAPIClient client, String username, String password) throws IOException {
+        Map<String, Object> values = new HashMap<>();
+        values.put("getauth", 1);
+        values.put("username", username);
+        values.put("password", password);
 
-        System.out.println(request);
-        Response filesResponse = client.newCall(request).execute();
-        System.out.println(filesResponse);
-        return filesResponse;
-    }
-
-    private static Response login(PCloudAPIClient client, String username, String password) throws IOException {
-        Request loginRequest =
-                Request.create()
-                        .methodName("userinfo")
-                        .addParameter("getauth", 1)
-                        .addParameter("username", username)
-                        .addParameter("password", password)
-                        .build();
-        System.out.println(loginRequest);
-        Response loginResponse = client.newCall(loginRequest).execute();
-        System.out.println(loginResponse);
-        return loginResponse;
+        Response response = null;
+        try {
+            response = client.newCall(Request.create()
+                    .methodName("userinfo")
+                    .body(RequestBody.fromValues(values))
+                    .build()).execute();
+            Map<String, ?> responseValues = response.responseBody().toValues();
+            return (String) responseValues.get("auth");
+        } finally {
+            closeQuietly(response);
+        }
     }
 }
