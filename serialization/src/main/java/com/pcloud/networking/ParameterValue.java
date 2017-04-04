@@ -28,6 +28,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Target({FIELD, METHOD})
 @Retention(RUNTIME)
 @Documented
-public @interface ParameterName {
-    String name();
+public @interface ParameterValue {
+
+    String DEFAULT_NAME="default";
+    String value() default DEFAULT_NAME;
 }

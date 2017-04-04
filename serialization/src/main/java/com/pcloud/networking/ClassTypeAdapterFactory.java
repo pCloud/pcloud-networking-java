@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class ClassTypeAdapterFactory implements TypeAdapterFactory {
+class ClassTypeAdapterFactory implements TypeAdapterFactory {
     @Override
     public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone moshi) {
         Class<?> rawType = Types.getRawType(type);
@@ -69,6 +69,9 @@ public class ClassTypeAdapterFactory implements TypeAdapterFactory {
         for (Field field : rawType.getDeclaredFields()) {
             if (!includeField(platformType, field.getModifiers())) continue;
 
+            ParameterValue paramAnnotation = field.getAnnotation(ParameterValue.class);
+            if (paramAnnotation == null) continue;
+
             // Look up a type adapter for this type.
             Type fieldType = Types.resolve(type, rawType, field.getGenericType());
             TypeAdapter<Object> adapter = moshi.getTypeAdapter(fieldType);
@@ -77,8 +80,8 @@ public class ClassTypeAdapterFactory implements TypeAdapterFactory {
             field.setAccessible(true);
 
             // Store it using the field's name. If there was already a field with this name, fail!
-            ParameterName nameAnnotation = field.getAnnotation(ParameterName.class);
-            String name = nameAnnotation != null ? nameAnnotation.name() : field.getName();
+            String annotatedName = paramAnnotation.value();
+            String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
             ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, fieldCanBeSerialized(field, fieldType));
             ClassTypeAdapter.Binding<?> replaced = fieldBindings.put(name, fieldBinding);
             if (replaced != null) {
