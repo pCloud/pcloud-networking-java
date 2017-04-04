@@ -29,10 +29,7 @@ import okio.BufferedSource;
 import java.io.IOException;
 import java.net.ProtocolException;
 import java.nio.charset.Charset;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 
 import static com.pcloud.IOUtils.closeQuietly;
 import static com.pcloud.protocol.streaming.TypeToken.*;
@@ -105,7 +102,7 @@ public class BytesReader implements ProtocolReader {
     public long endResponse() throws IOException {
         int scope = scopeStack.peek();
         if (responseStarted && scope == SCOPE_RESPONSE) {
-            while (hasNext()){
+            while (hasNext()) {
                 skipValue();
             }
             scopeStack.clear();
@@ -125,7 +122,7 @@ public class BytesReader implements ProtocolReader {
         int type = pullType();
         if (type == TYPE_BEGIN_OBJECT) {
             scopeStack.push(SCOPE_OBJECT);
-        } else if (type == TYPE_BEGIN_ARRAY && peekType() == TYPE_END_ARRAY_OBJECT){
+        } else if (type == TYPE_BEGIN_ARRAY && peekType() == TYPE_END_ARRAY_OBJECT) {
             /*
             * Empty objects are returned as empty arrays.
             * */
@@ -233,12 +230,10 @@ public class BytesReader implements ProtocolReader {
         closeQuietly(source);
     }
 
-    private final byte[] numberBuffer = new byte[8];
-
     private int peekType() throws IOException {
         source.require(1);
-        int type = source.buffer().readByte() & 0xff;
-        if (type == TYPE_DATA){
+        int type = source.buffer().getByte(0) & 0xff;
+        if (type == TYPE_DATA) {
             // Swallow the token, and peek again.
             source.readByte();
             dataLength = pullNumber(8);
@@ -250,7 +245,7 @@ public class BytesReader implements ProtocolReader {
     private int pullType() throws IOException {
         if (responseStarted) {
             int type = source.readByte() & 0xff;
-            if (type == TYPE_DATA){
+            if (type == TYPE_DATA) {
                 // Store the data content length and
                 // swallow the token.
                 dataLength = pullNumber(8);
@@ -264,14 +259,18 @@ public class BytesReader implements ProtocolReader {
 
     private long pullNumber(int byteCount) throws IOException {
         source.require(byteCount);
-        source.read(numberBuffer, 0, byteCount);
-        long value = 0;
-        long m = 1;
-        for (int i = 0; i < byteCount; i++) {
-            value += m * (numberBuffer[i] & 0xff);
-            m *= 256;
+        if (byteCount > 1) {
+            byte[] number = source.readByteArray(byteCount);
+            long value = 0;
+            long m = 1;
+            for (int i = 0; i < byteCount; i++) {
+                value += m * (number[i] & 0xff);
+                m *= 256;
+            }
+            return value;
+        } else {
+            return source.readByte() & 0xff;
         }
-        return value;
     }
 
     private static RuntimeException typeMismatchError(int expectedType, int actualType) {
@@ -388,12 +387,12 @@ public class BytesReader implements ProtocolReader {
                     endArray();
             }
         } else if (type != TYPE_BOOLEAN_TRUE || type != TYPE_BOOLEAN_FALSE ||
-                !(type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END)){
+                !(type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END)) {
             throw new ProtocolException("Unknown type " + type);
         }
     }
 
-    private int getCurrentScope(){
+    private int getCurrentScope() {
         Integer scope = scopeStack.peek();
         return scope != null ? scope : SCOPE_NONE;
     }
