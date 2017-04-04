@@ -69,9 +69,10 @@ class RealCall implements Call {
             writer.endRequest();
             writer.flush();
 
+            connection.source().require(16);
             Response response = Response.create()
                     .request(request)
-                    .responseBody(createResponseBody(connection.source()))
+                    .responseBody(createResponseBody(connection.source(), connection))
                     .build();
             success = true;
             return response;
@@ -83,7 +84,7 @@ class RealCall implements Call {
         }
     }
 
-    private ResponseBody createResponseBody(final BufferedSource source) throws IOException {
+    private ResponseBody createResponseBody(final BufferedSource source, final Connection connection) throws IOException {
         final ProtocolReader reader = new BytesReader(source);
         final long contentLength = reader.beginResponse();
 
@@ -130,7 +131,7 @@ class RealCall implements Call {
                 }
                 if (dataContentLength == 0 || dataSource != null && dataSource.bytesRemaining() == 0) {
                     // All possible data has been read, safe to reuse the connection.
-                    connectionPool.recycle(connection);
+                    connectionPool.recycle((RealConnection) connection);
                 } else {
                     // It is unknown whether all data from the response has been read, no connection reuse is possible.
                     connection.close();
