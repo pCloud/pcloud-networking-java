@@ -35,7 +35,7 @@ public class Cyclone {
     }
 
     public <T> TypeAdapter<T> getTypeAdapter(Class<T> type) {
-        return getTypeAdapter(type);
+        return getTypeAdapter((Type)type);
     }
 
     public <T> TypeAdapter<T> getTypeAdapter(Type type) {
