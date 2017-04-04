@@ -69,7 +69,6 @@ class RealCall implements Call {
             writer.endRequest();
             writer.flush();
 
-            connection.source().require(16);
             Response response = Response.create()
                     .request(request)
                     .responseBody(createResponseBody(connection.source(), connection))

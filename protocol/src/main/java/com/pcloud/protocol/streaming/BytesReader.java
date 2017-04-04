@@ -354,13 +354,19 @@ public class BytesReader implements ProtocolReader {
     public void skipValue() throws IOException {
         final int type = peekType();
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
-            // Skip 1-8 bytes depending on number size.
-            source.skip(type - 7);
+            // Skip 1-8 bytes depending on number size + 1 byte for the type.
+            // [type] - 7 + 1
+            source.skip(type - 6);
+        } else if (type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
+            source.skip(1);
         } else if (type >= TYPE_STRING_START && type <= TYPE_STRING_END ||
                 type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
             // The compression optimizations for strings require full reading.
             readString();
-        } else if (type == TYPE_BEGIN_OBJECT) {
+        } else if (type == TYPE_BOOLEAN_TRUE || type == TYPE_BOOLEAN_FALSE) {
+            source.skip(1);
+        }
+        else if (type == TYPE_BEGIN_OBJECT) {
             // Object
             beginObject();
             while (hasNext()) {
@@ -386,8 +392,7 @@ public class BytesReader implements ProtocolReader {
                 case TYPE_BEGIN_ARRAY:
                     endArray();
             }
-        } else if (type != TYPE_BOOLEAN_TRUE || type != TYPE_BOOLEAN_FALSE ||
-                !(type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END)) {
+        } else {
             throw new ProtocolException("Unknown type " + type);
         }
     }
