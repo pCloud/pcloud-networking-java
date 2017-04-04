@@ -25,7 +25,7 @@ import java.net.ProtocolException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ArrayTypeAdapter extends TypeAdapter<Object>  {
+class ArrayTypeAdapter extends TypeAdapter<Object>  {
 
     private Class<?> elementClass;
     private TypeAdapter<Object> elementAdapter;

@@ -11,7 +11,7 @@ public abstract class ResponseBody implements Closeable{
 
     public abstract ProtocolReader reader();
 
-    public Map<String,?> toValues() throws IOException {
+    public final Map<String,?> toValues() throws IOException {
         return new ValueReader().readObject(reader());
     }
 

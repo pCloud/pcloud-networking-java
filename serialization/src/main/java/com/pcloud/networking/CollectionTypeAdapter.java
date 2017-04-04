@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.net.ProtocolException;
 import java.util.Collection;
 
-public abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T>{
+abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T>{
 
     private TypeAdapter<E> elementAdapter;
 

@@ -20,7 +20,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Set;
 
-public class ArrayTypeAdapterFactory implements TypeAdapterFactory {
+class ArrayTypeAdapterFactory implements TypeAdapterFactory {
     @Override
     public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone) {
             Type elementType = Types.arrayComponentType(type);

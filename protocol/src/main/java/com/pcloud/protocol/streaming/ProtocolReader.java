@@ -16,8 +16,6 @@
 
 package com.pcloud.protocol.streaming;
 
-import com.pcloud.protocol.DataSink;
-
 import java.io.Closeable;
 import java.io.IOException;
 

@@ -18,13 +18,15 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.SerializationException;
+import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 
-public class ClassTypeAdapter<T> extends TypeAdapter<T>{
+class ClassTypeAdapter<T> extends TypeAdapter<T> {
     private final ClassFactory<T> classFactory;
     private final Map<String, Binding<?>> nameToBindingMap;
 
@@ -67,7 +69,8 @@ public class ClassTypeAdapter<T> extends TypeAdapter<T>{
         }
     }
 
-    @Override public void serialize(ProtocolWriter writer, T value) throws IOException {
+    @Override
+    public void serialize(ProtocolWriter writer, T value) throws IOException {
         try {
             for (Binding<?> binding : nameToBindingMap.values()) {
                 binding.write(writer, value);
@@ -77,7 +80,8 @@ public class ClassTypeAdapter<T> extends TypeAdapter<T>{
         }
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "TypeAdapter(" + classFactory + ")";
     }
 
@@ -87,7 +91,7 @@ public class ClassTypeAdapter<T> extends TypeAdapter<T>{
         final TypeAdapter<T> adapter;
         final boolean canBeSerialized;
 
-        public Binding(String name, Field field, TypeAdapter<T> adapter, boolean canBeSerialized) {
+        Binding(String name, Field field, TypeAdapter<T> adapter, boolean canBeSerialized) {
             this.name = name;
             this.field = field;
             this.adapter = adapter;
@@ -95,15 +99,43 @@ public class ClassTypeAdapter<T> extends TypeAdapter<T>{
         }
 
         void read(ProtocolReader reader, Object value) throws IOException, IllegalAccessException {
-            T fieldValue = adapter.deserialize(reader);
-            field.set(value, fieldValue);
+            try {
+                T fieldValue = adapter.deserialize(reader);
+                field.set(value, fieldValue);
+            } catch (SerializationException e) {
+                throw new SerializationException("Failed to deserialize field '" + name + "'" +
+                        " of type '"+field.getType().getName()+
+                        "' in class '"+field.getDeclaringClass().getName()+"'.", e);
+            }
         }
 
-        @SuppressWarnings("unchecked") // We require that field's values are of type T.
+        @SuppressWarnings("unchecked")
+            // We require that field's values are of type T.
         void write(ProtocolWriter writer, Object value) throws IllegalAccessException, IOException {
             if (canBeSerialized) {
+                writer.writeName(name, guessFieldType(value));
                 T fieldValue = (T) field.get(value);
                 adapter.serialize(writer, fieldValue);
+            }
+        }
+
+        private TypeToken guessFieldType(Object value) throws IOException {
+            Class<?> type = value.getClass();
+            if (type.isAssignableFrom(Number.class)) {
+                if (type == Long.class || type == Integer.class || type == Short.class || type == Byte.class) {
+                    long numberValue = (long) value;
+                    return numberValue > 0 ? TypeToken.NUMBER : TypeToken.STRING;
+                } else if (type == Double.class || type == Float.class) {
+                    return TypeToken.STRING;
+                }
+            }
+
+            if (type == String.class) {
+                return TypeToken.STRING;
+            } else if (type == Boolean.class) {
+                return TypeToken.BOOLEAN;
+            } else {
+                throw new SerializationException("Cannot serialize field '" + name + "' value of type '" + type.getName() + "'.");
             }
         }
     }

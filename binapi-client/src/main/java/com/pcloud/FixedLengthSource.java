@@ -11,7 +11,7 @@ import java.net.ProtocolException;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-abstract class FixedLengthSource implements Source {
+public abstract class FixedLengthSource implements Source {
 
     int DISCARD_STREAM_TIMEOUT_MILLIS = 200;
 
@@ -20,7 +20,7 @@ abstract class FixedLengthSource implements Source {
     private Source source;
     private ForwardingTimeout timeout;
 
-    FixedLengthSource(Source source, long contentLength) {
+    protected FixedLengthSource(Source source, long contentLength) {
         this.source = source;
         this.timeout = new ForwardingTimeout(source.timeout());
         this.bytesRemaining = contentLength;
