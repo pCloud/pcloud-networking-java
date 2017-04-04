@@ -94,6 +94,7 @@ public class BytesWriter implements ProtocolWriter {
 
     @Override
     public ProtocolWriter endRequest() throws IOException {
+        Buffer metadataBuffer = new Buffer();
         byte[] bytes = methodName.getBytes(PROTOCOL_CHARSET);
 
         int methodNameLength = bytes.length;
@@ -105,21 +106,23 @@ public class BytesWriter implements ProtocolWriter {
             methodNameLength = methodNameLength | (1 << REQUEST_BINARY_DATA_FLAG_POSITION);
         }
 
-        sink.writeByte(methodNameLength);
-        sink.write(bytes);
+        metadataBuffer.writeByte(methodNameLength);
+        metadataBuffer.write(bytes);
 
         if (hasData) {
-            sink.writeLongLe(dataSourceLength);
+            metadataBuffer.writeLongLe(dataSourceLength);
         }
 
-        final long parametersSize = paramsBuffer.size();
-        if (parametersSize > REQUEST_SIZE_LIMIT_BYTES - 1) {
-            throw new ProtocolException("The request is too big, max allowed size is 65535 bytes, current is " + parametersSize);
+        metadataBuffer.writeByte(parameterCount);
+
+        final long requestSize = metadataBuffer.size() + paramsBuffer.size();
+        if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
+            throw new ProtocolException("The request is too big, max allowed size is 65535 bytes, current is " + requestSize);
         }
 
-        sink.writeByte(parameterCount);
-        sink.writeShortLe((int) parametersSize + 1);
-        sink.write(paramsBuffer, parametersSize);
+        sink.writeShortLe((int) requestSize);
+        sink.write(metadataBuffer, metadataBuffer.size());
+        sink.write(this.paramsBuffer, paramsBuffer.size());
         if (hasData) {
             dataSource.writeTo(sink);
         }
