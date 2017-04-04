@@ -24,7 +24,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Set;
 
-public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
+class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
     private static final TypeAdapter<String> STRING_ADAPTER = new TypeAdapter<String>() {
         @Override
         public String deserialize(ProtocolReader reader) throws IOException {
@@ -33,7 +33,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, String value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue(value);
         }
     };
 
@@ -45,7 +45,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Boolean value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((boolean)value);
         }
     };
 
@@ -57,7 +57,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Integer value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((int)value);
         }
     };
 
@@ -69,7 +69,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Long value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((long)value);
         }
     };
 
@@ -86,7 +86,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Double value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((double)value);
         }
     };
 
@@ -103,7 +103,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Float value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((float)value);
         }
     };
 
@@ -115,7 +115,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Short value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((short)value);
         }
     };
 
@@ -127,7 +127,7 @@ public class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Byte value) throws IOException {
-            throw new UnsupportedOperationException();
+            writer.writeValue((byte)value);
         }
     };
 

@@ -32,13 +32,19 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
 
     ProtocolWriter data(DataSource source) throws IOException;
 
-    ProtocolWriter parameter(String name, Object value) throws IOException;
+    ProtocolWriter writeName(String name, TypeToken type) throws IOException;
 
-    ProtocolWriter parameter(String name, String value) throws IOException;
+    ProtocolWriter writeValue(Object value) throws IOException;
 
-    ProtocolWriter parameter(String name, long value) throws IOException;
+    ProtocolWriter writeValue(String value) throws IOException;
 
-    ProtocolWriter parameter(String name, boolean value) throws IOException;
+    ProtocolWriter writeValue(double value) throws IOException;
+
+    ProtocolWriter writeValue(float value) throws IOException;
+
+    ProtocolWriter writeValue(long value) throws IOException;
+
+    ProtocolWriter writeValue(boolean value) throws IOException;
 
     @Override
     void close();

@@ -16,9 +16,12 @@
 
 package com.pcloud.protocol;
 
+import com.pcloud.protocol.streaming.SerializationException;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.Map;
 
 public class ValueWriter {
@@ -33,7 +36,26 @@ public class ValueWriter {
         }
 
         for (Map.Entry<String, ?> entry : values.entrySet()){
-            writer.parameter(entry.getKey(), entry.getValue());
+            String name = entry.getKey();
+            Object value = entry.getValue();
+            if (value != null) {
+                Class<?> valueType = value.getClass();
+                if (valueType == String.class) {
+                    writer.writeName(name, TypeToken.STRING).writeValue((String) value);
+                } else if (valueType == Long.class) {
+                    writer.writeName(name, TypeToken.NUMBER).writeValue((long) value);
+                } else if (valueType == Integer.class) {
+                    writer.writeName(name, TypeToken.NUMBER).writeValue((int) value);
+                } else if (valueType == Short.class) {
+                    writer.writeName(name, TypeToken.NUMBER).writeValue((short) value);
+                } else if (valueType == Byte.class) {
+                    writer.writeName(name, TypeToken.NUMBER).writeValue((byte) value);
+                } else if (valueType == Boolean.class) {
+                    writer.writeName(name, TypeToken.BOOLEAN).writeValue((boolean) value);
+                } else {
+                    throw new SerializationException("Cannot serialize value of type '" + valueType.getName() + "'.");
+                }
+            }
         }
     }
 }

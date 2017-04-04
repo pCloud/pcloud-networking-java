@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.ProtocolException;
 import java.nio.charset.Charset;
+import java.util.EnumSet;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
@@ -165,21 +166,44 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter parameter(String name, Object value) throws IOException {
+    public ProtocolWriter writeName(String name, TypeToken type) throws IOException {
+        switch (type){
+            case NUMBER:
+                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_NUMBER);
+                break;
+            case STRING:
+                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_STRING);
+                break;
+            case BOOLEAN:
+                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_BOOLEAN);
+                break;
+            default:
+                throw new IllegalStateException("TypeToken must be one of: " + EnumSet.of(TypeToken.NUMBER, TypeToken.STRING, TypeToken.BOOLEAN));
+        }
+
+        return this;
+    }
+
+    @Override
+    public ProtocolWriter writeValue(Object value) throws IOException {
         if (value != null) {
-            Type valueType = value.getClass();
+            final Type valueType = value.getClass();
             if (valueType == String.class) {
-                parameter(name, (String) value);
+                writeValue((String) value);
             } else if (valueType == Long.class) {
-                parameter(name, (long) value);
+                writeValue( (long) value);
             } else if (valueType == Integer.class) {
-                parameter(name, (int) value);
+                writeValue((int) value);
+            } else if (valueType == Float.class) {
+                writeValue( (float) value);
+            } else if (valueType == Double.class) {
+                writeValue( (double) value);
             } else if (valueType == Short.class) {
-                parameter(name, (short) value);
+                writeValue( (short) value);
             } else if (valueType == Byte.class) {
-                parameter(name, (byte) value);
+                writeValue( (byte) value);
             } else if (valueType == Boolean.class) {
-                parameter(name, (boolean) value);
+                writeValue( (boolean) value);
             } else {
                 throw new ProtocolException("Cannot serialize value of type '" + valueType + "'.");
             }
@@ -188,9 +212,8 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter parameter(String name, String value) throws IOException {
+    public ProtocolWriter writeValue(String value) throws IOException {
         if (value != null) {
-            writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_STRING);
             byte[] bytes = value.getBytes(PROTOCOL_CHARSET);
             paramsBuffer.writeIntLe(bytes.length);
             paramsBuffer.write(bytes);
@@ -200,11 +223,10 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter parameter(String name, long value) throws IOException {
+    public ProtocolWriter writeValue(long value) throws IOException {
         if (value < 0) {
-            parameter(name, String.valueOf(value));
+            writeValue(String.valueOf(value));
         } else {
-            writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_NUMBER);
             paramsBuffer.writeLongLe(value);
         }
 
@@ -212,13 +234,28 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter parameter(String name, boolean value) throws IOException {
-        writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_BOOLEAN);
+    public ProtocolWriter writeValue(boolean value) throws IOException {
         paramsBuffer.writeByte(value ? 1 : 0);
         return this;
     }
 
+    @Override
+    public ProtocolWriter writeValue(double value) throws IOException {
+        writeValue(String.valueOf(value));
+        return this;
+    }
+
+    @Override
+    public ProtocolWriter writeValue(float value) throws IOException {
+        writeValue(String.valueOf(value));
+        return this;
+    }
+
     private void writeParameterTypeAndName(String name, int type) throws IOException {
+        if(name == null) {
+            throw new IllegalArgumentException("Name parameter cannot be null.");
+        }
+
         if (parameterCount >= REQUEST_PARAM_COUNT_LIMIT) {
             throw new ProtocolException("Request parameter count limit reached.");
         }
