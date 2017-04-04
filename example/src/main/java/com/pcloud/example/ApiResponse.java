@@ -16,14 +16,17 @@
 
 package com.pcloud.example;
 
+import com.pcloud.networking.ParameterValue;
+
 public class ApiResponse {
 
+    @ParameterValue("result")
     private long result;
+    @ParameterValue("message")
     private String message;
 
-
     @SuppressWarnings("unused")
-    private ApiResponse() {
+    protected ApiResponse() {
     }
 
     public ApiResponse(long result, String message) {
