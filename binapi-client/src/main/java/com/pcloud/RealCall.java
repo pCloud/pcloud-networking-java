@@ -16,10 +16,7 @@
 
 package com.pcloud;
 
-import com.pcloud.protocol.streaming.BytesReader;
-import com.pcloud.protocol.streaming.BytesWriter;
-import com.pcloud.protocol.streaming.ProtocolReader;
-import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.*;
 import okio.BufferedSource;
 import okio.Okio;
 
@@ -84,7 +81,17 @@ class RealCall implements Call {
     }
 
     private ResponseBody createResponseBody(final BufferedSource source, final Connection connection) throws IOException {
-        final ProtocolReader reader = new BytesReader(source);
+
+        final BytesReader reader = new BytesReader(source) {
+            @Override
+            public void endObject() throws IOException {
+                super.endObject();
+                if (currentScope() == SCOPE_RESPONSE){
+                    endResponse();
+                }
+            }
+        };
+
         final long contentLength = reader.beginResponse();
 
         return new ResponseBody() {

@@ -25,6 +25,7 @@
 package com.pcloud;
 
 import okio.Buffer;
+import okio.BufferedSource;
 import okio.Source;
 
 import java.io.Closeable;
@@ -92,6 +93,39 @@ public class IOUtils {
             } else {
                 source.timeout().deadlineNanoTime(now + originalDuration);
             }
+        }
+    }
+
+    public static long readNumberLe(BufferedSource source, int byteCount) throws IOException {
+        source.require(byteCount);
+        if (byteCount > 1) {
+            byte[] number = source.readByteArray(byteCount);
+            long value = 0;
+            long m = 1;
+            for (int i = 0; i < byteCount; i++) {
+                value += m * (number[i] & 0xff);
+                m *= 256;
+            }
+            return value;
+        } else {
+            return source.readByte() & 0xff;
+        }
+    }
+
+    public static long peekNumberLe(BufferedSource source, int byteCount) throws IOException {
+        source.require(byteCount);
+        if (byteCount > 1) {
+            Buffer numberBytes = new Buffer();
+            source.buffer().copyTo(numberBytes, 0, byteCount);
+            long value = 0;
+            long m = 1;
+            for (int i = 0; i < byteCount; i++) {
+                value += m * (numberBytes.getByte(i) & 0xff);
+                m *= 256;
+            }
+            return value;
+        } else {
+            return source.buffer().getByte(0) & 0xff;
         }
     }
 }
