@@ -24,7 +24,9 @@
 
 package com.pcloud.protocol.streaming;
 
+import com.pcloud.ByteCountingSource;
 import okio.BufferedSource;
+import okio.Okio;
 
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -65,24 +67,28 @@ public class BytesReader implements ProtocolReader {
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
 
     // Scope types
-    private static final int SCOPE_NONE = -1;
-    private static final int SCOPE_RESPONSE = 1;
-    private static final int SCOPE_OBJECT = 2;
-    private static final int SCOPE_ARRAY = 3;
+    public static final int SCOPE_NONE = -1;
+    public static final int SCOPE_RESPONSE = 1;
+    public static final int SCOPE_OBJECT = 2;
+    public static final int SCOPE_ARRAY = 3;
+
     private static final int UNKNOWN_SIZE = -1;
 
     private Deque<Integer> scopeStack = new ArrayDeque<>(10);
     private List<String> stringCache = new ArrayList<>();
 
-    private BufferedSource source;
+    private BufferedSource bufferedSource;
+    private ByteCountingSource wrappedSource;
     private boolean responseStarted;
+    private volatile long responseLength = UNKNOWN_SIZE;
     private volatile long dataLength = UNKNOWN_SIZE;
 
-    public BytesReader(BufferedSource source) {
-        if (source == null) {
+    public BytesReader(BufferedSource bufferedSource) {
+        if (bufferedSource == null) {
             throw new IllegalArgumentException("Source argument cannot be null.");
         }
-        this.source = source;
+        this.wrappedSource = new ByteCountingSource(bufferedSource);
+        this.bufferedSource = Okio.buffer(wrappedSource);
     }
 
     @Override
@@ -92,18 +98,24 @@ public class BytesReader implements ProtocolReader {
 
     @Override
     public long beginResponse() throws IOException {
-        responseStarted = true;
-        long paramLength = pullNumber(4);
-        scopeStack.push(SCOPE_RESPONSE);
-        return paramLength;
+        if (!responseStarted) {
+            responseStarted = true;
+            responseLength = pullNumber(4) + 4;// Add the 4 byte content length to the total length.
+            scopeStack.push(SCOPE_RESPONSE);
+            return responseLength;
+        }
+
+        throw new SerializationException("Trying to start reading a response, which has already been started.");
     }
 
     @Override
     public long endResponse() throws IOException {
-        int scope = scopeStack.peek();
+        int scope = currentScope();
         if (responseStarted && scope == SCOPE_RESPONSE) {
-            while (hasNext()) {
-                skipValue();
+            if (wrappedSource.bytesRead() < responseLength) {
+                while (hasNext()) {
+                    skipValue();
+                }
             }
             scopeStack.clear();
             stringCache.clear();
@@ -111,7 +123,7 @@ public class BytesReader implements ProtocolReader {
                 dataLength = 0;
             }
         } else {
-            throw new IllegalStateException("Trying to end a response, but current scope is " + scopeName(scope));
+            throw new SerializationException("Trying to end a response, but current scope is " + scopeName(scope));
         }
 
         return dataLength;
@@ -161,7 +173,7 @@ public class BytesReader implements ProtocolReader {
     public void endObject() throws IOException {
         int type = pullType();
         if (type == TYPE_END_ARRAY_OBJECT) {
-            int scope = getCurrentScope();
+            int scope = currentScope();
             if (scope == SCOPE_OBJECT) {
                 scopeStack.pop();
             } else {
@@ -190,7 +202,7 @@ public class BytesReader implements ProtocolReader {
         if (type >= TYPE_STRING_START && type <= TYPE_STRING_END) {
             // String
             long stringLength = pullNumber(type + 1);
-            String value = source.readString(stringLength, PROTOCOL_CHARSET);
+            String value = bufferedSource.readString(stringLength, PROTOCOL_CHARSET);
             stringCache.add(value);
             return value;
         } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
@@ -200,7 +212,7 @@ public class BytesReader implements ProtocolReader {
         } else if (type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_END) {
             // String, with compression optimization
             int stringLength = type - 100;
-            String value = source.readString(stringLength, PROTOCOL_CHARSET);
+            String value = bufferedSource.readString(stringLength, PROTOCOL_CHARSET);
             stringCache.add(value);
             return value;
         } else if (type >= TYPE_STRING_COMPRESSED_REUSED_BEGIN && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
@@ -227,15 +239,15 @@ public class BytesReader implements ProtocolReader {
 
     @Override
     public void close() {
-        closeQuietly(source);
+        closeQuietly(bufferedSource);
     }
 
     private int peekType() throws IOException {
-        source.require(1);
-        int type = source.buffer().getByte(0) & 0xff;
+        bufferedSource.require(1);
+        int type = bufferedSource.buffer().getByte(0) & 0xff;
         if (type == TYPE_DATA) {
             // Swallow the token, and peek again.
-            source.readByte();
+            bufferedSource.readByte();
             dataLength = pullNumber(8);
             return peekType();
         }
@@ -244,7 +256,7 @@ public class BytesReader implements ProtocolReader {
 
     private int pullType() throws IOException {
         if (responseStarted) {
-            int type = source.readByte() & 0xff;
+            int type = bufferedSource.readByte() & 0xff;
             if (type == TYPE_DATA) {
                 // Store the data content length and
                 // swallow the token.
@@ -258,9 +270,9 @@ public class BytesReader implements ProtocolReader {
     }
 
     private long pullNumber(int byteCount) throws IOException {
-        source.require(byteCount);
+        bufferedSource.require(byteCount);
         if (byteCount > 1) {
-            byte[] number = source.readByteArray(byteCount);
+            byte[] number = bufferedSource.readByteArray(byteCount);
             long value = 0;
             long m = 1;
             for (int i = 0; i < byteCount; i++) {
@@ -269,15 +281,15 @@ public class BytesReader implements ProtocolReader {
             }
             return value;
         } else {
-            return source.readByte() & 0xff;
+            return bufferedSource.readByte() & 0xff;
         }
     }
 
-    private static RuntimeException typeMismatchError(int expectedType, int actualType) {
-        throw new IllegalStateException("Expected " + typeName(expectedType) + ", but was " + typeName(actualType));
+    private SerializationException typeMismatchError(int expectedType, int actualType) {
+        return new SerializationException("Expected '" + typeName(expectedType) + "', but was '" + typeName(actualType)+"'.");
     }
 
-    private TypeToken getToken(int type) throws ProtocolException {
+    private TypeToken getToken(int type) throws SerializationException {
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END ||
                 type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
             // Number, it may be a 1-8 byte long integer or an index for
@@ -300,31 +312,38 @@ public class BytesReader implements ProtocolReader {
         } else if (type == TYPE_END_ARRAY_OBJECT) {
             return scopeStack.peek() == TYPE_BEGIN_OBJECT ? END_OBJECT : END_ARRAY;
         } else {
-            throw new ProtocolException("Unknown type " + type);
+            throw new SerializationException("Unknown type " + type);
         }
     }
 
-    private static String typeName(final int type) {
+    private String typeName(final int type) {
+        TypeToken typeToken;
         if (type == TYPE_AGGREGATE_NUMBER) {
             // Number, may a 1-8 byte long integer.
             // Number, with compression optimization
-            return NUMBER.toString();
+            typeToken = NUMBER;
         } else if (type == TYPE_BEGIN_OBJECT) {
             // Object
-            return BEGIN_OBJECT.toString();
+            typeToken = BEGIN_OBJECT;
         } else if (type == TYPE_BEGIN_ARRAY) {
             // Array
-            return BEGIN_ARRAY.toString();
+            typeToken = BEGIN_ARRAY;
         } else if (type == TYPE_AGGREGATE_BOOLEAN) {
             // Boolean, 18 means 'false', 19 is 'true'
-            return BOOLEAN.toString();
+            typeToken = BOOLEAN;
         } else if (type == TYPE_AGGREGATE_END_ARRAY) {
-            return END_ARRAY.toString();
+            typeToken = END_ARRAY;
         } else if (type == TYPE_AGGREGATE_END_OBJECT) {
-            return END_OBJECT.toString();
+            typeToken = END_OBJECT;
         } else {
-            return "(Unknown type " + type + ")";
+            try {
+                typeToken =  getToken(type);
+            } catch (SerializationException e) {
+                return "(Unknown type " + type + ")";
+            }
         }
+
+        return typeToken.toString().toUpperCase(Locale.ENGLISH);
     }
 
     private static String scopeName(final int scope) {
@@ -355,16 +374,20 @@ public class BytesReader implements ProtocolReader {
         final int type = peekType();
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
             // Skip 1-8 bytes depending on number size + 1 byte for the type.
-            // [type] - 7 + 1
-            source.skip(type - 6);
+            // skip ([type] - 7) + 1 bytes
+            bufferedSource.skip(type - 6);
         } else if (type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
-            source.skip(1);
+            bufferedSource.skip(1);
+        } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
+            // Index to a previously read string, 1-4 bytes
+            // skip ([type] - 3) + 1 bytes.
+            bufferedSource.skip(type - 2);
         } else if (type >= TYPE_STRING_START && type <= TYPE_STRING_END ||
                 type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
             // The compression optimizations for strings require full reading.
             readString();
         } else if (type == TYPE_BOOLEAN_TRUE || type == TYPE_BOOLEAN_FALSE) {
-            source.skip(1);
+            bufferedSource.skip(1);
         }
         else if (type == TYPE_BEGIN_OBJECT) {
             // Object
@@ -384,7 +407,7 @@ public class BytesReader implements ProtocolReader {
             // Read the 8-byte length of the attached data
             dataLength = pullNumber(8);
         } else if (type == TYPE_END_ARRAY_OBJECT) {
-            int scope = getCurrentScope();
+            int scope = currentScope();
             switch (scope) {
                 case TYPE_BEGIN_OBJECT:
                     endObject();
@@ -397,7 +420,7 @@ public class BytesReader implements ProtocolReader {
         }
     }
 
-    private int getCurrentScope() {
+    public int currentScope() {
         Integer scope = scopeStack.peek();
         return scope != null ? scope : SCOPE_NONE;
     }
