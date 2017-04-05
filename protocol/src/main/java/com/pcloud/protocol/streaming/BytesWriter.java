@@ -1,25 +1,17 @@
 /*
- * The MIT License (MIT)
+ * Copyright (c) 2017 pCloud AG
  *
- * Copyright (c) 2017 Georgi Neykov
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.pcloud.protocol.streaming;
@@ -30,18 +22,24 @@ import okio.BufferedSink;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.net.ProtocolException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-public class BytesWriter implements ProtocolWriter {
+public class BytesWriter implements ProtocolRequestWriter {
 
     private static final Charset PROTOCOL_CHARSET = Charset.forName("UTF-8");
+
+    // Request parameter types
     private static final int REQUEST_PARAM_TYPE_STRING = 0;
     private static final int REQUEST_PARAM_TYPE_NUMBER = 1;
     private static final int REQUEST_PARAM_TYPE_BOOLEAN = 2;
+    private static final int REQUEST_PARAM_TYPE_UNKNOWN = -1;
+
     private static final int REQUEST_PARAM_COUNT_LIMIT = 255;
     private static final int REQUEST_PARAM_NAME_LENGTH_LIMIT = 63;
     private static final int REQUEST_SIZE_LIMIT_BYTES = 65535;
@@ -50,14 +48,13 @@ public class BytesWriter implements ProtocolWriter {
     private BufferedSink sink;
     private Buffer paramsBuffer;
     private DataSource dataSource;
-    private long dataSourceLength;
 
     private String methodName;
     private boolean requestStarted;
-    private boolean hasData;
-    private boolean methodAdded;
-    private boolean dataAdded;
     private int parameterCount;
+
+    private int nextValueType = REQUEST_PARAM_TYPE_UNKNOWN;
+    private String nextValueName;
 
     public BytesWriter(BufferedSink sink) {
         if (sink == null) {
@@ -69,46 +66,58 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter beginRequest() throws IOException {
+    public ProtocolRequestWriter beginRequest() throws IOException {
         if (requestStarted) {
-            throw new IllegalStateException("Call endRequest() before beginning a new method.");
+            throw new IllegalStateException("beginRequest() has been already called.");
         }
         requestStarted = true;
         return this;
     }
 
     @Override
-    public ProtocolWriter method(String name) throws IOException {
+    public ProtocolRequestWriter writeMethodName(String name) throws IOException {
+        checkRequestStarted();
         if (name == null) {
             throw new IllegalArgumentException("'name' argument cannot be null.");
         }
-        if (!requestStarted) {
-            throw new IllegalStateException("Call beginRequest() or beginDataRequest() before calling this method.");
-        }
-        if (methodAdded) {
+        if (methodName != null) {
             throw new IllegalStateException("method() already called for the started request.");
         }
         methodName = name;
-        methodAdded = true;
         return this;
     }
 
     @Override
-    public ProtocolWriter endRequest() throws IOException {
-        Buffer metadataBuffer = new Buffer();
-        byte[] bytes = methodName.getBytes(PROTOCOL_CHARSET);
+    public ProtocolRequestWriter endRequest() throws IOException {
+        checkRequestStarted();
 
-        int methodNameLength = bytes.length;
-        if (methodNameLength > 127) {
-            throw new ProtocolException("Method name cannot be longer than 127 characters.");
+        if (methodName == null) {
+            throw new IllegalArgumentException("Cannot end request, writeMethodName() has not been called.");
         }
 
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_UNKNOWN);
+
+        Buffer metadataBuffer = new Buffer();
+        byte[] methodNameBytes = methodName.getBytes(PROTOCOL_CHARSET);
+
+        int methodNameLength = methodNameBytes.length;
+        if (methodNameLength > 127) {
+            throw new SerializationException("Method name cannot be longer than 127 characters.");
+        }
+
+        final long dataSourceLength = dataSource != null ? dataSource.contentLength() : 0;
+        if (dataSourceLength < 0L) {
+            throw new SerializationException("Unknown or invalid DataSource content length '"
+                    + dataSourceLength + "'.");
+        }
+
+        boolean hasData = dataSourceLength > 0;
         if (hasData) {
             methodNameLength = methodNameLength | (1 << REQUEST_BINARY_DATA_FLAG_POSITION);
         }
 
         metadataBuffer.writeByte(methodNameLength);
-        metadataBuffer.write(bytes);
+        metadataBuffer.write(methodNameBytes);
 
         if (hasData) {
             metadataBuffer.writeLongLe(dataSourceLength);
@@ -118,7 +127,8 @@ public class BytesWriter implements ProtocolWriter {
 
         final long requestSize = metadataBuffer.size() + paramsBuffer.size();
         if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
-            throw new ProtocolException("The request is too big, max allowed size is 65535 bytes, current is " + requestSize);
+            throw new SerializationException("The maximum allowed request size is 65535 bytes," +
+                    " current is " + requestSize + " bytes.");
         }
 
         sink.writeShortLe((int) requestSize);
@@ -128,105 +138,133 @@ public class BytesWriter implements ProtocolWriter {
             dataSource.writeTo(sink);
         }
 
-        dataSource = null;
-        requestStarted = hasData = methodAdded = dataAdded = false;
-        parameterCount = 0;
-        dataSourceLength = 0;
         return this;
     }
 
     @Override
-    public ProtocolWriter data(DataSource source) throws IOException {
-        if (source == null) {
-            throw new IllegalArgumentException("'source' argument cannot be null.");
-        }
-
-        final long sizeBytes = source.contentLength();
-        if (sizeBytes < 0L) {
-            throw new IllegalArgumentException("'sizeBytes' argument cannot be a negative number.");
-        }
-
-        if (!requestStarted) {
-            throw new IllegalStateException("Call beginDataRequest() before calling this method.");
-        }
-        if (!hasData) {
-            throw new IllegalStateException("beginDataRequest() must be used when writing a data request.");
-        }
-        if (!methodAdded) {
-            throw new IllegalStateException("Call method() before adding data to request.");
-        }
-        if (dataAdded) {
+    public ProtocolRequestWriter writeData(DataSource source) throws IOException {
+        checkRequestStarted();
+        if (dataSource != null) {
             throw new IllegalStateException("data() already called for current request.");
         }
 
+        if (source == null) {
+            throw new IllegalArgumentException("DataSource argument cannot be null.");
+        }
+
         dataSource = source;
-        dataSourceLength = sizeBytes;
-        dataAdded = true;
         return this;
     }
 
     @Override
-    public ProtocolWriter writeName(String name, TypeToken type) throws IOException {
-        switch (type){
+    public ProtocolRequestWriter writeName(String name, TypeToken typeToken) throws IOException {
+        checkRequestStarted();
+
+        if (name == null) {
+            throw new IllegalArgumentException("Name parameter cannot be null.");
+        }
+
+        if (nextValueType != REQUEST_PARAM_TYPE_UNKNOWN) {
+            throw new IllegalStateException("A previous writeName() was not matched with a writeValue() call.");
+        }
+
+        if (parameterCount >= REQUEST_PARAM_COUNT_LIMIT) {
+            throw new SerializationException("Request parameter count limit reached.");
+        }
+
+        final int type;
+        switch (typeToken) {
             case NUMBER:
-                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_NUMBER);
+                type = REQUEST_PARAM_TYPE_NUMBER;
                 break;
             case STRING:
-                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_STRING);
+                type = REQUEST_PARAM_TYPE_STRING;
                 break;
             case BOOLEAN:
-                writeParameterTypeAndName(name, REQUEST_PARAM_TYPE_BOOLEAN);
+                type = REQUEST_PARAM_TYPE_BOOLEAN;
                 break;
             default:
-                throw new IllegalStateException("TypeToken must be one of: " + EnumSet.of(TypeToken.NUMBER, TypeToken.STRING, TypeToken.BOOLEAN));
+                throw new IllegalArgumentException("TypeToken must be one of: " + EnumSet.of(TypeToken.NUMBER, TypeToken.STRING, TypeToken.BOOLEAN));
         }
 
+        nextValueName = name;
+        nextValueType = type;
+        parameterCount++;
         return this;
     }
 
-    @Override
-    public ProtocolWriter writeValue(Object value) throws IOException {
-        if (value != null) {
-            final Type valueType = value.getClass();
-            if (valueType == String.class) {
-                writeValue((String) value);
-            } else if (valueType == Long.class) {
-                writeValue( (long) value);
-            } else if (valueType == Integer.class) {
-                writeValue((int) value);
-            } else if (valueType == Float.class) {
-                writeValue( (float) value);
-            } else if (valueType == Double.class) {
-                writeValue( (double) value);
-            } else if (valueType == Short.class) {
-                writeValue( (short) value);
-            } else if (valueType == Byte.class) {
-                writeValue( (byte) value);
-            } else if (valueType == Boolean.class) {
-                writeValue( (boolean) value);
-            } else {
-                throw new ProtocolException("Cannot serialize value of type '" + valueType + "'.");
-            }
+    private void writeNextValueTypeAndName() throws SerializationException {
+        byte[] bytes = nextValueName.getBytes(PROTOCOL_CHARSET);
+        int parameterNameLength = bytes.length;
+        if (parameterNameLength > REQUEST_PARAM_NAME_LENGTH_LIMIT) {
+            throw new SerializationException("Parameter '" + nextValueName + "' is too long, should be no more than 63 characters.");
         }
-        return this;
+
+        int encodedParamData = parameterNameLength | (nextValueType << 6);
+        paramsBuffer.writeByte(encodedParamData);
+        paramsBuffer.write(bytes);
+        nextValueName = null;
+        nextValueType = REQUEST_PARAM_TYPE_UNKNOWN;
     }
 
     @Override
-    public ProtocolWriter writeValue(String value) throws IOException {
-        if (value != null) {
-            byte[] bytes = value.getBytes(PROTOCOL_CHARSET);
-            paramsBuffer.writeIntLe(bytes.length);
-            paramsBuffer.write(bytes);
+    public ProtocolRequestWriter writeValue(Object value) throws IOException {
+        if (value == null) {
+            throw new IllegalArgumentException("Value argument cannot be null");
         }
 
-        return this;
-    }
-
-    @Override
-    public ProtocolWriter writeValue(long value) throws IOException {
-        if (value < 0) {
-            writeValue(String.valueOf(value));
+        final Type valueType = value.getClass();
+        if (valueType == String.class) {
+            writeValue((String) value);
+        } else if (valueType == Long.class) {
+            writeValue((long) value);
+        } else if (valueType == Integer.class) {
+            writeValue((int) value);
+        } else if (valueType == Float.class) {
+            writeValue((float) value);
+        } else if (valueType == Double.class) {
+            writeValue((double) value);
+        } else if (valueType == Short.class) {
+            writeValue((short) value);
+        } else if (valueType == Byte.class) {
+            writeValue((byte) value);
+        } else if (valueType == Boolean.class) {
+            writeValue((boolean) value);
         } else {
+            throw new IllegalArgumentException("Cannot serialize value of type '" + valueType + "'.");
+        }
+        return this;
+    }
+
+    @Override
+    public ProtocolRequestWriter writeValue(String value) throws IOException {
+        checkRequestStarted();
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_STRING);
+        if (value == null) {
+            throw new IllegalArgumentException("Value argument cannot be null");
+        }
+        writeNextValueTypeAndName();
+        writeString(value);
+
+        return this;
+    }
+
+    private void writeString(String value) {
+        byte[] bytes = value.getBytes(PROTOCOL_CHARSET);
+        paramsBuffer.writeIntLe(bytes.length);
+        paramsBuffer.write(bytes);
+    }
+
+    @Override
+    public ProtocolRequestWriter writeValue(long value) throws IOException {
+        checkRequestStarted();
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
+        if (value < 0) {
+            nextValueType = REQUEST_PARAM_TYPE_STRING;
+            writeNextValueTypeAndName();
+            writeString(String.valueOf(value));
+        } else {
+            writeNextValueTypeAndName();
             paramsBuffer.writeLongLe(value);
         }
 
@@ -234,41 +272,32 @@ public class BytesWriter implements ProtocolWriter {
     }
 
     @Override
-    public ProtocolWriter writeValue(boolean value) throws IOException {
+    public ProtocolRequestWriter writeValue(boolean value) throws IOException {
+        checkRequestStarted();
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_BOOLEAN);
+        writeNextValueTypeAndName();
         paramsBuffer.writeByte(value ? 1 : 0);
         return this;
     }
 
     @Override
-    public ProtocolWriter writeValue(double value) throws IOException {
-        writeValue(String.valueOf(value));
+    public ProtocolRequestWriter writeValue(double value) throws IOException {
+        checkRequestStarted();
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
+        nextValueType = REQUEST_PARAM_TYPE_STRING;
+        writeNextValueTypeAndName();
+        writeString(String.valueOf(value));
         return this;
     }
 
     @Override
-    public ProtocolWriter writeValue(float value) throws IOException {
-        writeValue(String.valueOf(value));
+    public ProtocolRequestWriter writeValue(float value) throws IOException {
+        checkRequestStarted();
+        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
+        nextValueType = REQUEST_PARAM_TYPE_STRING;
+        writeNextValueTypeAndName();
+        writeString(String.valueOf(value));
         return this;
-    }
-
-    private void writeParameterTypeAndName(String name, int type) throws IOException {
-        if(name == null) {
-            throw new IllegalArgumentException("Name parameter cannot be null.");
-        }
-
-        if (parameterCount >= REQUEST_PARAM_COUNT_LIMIT) {
-            throw new ProtocolException("Request parameter count limit reached.");
-        }
-        byte[] bytes = name.getBytes(PROTOCOL_CHARSET);
-        int parameterNameLength = bytes.length;
-        if (parameterNameLength > REQUEST_PARAM_NAME_LENGTH_LIMIT) {
-            throw new ProtocolException("Parameter '" + name + "' is too long, should be no more than 63 characters.");
-        }
-
-        int encodedParamData = parameterNameLength | (type << 6);
-        paramsBuffer.writeByte(encodedParamData);
-        paramsBuffer.write(bytes);
-        parameterCount++;
     }
 
     @Override
@@ -281,5 +310,34 @@ public class BytesWriter implements ProtocolWriter {
     @Override
     public void flush() throws IOException {
         sink.flush();
+    }
+
+    private void checkRequestStarted() {
+        if (!requestStarted) {
+            throw new IllegalStateException("Call beginRequest() before calling this method.");
+        }
+    }
+
+    private void checkNextValueTypeMatches(int actualType) {
+        if (nextValueType != actualType) {
+            if (nextValueType == REQUEST_PARAM_TYPE_UNKNOWN) {
+                throw new IllegalStateException("Call writeName() before calling this method.");
+            }
+
+            throw new IllegalStateException("Expected one of the following methods: " + typeToWriteValueMethods(nextValueType));
+        }
+    }
+
+    private Collection<String> typeToWriteValueMethods(int type) {
+        switch (type) {
+            case REQUEST_PARAM_TYPE_NUMBER:
+                return Arrays.asList("writeValue(int)", "writeValue(Integer)");
+            case REQUEST_PARAM_TYPE_BOOLEAN:
+                return Arrays.asList("writeValue(boolean)", "writeValue(Boolean)");
+            case REQUEST_PARAM_TYPE_STRING:
+                return Collections.singletonList("writeValue(String)");
+            default:
+                throw new AssertionError();
+        }
     }
 }
