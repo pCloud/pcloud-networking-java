@@ -20,9 +20,7 @@ import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Set;
 
 /**
  * A {@linkplain TypeAdapterFactory} implementation for the core Java language primitive types.
@@ -136,7 +134,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
     @SuppressWarnings("unchecked")
     @Override
-    public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone) {
+    public TypeAdapter<?> create(Type type, Transformer transformer) {
         if (type == String.class) return STRING_ADAPTER;
         if (type == long.class || type == Long.class) return LONG_ADAPTER;
         if (type == boolean.class || type == Boolean.class) return BOOLEAN_ADAPTER;

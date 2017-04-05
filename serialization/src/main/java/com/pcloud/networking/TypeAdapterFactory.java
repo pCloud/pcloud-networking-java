@@ -20,5 +20,5 @@ import java.lang.reflect.Type;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public interface TypeAdapterFactory {
-    TypeAdapter<?> create(Type type, Cyclone cyclone);
+    TypeAdapter<?> create(Type type, Transformer transformer);
 }

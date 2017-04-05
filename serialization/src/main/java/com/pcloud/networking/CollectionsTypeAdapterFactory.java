@@ -16,25 +16,24 @@
 
 package com.pcloud.networking;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.*;
 
 class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
     @Override
-    public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone) {
+    public TypeAdapter<?> create(Type type, Transformer transformer) {
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isAssignableFrom(List.class)) {
-            return newArrayListAdapter(type, cyclone);
+            return newArrayListAdapter(type, transformer);
         } else if (rawType == Set.class) {
-            return newLinkedHashSetAdapter(type, cyclone);
+            return newLinkedHashSetAdapter(type, transformer);
         }
         return null;
     }
 
-    static <T> TypeAdapter<Collection<T>> newArrayListAdapter(Type type, Cyclone cyclone) {
+    static <T> TypeAdapter<Collection<T>> newArrayListAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
-        TypeAdapter<T> elementAdapter = cyclone.getTypeAdapter(elementType);
+        TypeAdapter<T> elementAdapter = transformer.getTypeAdapter(elementType);
         return new CollectionTypeAdapter<Collection<T>, T>(elementAdapter) {
             @Override
             protected Collection<T> instantiateCollection() {
@@ -43,9 +42,9 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
         };
     }
 
-    static <T> TypeAdapter<Set<T>> newLinkedHashSetAdapter(Type type, Cyclone cyclone) {
+    static <T> TypeAdapter<Set<T>> newLinkedHashSetAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
-        TypeAdapter<T> elementAdapter = cyclone.getTypeAdapter(elementType);
+        TypeAdapter<T> elementAdapter = transformer.getTypeAdapter(elementType);
         return new CollectionTypeAdapter<Set<T>, T>(elementAdapter) {
 
             @Override

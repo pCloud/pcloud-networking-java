@@ -18,6 +18,7 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.SerializationException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -56,7 +57,7 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
         if (enumConstant != null){
             return enumConstant;
         } else {
-            throw new IOException("Expected one of " + nameToConstantMap.keySet() + " but was '" + name + "'.");
+            throw new SerializationException("Cannot deserialize '"+enumType.getName()+"':\nExpected one of " + nameToConstantMap.keySet() + " but was '" + name + "'.");
         }
     }
 

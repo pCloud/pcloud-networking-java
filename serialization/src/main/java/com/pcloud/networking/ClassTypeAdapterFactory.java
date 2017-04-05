@@ -16,27 +16,23 @@
 
 package com.pcloud.networking;
 
-import java.lang.annotation.Annotation;
+import com.pcloud.protocol.streaming.TypeToken;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 
 class ClassTypeAdapterFactory implements TypeAdapterFactory {
     @Override
-    public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone moshi) {
+    public TypeAdapter<?> create(Type type, Transformer transformer) {
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isInterface() || rawType.isEnum()) return null;
         if (isPlatformType(rawType) && !Types.isAllowedPlatformType(rawType)) {
-            throw new IllegalArgumentException("Platform "
-                    + type
-                    + " annotated "
-                    + annotations
-                    + " requires explicit JsonAdapter to be registered");
+            throw new IllegalArgumentException("Platform type '" + type
+                    + "' requires explicit TypeAdapter to be registered");
         }
-        if (!annotations.isEmpty()) return null;
 
         if (rawType.getEnclosingClass() != null && !Modifier.isStatic(rawType.getModifiers())) {
             if (rawType.getSimpleName().isEmpty()) {
@@ -54,7 +50,7 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
         ClassFactory<Object> classFactory = ClassFactory.get(rawType);
         Map<String, ClassTypeAdapter.Binding<?>> fields = new TreeMap<>();
         for (Type t = type; t != Object.class; t = Types.getGenericSuperclass(t)) {
-            createFieldBindings(moshi, t, fields);
+            createFieldBindings(transformer, t, fields);
         }
         return new ClassTypeAdapter<>(classFactory, fields);
     }
@@ -62,31 +58,31 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     /**
      * Creates a field binding for each of declared field of {@code type}.
      */
-    private void createFieldBindings(
-            Cyclone moshi, Type type, Map<String, ClassTypeAdapter.Binding<?>> fieldBindings) {
+    private void createFieldBindings(Transformer transformer, Type type, Map<String, ClassTypeAdapter.Binding<?>> fieldBindings) {
         Class<?> rawType = Types.getRawType(type);
         boolean platformType = isPlatformType(rawType);
         for (Field field : rawType.getDeclaredFields()) {
             if (!includeField(platformType, field.getModifiers())) continue;
 
             ParameterValue paramAnnotation = field.getAnnotation(ParameterValue.class);
-            if (paramAnnotation == null) continue;
+            if (paramAnnotation == null) {
+                // Skip all methods missing the annotation.
+                continue;
+            }
 
-            // Look up a type adapter for this type.
             Type fieldType = Types.resolve(type, rawType, field.getGenericType());
-            TypeAdapter<Object> adapter = moshi.getTypeAdapter(fieldType);
+            TypeAdapter<Object> adapter = transformer.getTypeAdapter(fieldType);
 
-            // Create the binding between field and JSON.
             field.setAccessible(true);
 
-            // Store it using the field's name. If there was already a field with this name, fail!
+            // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
-            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, fieldCanBeSerialized(field, fieldType));
-            ClassTypeAdapter.Binding<?> replaced = fieldBindings.put(name, fieldBinding);
-            if (replaced != null) {
+            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, getParameterValueType(field));
+            ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
+            if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n"
-                        + "    " + replaced.field + "\n"
+                        + "    " + existing.field + "\n"
                         + "    " + fieldBinding.field);
             }
         }
@@ -102,25 +98,34 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
                 || name.startsWith("java.")
                 || name.startsWith("javax.")
                 || name.startsWith("kotlin.")
-                || name.startsWith("scala.");
+                || name.startsWith("scala.")
+                || name.startsWith("groovy.");
     }
 
     /**
      * Returns true if fields with {@code modifiers} are included in the emitted JSON.
      */
+    @SuppressWarnings("SimplifiableIfStatement")
     private boolean includeField(boolean platformType, int modifiers) {
         if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) return false;
         return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || !platformType;
     }
 
-    private boolean fieldCanBeSerialized(Field field, Type fieldType) {
-        return fieldType == Boolean.class
-                || fieldType == Byte.class
-                || fieldType == Double.class
-                || fieldType == Float.class
-                || fieldType == Integer.class
-                || fieldType == Long.class
-                || fieldType == Short.class
-                || fieldType == String.class;
+    private TypeToken getParameterValueType(Field field) {
+        Class<?> type = field.getType();
+        if (type == Long.class || type == long.class ||
+                type == Integer.class || type == int.class ||
+                type == Short.class || type == short.class ||
+                type == Byte.class || type == byte.class ||
+                type == Double.class || type == double.class ||
+                type == Float.class || type == float.class) {
+            return TypeToken.NUMBER;
+        } else if (type == String.class || Types.getRawType(type).isEnum()) {
+            return TypeToken.STRING;
+        } else if (type == Boolean.class || type == boolean.class) {
+            return TypeToken.BOOLEAN;
+        }
+
+        return null;
     }
 }

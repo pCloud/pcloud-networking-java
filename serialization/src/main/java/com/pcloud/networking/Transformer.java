@@ -20,7 +20,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-public class Cyclone {
+public class Transformer {
 
     private final static Collection<TypeAdapterFactory> DEFAULT_FACTORIES;
 
@@ -40,7 +40,7 @@ public class Cyclone {
     private final Map<Type, TypeAdapter<?>> typeToAdapterMap;
     private final ThreadLocal<List<StubTypeAdapter<?>>> pendingAdapterRef;
 
-    private Cyclone(Builder builder) {
+    private Transformer(Builder builder) {
         typeToAdapterMap = new LinkedHashMap<>();
         pendingAdapterRef = new ThreadLocal<>();
         adapterFactories = new ArrayList<>();
@@ -135,7 +135,7 @@ public class Cyclone {
 
             factories.add(new TypeAdapterFactory() {
                 @Override
-                public TypeAdapter<?> create(Type requested, Cyclone cyclone) {
+                public TypeAdapter<?> create(Type requested, Transformer transformer) {
                     return type.equals(requested) ? adapter : null;
                 }
             });
@@ -152,8 +152,8 @@ public class Cyclone {
             return this;
         }
 
-        public Cyclone build() {
-            return new Cyclone(this);
+        public Transformer build() {
+            return new Transformer(this);
         }
 
     }

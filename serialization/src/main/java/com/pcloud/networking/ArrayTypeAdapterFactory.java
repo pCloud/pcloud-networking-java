@@ -16,17 +16,15 @@
 
 package com.pcloud.networking;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Set;
 
 class ArrayTypeAdapterFactory implements TypeAdapterFactory {
     @Override
-    public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone) {
+    public TypeAdapter<?> create(Type type, Transformer transformer) {
             Type elementType = Types.arrayComponentType(type);
             if (elementType != null) {
                 Class<?> elementClass = Types.getRawType(elementType);
-                TypeAdapter<Object> elementAdapter = cyclone.getTypeAdapter(elementType);
+                TypeAdapter<Object> elementAdapter = transformer.getTypeAdapter(elementType);
                 return new ArrayTypeAdapter(elementClass, elementAdapter);
             }
 
