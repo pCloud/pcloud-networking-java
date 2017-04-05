@@ -25,8 +25,9 @@
 package com.pcloud.protocol;
 
 import com.pcloud.protocol.streaming.BytesWriter;
-import com.pcloud.protocol.streaming.ProtocolWriter;
-import okio.*;
+import com.pcloud.protocol.streaming.ProtocolRequestWriter;
+import com.pcloud.protocol.streaming.TypeToken;
+import okio.BufferedSink;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -34,14 +35,15 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
-public class ProtocolWriterTest {
+public class ProtocolRequestWriterTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
-    private ProtocolWriter writer;
+    private ProtocolRequestWriter writer;
     private BufferedSink dataSink;
 
     @Before
@@ -60,23 +62,23 @@ public class ProtocolWriterTest {
     public void method_Throws_On_Null_Argument() throws IOException {
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
-                .method(null);
+                .writeMethodName(null);
     }
 
     @Test
     public void data_Throws_On_Null_Source_Argument() throws IOException {
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
-                .method("somemethod")
-                .data(null);
+                .writeMethodName("somemethod")
+            .writeData(null);
     }
 
     @Test
     public void parameter_Throws_On_Null_Name_Argument() throws IOException {
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
-                .method(null)
-                .parameter(null, 1);
+                .writeMethodName(null)
+                .writeName(null, TypeToken.BOOLEAN);
     }
 
     @Test
@@ -108,11 +110,11 @@ public class ProtocolWriterTest {
     @Test
     public void name() throws Exception {
         writer.beginRequest()
-                .method("command")
-                .parameter("key", 1)
-                .parameter("value", true)
-                .parameter("param", "something")
-                .data(null)
+                .writeMethodName("command")
+                .writeName("key", TypeToken.NUMBER).writeValue(1)
+                .writeName("value", TypeToken.BOOLEAN).writeValue(true)
+                .writeName("param", TypeToken.STRING).writeValue("something")
+                .writeData(null)
                 .endRequest()
                 .flush();
     }

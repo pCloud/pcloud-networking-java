@@ -1,32 +1,25 @@
 /*
- * The MIT License (MIT)
+ * Copyright (c) 2017 pCloud AG
  *
- * Copyright (c) 2017 Georgi Neykov
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.pcloud.protocol.streaming;
 
 import com.pcloud.ByteCountingSource;
-import okio.BufferedSource;
-import okio.Okio;
+import com.pcloud.FixedLengthSource;
+import com.pcloud.protocol.DataSink;
+import okio.*;
 
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -36,7 +29,7 @@ import java.util.*;
 import static com.pcloud.IOUtils.closeQuietly;
 import static com.pcloud.protocol.streaming.TypeToken.*;
 
-public class BytesReader implements ProtocolReader {
+public class BytesReader implements ProtocolResponseReader {
 
     private static final Charset PROTOCOL_CHARSET = Charset.forName("UTF-8");
 
@@ -66,19 +59,13 @@ public class BytesReader implements ProtocolReader {
     private static final int TYPE_AGGREGATE_END_ARRAY = -5;
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
 
-    // Scope types
-    public static final int SCOPE_NONE = -1;
-    public static final int SCOPE_RESPONSE = 1;
-    public static final int SCOPE_OBJECT = 2;
-    public static final int SCOPE_ARRAY = 3;
-
-    private static final int UNKNOWN_SIZE = -1;
-
     private Deque<Integer> scopeStack = new ArrayDeque<>(10);
     private List<String> stringCache = new ArrayList<>();
 
+    private BufferedSource rawSource;
     private BufferedSource bufferedSource;
-    private ByteCountingSource wrappedSource;
+    private ByteCountingSource countingParametersSource;
+
     private boolean responseStarted;
     private volatile long responseLength = UNKNOWN_SIZE;
     private volatile long dataLength = UNKNOWN_SIZE;
@@ -87,8 +74,9 @@ public class BytesReader implements ProtocolReader {
         if (bufferedSource == null) {
             throw new IllegalArgumentException("Source argument cannot be null.");
         }
-        this.wrappedSource = new ByteCountingSource(bufferedSource);
-        this.bufferedSource = Okio.buffer(wrappedSource);
+        this.rawSource = bufferedSource;
+        this.countingParametersSource = new ByteCountingSource(bufferedSource);
+        this.bufferedSource = Okio.buffer(countingParametersSource);
     }
 
     @Override
@@ -100,7 +88,7 @@ public class BytesReader implements ProtocolReader {
     public long beginResponse() throws IOException {
         if (!responseStarted) {
             responseStarted = true;
-            responseLength = pullNumber(4) + 4;// Add the 4 byte content length to the total length.
+            responseLength = pullNumber(4);
             scopeStack.push(SCOPE_RESPONSE);
             return responseLength;
         }
@@ -112,7 +100,7 @@ public class BytesReader implements ProtocolReader {
     public long endResponse() throws IOException {
         int scope = currentScope();
         if (responseStarted && scope == SCOPE_RESPONSE) {
-            if (wrappedSource.bytesRead() < responseLength) {
+            if (countingParametersSource.bytesRead() < responseLength) {
                 while (hasNext()) {
                     skipValue();
                 }
@@ -238,8 +226,75 @@ public class BytesReader implements ProtocolReader {
     }
 
     @Override
+    public boolean hasNext() throws IOException {
+        return peekType() != TYPE_END_ARRAY_OBJECT;
+    }
+
+    @Override
+    public long dataContentLength() {
+        return dataLength;
+    }
+
+    @Override
+    public void skipValue() throws IOException {
+        final int type = peekType();
+        if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
+            // Skip 1-8 bytes depending on number size + 1 byte for the type.
+            // skip ([type] - 7) + 1 bytes
+            bufferedSource.skip(type - 6);
+        } else if (type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
+            bufferedSource.skip(1);
+        } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
+            // Index to a previously read string, 1-4 bytes
+            // skip ([type] - 3) + 1 bytes.
+            bufferedSource.skip(type - 2);
+        } else if (type >= TYPE_STRING_START && type <= TYPE_STRING_END ||
+                type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
+            // The compression optimizations for strings require full reading.
+            readString();
+        } else if (type == TYPE_BOOLEAN_TRUE || type == TYPE_BOOLEAN_FALSE) {
+            bufferedSource.skip(1);
+        }
+        else if (type == TYPE_BEGIN_OBJECT) {
+            // Object
+            beginObject();
+            while (hasNext()) {
+                skipValue();
+            }
+            endObject();
+        } else if (type == TYPE_BEGIN_ARRAY) {
+            // Array
+            beginArray();
+            while (hasNext()) {
+                skipValue();
+            }
+            endArray();
+        } else if (type == TYPE_DATA) {
+            // Read the 8-byte length of the attached data
+            dataLength = pullNumber(8);
+        } else if (type == TYPE_END_ARRAY_OBJECT) {
+            int scope = currentScope();
+            switch (scope) {
+                case TYPE_BEGIN_OBJECT:
+                    endObject();
+                    break;
+                case TYPE_BEGIN_ARRAY:
+                    endArray();
+            }
+        } else {
+            throw new ProtocolException("Unknown type " + type);
+        }
+    }
+
+    @Override
+    public int currentScope() {
+        Integer scope = scopeStack.peek();
+        return scope != null ? scope : SCOPE_NONE;
+    }
+
+    @Override
     public void close() {
-        closeQuietly(bufferedSource);
+        closeQuietly(rawSource);
     }
 
     private int peekType() throws IOException {
@@ -357,71 +412,5 @@ public class BytesReader implements ProtocolReader {
             default:
                 return "Unknown";
         }
-    }
-
-    @Override
-    public boolean hasNext() throws IOException {
-        return peekType() != TYPE_END_ARRAY_OBJECT;
-    }
-
-    @Override
-    public long dataContentLength() {
-        return dataLength;
-    }
-
-    @Override
-    public void skipValue() throws IOException {
-        final int type = peekType();
-        if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
-            // Skip 1-8 bytes depending on number size + 1 byte for the type.
-            // skip ([type] - 7) + 1 bytes
-            bufferedSource.skip(type - 6);
-        } else if (type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
-            bufferedSource.skip(1);
-        } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
-            // Index to a previously read string, 1-4 bytes
-            // skip ([type] - 3) + 1 bytes.
-            bufferedSource.skip(type - 2);
-        } else if (type >= TYPE_STRING_START && type <= TYPE_STRING_END ||
-                type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
-            // The compression optimizations for strings require full reading.
-            readString();
-        } else if (type == TYPE_BOOLEAN_TRUE || type == TYPE_BOOLEAN_FALSE) {
-            bufferedSource.skip(1);
-        }
-        else if (type == TYPE_BEGIN_OBJECT) {
-            // Object
-            beginObject();
-            while (hasNext()) {
-                skipValue();
-            }
-            endObject();
-        } else if (type == TYPE_BEGIN_ARRAY) {
-            // Array
-            beginArray();
-            while (hasNext()) {
-                skipValue();
-            }
-            endArray();
-        } else if (type == TYPE_DATA) {
-            // Read the 8-byte length of the attached data
-            dataLength = pullNumber(8);
-        } else if (type == TYPE_END_ARRAY_OBJECT) {
-            int scope = currentScope();
-            switch (scope) {
-                case TYPE_BEGIN_OBJECT:
-                    endObject();
-                    break;
-                case TYPE_BEGIN_ARRAY:
-                    endArray();
-            }
-        } else {
-            throw new ProtocolException("Unknown type " + type);
-        }
-    }
-
-    public int currentScope() {
-        Integer scope = scopeStack.peek();
-        return scope != null ? scope : SCOPE_NONE;
     }
 }

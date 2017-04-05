@@ -57,13 +57,13 @@ class RealCall implements Call {
         System.out.println("Making request, using connection " + connection);
         boolean success = false;
         try {
-            ProtocolWriter writer = new BytesWriter(connection.sink());
+            ProtocolRequestWriter writer = new BytesWriter(connection.sink());
             writer.beginRequest()
-                    .method(request.methodName());
+                    .writeMethodName(request.methodName());
             if (request.dataSource() != null) {
-                writer.data(request.dataSource());
+                writer.writeData(request.dataSource());
             }
-            request.body().writeAll(writer);
+            request.body().writeТо(writer);
             writer.endRequest();
             writer.flush();
 
@@ -113,7 +113,7 @@ class RealCall implements Call {
             @Override
             public ResponseData data() throws IOException {
                 {
-                    long dataLength = reader().dataContentLength();
+                    long dataLength = reader.dataContentLength();
                     if (dataLength == -1) {
                         throw new IOException("Cannot access data content before the response body has been completely read.");
                     } else if (dataLength > 0) {
