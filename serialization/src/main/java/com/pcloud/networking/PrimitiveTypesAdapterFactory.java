@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Set;
 
+/**
+ * A {@linkplain TypeAdapterFactory} implementation for the core Java language primitive types.
+ */
 class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
     private static final TypeAdapter<String> STRING_ADAPTER = new TypeAdapter<String>() {
         @Override
@@ -131,6 +134,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
+    @SuppressWarnings("unchecked")
     @Override
     public TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone) {
         if (type == String.class) return STRING_ADAPTER;
@@ -141,6 +145,12 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         if (type == int.class || type == Integer.class) return INTEGER_ADAPTER;
         if (type == short.class || type == Short.class) return SHORT_ADAPTER;
         if (type == byte.class || type == Byte.class) return BYTE_ADAPTER;
+
+        Class<?> rawType = Types.getRawType(type);
+        if (rawType.isEnum()) {
+            return new EnumTypeAdapter<>((Class<? extends Enum>) rawType);
+        }
+
         return null;
     }
 }

@@ -36,7 +36,7 @@ package com.pcloud.networking;
         import java.util.Set;
 
 /** Factory methods for types. */
-public final class Types {
+final class Types {
     static final Type[] EMPTY_TYPE_ARRAY = new Type[] {};
 
     private Types() {

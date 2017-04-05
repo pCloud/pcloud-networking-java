@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -30,7 +30,7 @@ class ArrayTypeAdapter extends TypeAdapter<Object>  {
     private Class<?> elementClass;
     private TypeAdapter<Object> elementAdapter;
 
-    public ArrayTypeAdapter(Class<?> elementClass, TypeAdapter<Object> elementAdapter) {
+    ArrayTypeAdapter(Class<?> elementClass, TypeAdapter<Object> elementAdapter) {
         this.elementClass = elementClass;
         this.elementAdapter = elementAdapter;
     }
@@ -53,5 +53,9 @@ class ArrayTypeAdapter extends TypeAdapter<Object>  {
     @Override
     public void serialize(ProtocolWriter writer, Object value) throws IOException {
         throw new ProtocolException("Serializing arrays is not supported.");
+    }
+
+    @Override public String toString() {
+        return "TypeAdapter[" + elementClass.getName() + "[]]";
     }
 }

@@ -31,12 +31,12 @@
  */
 package com.pcloud.networking;
 
-        import java.io.ObjectInputStream;
-        import java.io.ObjectStreamClass;
-        import java.lang.reflect.Constructor;
-        import java.lang.reflect.Field;
-        import java.lang.reflect.InvocationTargetException;
-        import java.lang.reflect.Method;
+import java.io.ObjectInputStream;
+import java.io.ObjectStreamClass;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 /**
  * Magic that creates instances of arbitrary concrete classes. Derived from Gson's UnsafeAllocator
@@ -49,19 +49,22 @@ abstract class ClassFactory<T> {
     abstract T newInstance() throws
             InvocationTargetException, IllegalAccessException, InstantiationException;
 
-    public static <T> ClassFactory<T> get(final Class<?> rawType) {
+    static <T> ClassFactory<T> get(final Class<?> rawType) {
         // Try to find a no-args constructor. May be any visibility including private.
         try {
             final Constructor<?> constructor = rawType.getDeclaredConstructor();
             constructor.setAccessible(true);
             return new ClassFactory<T>() {
                 @SuppressWarnings("unchecked") // T is the same raw type as is requested
-                @Override public T newInstance() throws IllegalAccessException, InvocationTargetException,
+                @Override
+                public T newInstance() throws IllegalAccessException, InvocationTargetException,
                         InstantiationException {
                     Object[] args = null;
                     return (T) constructor.newInstance(args);
                 }
-                @Override public String toString() {
+
+                @Override
+                public String toString() {
                     return rawType.getName();
                 }
             };
@@ -81,10 +84,13 @@ abstract class ClassFactory<T> {
             final Method allocateInstance = unsafeClass.getMethod("allocateInstance", Class.class);
             return new ClassFactory<T>() {
                 @SuppressWarnings("unchecked")
-                @Override public T newInstance() throws InvocationTargetException, IllegalAccessException {
+                @Override
+                public T newInstance() throws InvocationTargetException, IllegalAccessException {
                     return (T) allocateInstance.invoke(unsafe, rawType);
                 }
-                @Override public String toString() {
+
+                @Override
+                public String toString() {
                     return rawType.getName();
                 }
             };
@@ -109,10 +115,13 @@ abstract class ClassFactory<T> {
             newInstance.setAccessible(true);
             return new ClassFactory<T>() {
                 @SuppressWarnings("unchecked")
-                @Override public T newInstance() throws InvocationTargetException, IllegalAccessException {
+                @Override
+                public T newInstance() throws InvocationTargetException, IllegalAccessException {
                     return (T) newInstance.invoke(null, rawType, constructorId);
                 }
-                @Override public String toString() {
+
+                @Override
+                public String toString() {
                     return rawType.getName();
                 }
             };
@@ -135,10 +144,13 @@ abstract class ClassFactory<T> {
             newInstance.setAccessible(true);
             return new ClassFactory<T>() {
                 @SuppressWarnings("unchecked")
-                @Override public T newInstance() throws InvocationTargetException, IllegalAccessException {
+                @Override
+                public T newInstance() throws InvocationTargetException, IllegalAccessException {
                     return (T) newInstance.invoke(null, rawType, Object.class);
                 }
-                @Override public String toString() {
+
+                @Override
+                public String toString() {
                     return rawType.getName();
                 }
             };

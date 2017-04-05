@@ -34,9 +34,20 @@ public class DiffResultResponse extends ApiResponse {
         return entries;
     }
 
+    public enum EventType {
+        @ParameterValue("reset") RESET,
+        @ParameterValue("createfolder") CREATE_FOLDER,
+        @ParameterValue("deletefolder") DELETE_FOLDER,
+        @ParameterValue("modifyfolder") MODIFY_FOLDER,
+        @ParameterValue("createfile") CREATE_FILE,
+        @ParameterValue("modifyfile") MODIFY_FILE,
+        @ParameterValue("deletefile") DELETE_FILE,
+        @ParameterValue("modifyuserinfo") MODIFY_USERINFO,
+    }
+
     public static class DiffEntry {
         @ParameterValue("event")
-        private String event;
+        private EventType event;
 
         @ParameterValue("diffid")
         private long diffId;

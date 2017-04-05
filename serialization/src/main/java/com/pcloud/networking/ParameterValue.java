@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,7 +24,9 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-/** Customizes how a field is encoded as JSON. */
+/** Controls wheter a field should serialized to/desrialized from binary protocol values.
+ * <p>
+ * The {@linkplain #value()} property allows control over the name to be used during transformation*/
 @Target({FIELD, METHOD})
 @Retention(RUNTIME)
 @Documented

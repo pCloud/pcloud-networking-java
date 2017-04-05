@@ -54,6 +54,7 @@ class RealCall implements Call {
         }
 
         connection = obtainConnection();
+        System.out.println("Making request, using connection " + connection);
         boolean success = false;
         try {
             ProtocolWriter writer = new BytesWriter(connection.sink());
