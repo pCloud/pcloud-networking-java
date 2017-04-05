@@ -16,10 +16,10 @@
 
 package com.pcloud.networking;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.*;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class Cyclone {
 
     private final static Collection<TypeAdapterFactory> DEFAULT_FACTORIES;
@@ -52,6 +52,7 @@ public class Cyclone {
         return getTypeAdapter((Type)type);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> TypeAdapter<T> getTypeAdapter(Type type) {
         type = Types.canonicalize(type);
 
@@ -86,7 +87,8 @@ public class Cyclone {
         // Iterate though the factories and create an adapter for the type.
         try {
             for (TypeAdapterFactory factory : adapterFactories) {
-                TypeAdapter<T> result = (TypeAdapter<T>) factory.create(type, Collections.<Annotation>emptySet(), this);
+                @SuppressWarnings("unchecked")
+                TypeAdapter<T> result = (TypeAdapter<T>) factory.create(type, this);
                 if (result != null) {
                     adapterStub.setDelegate(result);
                     synchronized (typeToAdapterMap) {
@@ -133,7 +135,7 @@ public class Cyclone {
 
             factories.add(new TypeAdapterFactory() {
                 @Override
-                public TypeAdapter<?> create(Type requested, Set<? extends Annotation> annotations, Cyclone cyclone) {
+                public TypeAdapter<?> create(Type requested, Cyclone cyclone) {
                     return type.equals(requested) ? adapter : null;
                 }
             });

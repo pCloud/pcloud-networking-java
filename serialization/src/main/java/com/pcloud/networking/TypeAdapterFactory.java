@@ -16,11 +16,9 @@
 
 package com.pcloud.networking;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Set;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public interface TypeAdapterFactory {
-    TypeAdapter<?> create(Type type, Set<? extends Annotation> annotations, Cyclone cyclone);
+    TypeAdapter<?> create(Type type, Cyclone cyclone);
 }

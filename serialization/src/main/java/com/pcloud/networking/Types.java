@@ -15,27 +15,11 @@
  */
 package com.pcloud.networking;
 
-        import java.lang.annotation.Annotation;
-        import java.lang.reflect.Array;
-        import java.lang.reflect.GenericArrayType;
-        import java.lang.reflect.GenericDeclaration;
-        import java.lang.reflect.InvocationHandler;
-        import java.lang.reflect.Method;
-        import java.lang.reflect.ParameterizedType;
-        import java.lang.reflect.Proxy;
-        import java.lang.reflect.Type;
-        import java.lang.reflect.TypeVariable;
-        import java.lang.reflect.WildcardType;
-        import java.util.Arrays;
-        import java.util.Collection;
-        import java.util.Collections;
-        import java.util.LinkedHashSet;
-        import java.util.Map;
-        import java.util.NoSuchElementException;
-        import java.util.Properties;
-        import java.util.Set;
+import java.lang.reflect.*;
+import java.util.*;
 
 /** Factory methods for types. */
+@SuppressWarnings({"WeakerAccess", "unused"})
 final class Types {
     static final Type[] EMPTY_TYPE_ARRAY = new Type[] {};
 
