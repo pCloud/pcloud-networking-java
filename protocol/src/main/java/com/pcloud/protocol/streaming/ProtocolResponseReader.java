@@ -18,13 +18,15 @@ package com.pcloud.protocol.streaming;
 
 import java.io.IOException;
 
-public class SerializationException extends IOException {
+@SuppressWarnings("WeakerAccess")
+public interface ProtocolResponseReader extends ProtocolReader {
 
-    public SerializationException(String message) {
-        super(message);
-    }
+    int SCOPE_RESPONSE = 1;
+    int UNKNOWN_SIZE = -1;
 
-    public SerializationException(String message, Throwable cause) {
-        super(message, cause);
-    }
+    long beginResponse() throws IOException;
+
+    long endResponse() throws IOException;
+
+    long dataContentLength();
 }
