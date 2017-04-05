@@ -120,13 +120,10 @@ public class BytesReader implements ProtocolResponseReader {
     @Override
     public void beginObject() throws IOException {
         int type = pullType();
-        if (type == TYPE_BEGIN_OBJECT) {
+        if (type == TYPE_BEGIN_OBJECT ||
+                (type == TYPE_BEGIN_ARRAY &&
+                        peekType() == TYPE_END_ARRAY_OBJECT)) {
             scopeStack.push(SCOPE_OBJECT);
-        } else if (type == TYPE_BEGIN_ARRAY && peekType() == TYPE_END_ARRAY_OBJECT) {
-            /*
-            * Empty objects are returned as empty arrays.
-            * */
-            pullType();
         } else {
             throw typeMismatchError(TYPE_BEGIN_OBJECT, type);
         }
