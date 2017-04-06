@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Georgi Neykov
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,13 @@ import java.io.InputStream;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class ResponseData implements Closeable{
 
     private final BufferedSource source;
     private final long contentLength;
 
-    public ResponseData(BufferedSource source, long contentLength) {
+    ResponseData(BufferedSource source, long contentLength) {
         this.source = source;
         this.contentLength = contentLength;
     }

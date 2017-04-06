@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Georgi Neykov
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.pcloud;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 

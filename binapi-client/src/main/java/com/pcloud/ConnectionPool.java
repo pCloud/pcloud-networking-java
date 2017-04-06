@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Georgi Neykov
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
 
 package com.pcloud;
 
-import com.pcloud.internal.ClientIOUtils;
-
 import java.util.*;
 import java.util.concurrent.*;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+@SuppressWarnings("WeakerAccess")
 public class ConnectionPool {
 
     static {
@@ -64,9 +63,10 @@ public class ConnectionPool {
         }
     };
 
-    private final LinkedList<Connection> connections = new LinkedList<Connection>();
+    private final LinkedList<Connection> connections = new LinkedList<>();
     private boolean cleanupRunning;
 
+    @SuppressWarnings("unused")
     public ConnectionPool() {
         this(5, 5, TimeUnit.MINUTES);
     }
@@ -81,6 +81,7 @@ public class ConnectionPool {
         }
     }
 
+    @SuppressWarnings("unused")
     public synchronized int connectionCount() {
         return connections.size();
     }
@@ -119,7 +120,7 @@ public class ConnectionPool {
      * Close and remove all idle connections in the pool.
      */
     public void evictAll() {
-        List<Connection> evictedConnections = new ArrayList<Connection>();
+        List<Connection> evictedConnections = new ArrayList<>();
         synchronized (this) {
             for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
                 Connection connection = i.next();

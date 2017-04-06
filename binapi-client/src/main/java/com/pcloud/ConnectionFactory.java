@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Georgi Neykov
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.sql.Time;
 import java.util.concurrent.TimeUnit;
 
 class ConnectionFactory {
@@ -32,10 +31,10 @@ class ConnectionFactory {
     private int readTimeout;
     private TimeUnit timeUnit;
 
-    public ConnectionFactory(SocketFactory socketFactory,
-                             SSLSocketFactory sslSocketFactory,
-                             HostnameVerifier hostnameVerifier,
-                             int connectTimeout, int readTimeout, TimeUnit timeUnit) {
+    ConnectionFactory(SocketFactory socketFactory,
+                      SSLSocketFactory sslSocketFactory,
+                      HostnameVerifier hostnameVerifier,
+                      int connectTimeout, int readTimeout, TimeUnit timeUnit) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;

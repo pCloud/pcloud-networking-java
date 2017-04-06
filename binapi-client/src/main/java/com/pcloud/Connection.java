@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016 Georgi Neykov
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 interface Connection extends Closeable {
 
