@@ -37,15 +37,6 @@ import java.util.concurrent.TimeUnit;
 public class ClientIOUtils extends IOUtils {
 
     /**
-     * Returns true if {@code e} is due to a firmware bug fixed after Android 4.2.2.
-     * https://code.google.com/p/android/issues/detail?id=54072
-     */
-    public static boolean isAndroidGetsocknameError(AssertionError e) {
-        return e.getCause() != null && e.getMessage() != null
-                && e.getMessage().contains("getsockname failed");
-    }
-
-    /**
      * Reads until {@code in} is exhausted or the deadline has been reached. This is careful to not
      * extend the deadline if one exists already.
      */

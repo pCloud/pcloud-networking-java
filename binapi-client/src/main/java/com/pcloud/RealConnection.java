@@ -43,6 +43,7 @@ class RealConnection implements Connection {
     private BufferedSink sink;
 
     private long idleAtNanos;
+    private Endpoint endpoint;
 
     RealConnection(SocketFactory socketFactory, SSLSocketFactory sslSocketFactory, HostnameVerifier hostnameVerifier) {
         this.socketFactory = socketFactory;
@@ -60,6 +61,7 @@ class RealConnection implements Connection {
             socket = createSocket(endpoint, connectTimeout, readTimeout, timeUnit);
             source = Okio.buffer(Okio.source(socket));
             sink = Okio.buffer(Okio.sink(socket));
+            this.endpoint = endpoint;
             success = true;
         } catch (IOException e) {
             throw new ConnectException(e);
@@ -68,6 +70,11 @@ class RealConnection implements Connection {
                 close();
             }
         }
+    }
+
+    @Override
+    public Endpoint endpoint() {
+        return endpoint;
     }
 
     @Override

@@ -22,7 +22,7 @@ import okio.Okio;
 
 import java.io.IOException;
 
-import static com.pcloud.internal.ClientIOUtils.closeQuietly;
+import static com.pcloud.IOUtils.closeQuietly;
 
 class RealCall implements Call {
 
@@ -53,7 +53,7 @@ class RealCall implements Call {
             throw new IOException("Cancelled.");
         }
 
-        connection = obtainConnection();
+        connection = obtainConnection(request.endpoint());
         System.out.println("Making request, using connection " + connection);
         boolean success = false;
         try {
@@ -152,9 +152,9 @@ class RealCall implements Call {
         throw new UnsupportedOperationException();
     }
 
-    private RealConnection obtainConnection() throws IOException {
+    private RealConnection obtainConnection(Endpoint endpoint) throws IOException {
         RealConnection connection;
-        while ((connection = (RealConnection) connectionPool.get()) != null) {
+        while ((connection = connectionPool.get(endpoint)) != null) {
             if (connection.isHealthy(eagerlyCheckConnectivity)) {
                 return connection;
             } else {
@@ -179,9 +179,11 @@ class RealCall implements Call {
 
     @Override
     public void cancel() {
-        cancelled = true;
-        if (connection != null) {
-            connection.close();
+        if (!cancelled) {
+            cancelled = true;
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 

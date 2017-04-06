@@ -21,6 +21,8 @@ import com.pcloud.internal.ClientIOUtils;
 import java.util.*;
 import java.util.concurrent.*;
 
+import static com.pcloud.IOUtils.closeQuietly;
+
 public class ConnectionPool {
 
     static {
@@ -62,7 +64,7 @@ public class ConnectionPool {
         }
     };
 
-    private final Deque<Connection> connections = new ArrayDeque<Connection>();
+    private final LinkedList<Connection> connections = new LinkedList<Connection>();
     private boolean cleanupRunning;
 
     public ConnectionPool() {
@@ -86,8 +88,22 @@ public class ConnectionPool {
     /**
      * Returns a recycled connection to {@code address}, or null if no such connection exists.
      */
-    synchronized Connection get() {
-        return connections.pollLast();
+    synchronized RealConnection get(Endpoint endpoint) {
+
+        /*
+        * Iterate the connections in reverse order
+        * and take the first connection having the same endpoint.
+        * */
+        ListIterator<Connection> iterator = connections.listIterator(connections.size());
+        while (iterator.hasPrevious()) {
+            Connection connection = iterator.previous();
+            if (connection.endpoint().equals(endpoint)) {
+                iterator.remove();
+                return (RealConnection) connection;
+            }
+        }
+
+        return null;
     }
 
     synchronized void recycle(RealConnection connection) {
@@ -113,7 +129,7 @@ public class ConnectionPool {
         }
 
         for (Connection connection : evictedConnections) {
-            ClientIOUtils.closeQuietly(connection);
+            closeQuietly(connection);
         }
     }
 
@@ -151,7 +167,7 @@ public class ConnectionPool {
             }
         }
 
-        ClientIOUtils.closeQuietly(longestIdleConnection);
+        closeQuietly(longestIdleConnection);
 
         // Cleanup again immediately.
         return 0;

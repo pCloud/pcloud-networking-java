@@ -24,7 +24,8 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 interface Connection extends Closeable {
-    void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws ConnectException;
+
+    Endpoint endpoint();
 
     BufferedSource source();
 

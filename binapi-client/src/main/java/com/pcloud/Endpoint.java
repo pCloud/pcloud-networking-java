@@ -19,7 +19,7 @@ package com.pcloud;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
-public class Endpoint {
+public final class Endpoint {
     public static final Endpoint DEFAULT = new Endpoint("binapi.pcloud.com", 443);
 
     private final String host;
@@ -40,5 +40,29 @@ public class Endpoint {
 
     public SocketAddress socketAddress() {
         return new InetSocketAddress(host, port);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Endpoint endpoint = (Endpoint) o;
+
+        if (port != endpoint.port) return false;
+        return host.equals(endpoint.host);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = host.hashCode();
+        result = 31 * result + port;
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return host + ":" + port;
     }
 }

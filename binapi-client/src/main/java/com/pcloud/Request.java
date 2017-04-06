@@ -24,6 +24,7 @@ public class Request {
         return new Builder();
     }
 
+    private Endpoint endpoint;
     private String methodName;
     private RequestBody body;
     private DataSource dataSource;
@@ -32,6 +33,7 @@ public class Request {
         this.methodName = builder.methodName;
         this.body = builder.body;
         this.dataSource = builder.dataSource;
+        this.endpoint = builder.endpoint;
     }
 
     public String methodName() {
@@ -46,6 +48,8 @@ public class Request {
         return dataSource;
     }
 
+    public Endpoint endpoint() {return endpoint;}
+
     public Builder newRequest() {
         return new Builder(this);
     }
@@ -55,10 +59,12 @@ public class Request {
         return String.format("Method:\'%s\', hasData=%s\n%s", methodName, dataSource!= null, body.toString());
     }
 
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public static class Builder {
         private String methodName;
         private RequestBody body;
         private DataSource dataSource;
+        private Endpoint endpoint = Endpoint.DEFAULT;
 
         private Builder(){}
 
@@ -66,9 +72,14 @@ public class Request {
             methodName = request.methodName;
             body = request.body;
             dataSource = request.dataSource;
+            endpoint = request.endpoint;
         }
 
         public Builder methodName(String methodName) {
+            if (methodName == null) {
+                throw new IllegalArgumentException("Method name cannot be null.");
+            }
+
             this.methodName = methodName;
             return this;
         }
@@ -79,8 +90,19 @@ public class Request {
         }
 
         public Builder body(RequestBody body) {
+            if (body == null) {
+                throw new IllegalArgumentException("RequestBody argument cannot be null.");
+            }
+
             this.body = body;
             return this;
+        }
+
+        public void endpoint(Endpoint endpoint) {
+            if (endpoint == null) {
+                throw new IllegalArgumentException("Endpoint argument cannot be null.");
+            }
+            this.endpoint = endpoint;
         }
 
         public Request build() {

@@ -62,6 +62,10 @@ public abstract class FixedLengthSource implements Source {
         }
     }
 
+    public long bytesRemaining(){
+        return bytesRemaining;
+    }
+
     protected abstract void exhausted(boolean reuseSource);
 
     private void scrap(boolean reuseSource) {
