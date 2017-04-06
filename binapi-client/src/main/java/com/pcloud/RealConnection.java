@@ -27,10 +27,12 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
-import com.pcloud.internal.ClientIOUtils;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
+
+import static com.pcloud.IOUtils.closeQuietly;
+import static com.pcloud.IOUtils.isAndroidGetsocknameError;
 
 class RealConnection implements Connection {
 
@@ -38,7 +40,8 @@ class RealConnection implements Connection {
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
 
-    private Socket socket;
+    private Socket rawSocket;
+    private SSLSocket socket;
     private BufferedSource source;
     private BufferedSink sink;
 
@@ -51,16 +54,16 @@ class RealConnection implements Connection {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    @Override
-    public void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws com.pcloud.ConnectException{
+    void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws com.pcloud.ConnectException{
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
         }
         boolean success = false;
         try {
-            socket = createSocket(endpoint, connectTimeout, readTimeout, timeUnit);
-            source = Okio.buffer(Okio.source(socket));
-            sink = Okio.buffer(Okio.sink(socket));
+            this.rawSocket = createSocket(endpoint, connectTimeout, readTimeout, timeUnit);
+            this.socket = upgradeSocket(rawSocket, endpoint, readTimeout, timeUnit);
+            this.source = Okio.buffer(Okio.source(socket));
+            this.sink = Okio.buffer(Okio.sink(socket));
             this.endpoint = endpoint;
             success = true;
         } catch (IOException e) {
@@ -121,12 +124,20 @@ class RealConnection implements Connection {
 
     @Override
     public void close() {
-        ClientIOUtils.closeQuietly(socket);
-        ClientIOUtils.closeQuietly(source);
-        ClientIOUtils.closeQuietly(sink);
+        /*
+        * Close only the raw socket, all other Closeable
+        * properties wrap around it and would get closed too.
+        * Also closing the plain socket is non-blocking,
+        * while the SSL socket may block as it may be doing
+        * some synchronous IO in SSLSocket.close() based on
+        * the underlying implementation (namely OpenSSL on Android).
+        * */
+        closeQuietly(rawSocket);
+        rawSocket = null;
         socket = null;
         source = null;
         sink = null;
+        endpoint = null;
     }
 
     private Socket createSocket(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws IOException {
@@ -136,27 +147,43 @@ class RealConnection implements Connection {
             socket = socketFactory.createSocket();
             socket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
             socket.connect(endpoint.socketAddress(), (int) timeUnit.toMillis(connectTimeout));
-            socket = sslSocketFactory.createSocket(
-                    socket,
+            connectionSucceeded = true;
+            return socket;
+
+        } catch (AssertionError e) {
+            if (isAndroidGetsocknameError(e)) throw new IOException(e);
+            throw e;
+        } finally {
+            if (!connectionSucceeded) {
+                closeQuietly(socket);
+            }
+        }
+    }
+
+    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint, int readTimeout, TimeUnit timeUnit) throws IOException {
+        SSLSocket socket = null;
+        boolean connectionSucceeded = false;
+        try {
+            socket = (SSLSocket) sslSocketFactory.createSocket(
+                    rawSocket,
                     endpoint.host(),
                     endpoint.port(),
                     true /*close wrapped socket*/);
 
-            SSLSocket sslSocket = (SSLSocket) socket;
-            sslSocket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
-            sslSocket.startHandshake();
-            if (!hostnameVerifier.verify(endpoint.host(), sslSocket.getSession())) {
+            socket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
+            socket.startHandshake();
+            if (!hostnameVerifier.verify(endpoint.host(), socket.getSession())) {
                 throw new SSLPeerUnverifiedException("Hostname " + endpoint.host() + " not verified:");
             }
             connectionSucceeded = true;
             return socket;
 
         } catch (AssertionError e) {
-            if (ClientIOUtils.isAndroidGetsocknameError(e)) throw new IOException(e);
+            if (isAndroidGetsocknameError(e)) throw new IOException(e);
             throw e;
         } finally {
             if (!connectionSucceeded) {
-                ClientIOUtils.closeQuietly(socket);
+                closeQuietly(socket);
             }
         }
     }
