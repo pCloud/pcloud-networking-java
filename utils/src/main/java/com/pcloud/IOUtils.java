@@ -112,11 +112,11 @@ public class IOUtils {
         }
     }
 
-    public static long peekNumberLe(BufferedSource source, int byteCount) throws IOException {
-        source.require(byteCount);
+    public static long peekNumberLe(BufferedSource source, int offset, int byteCount) throws IOException {
+        source.require(offset + byteCount);
         if (byteCount > 1) {
             Buffer numberBytes = new Buffer();
-            source.buffer().copyTo(numberBytes, 0, byteCount);
+            source.buffer().copyTo(numberBytes, offset, byteCount);
             long value = 0;
             long m = 1;
             for (int i = 0; i < byteCount; i++) {
@@ -127,5 +127,9 @@ public class IOUtils {
         } else {
             return source.buffer().getByte(0) & 0xff;
         }
+    }
+
+    public static long peekNumberLe(BufferedSource source, int byteCount) throws IOException {
+        return peekNumberLe(source, 0, byteCount);
     }
 }

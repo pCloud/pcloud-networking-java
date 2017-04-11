@@ -72,13 +72,25 @@ public class ConnectionPool {
     }
 
     public ConnectionPool(int maxIdleConnections, long keepAliveDuration, TimeUnit timeUnit) {
+        if (maxIdleConnections < 0) {
+            throw new IllegalArgumentException("maxIdleConnections < 0: "+maxIdleConnections);
+        }
+
+        if (keepAliveDuration <= 0) {
+            // Put a floor on the keep alive duration, otherwise cleanup will spin loop.
+            throw new IllegalArgumentException("keepAliveDuration < 0:" + keepAliveDuration);
+        }
+
+        if (timeUnit == null) {
+            throw new IllegalArgumentException("time unit is null.");
+        }
+
         this.maxIdleConnections = maxIdleConnections;
         this.keepAliveDurationNs = timeUnit.toNanos(keepAliveDuration);
+    }
 
-        // Put a floor on the keep alive duration, otherwise cleanup will spin loop.
-        if (keepAliveDuration <= 0) {
-            throw new IllegalArgumentException("keepAliveDuration <= 0: " + keepAliveDuration);
-        }
+    public int maxIdleConnections() {
+        return maxIdleConnections;
     }
 
     @SuppressWarnings("unused")

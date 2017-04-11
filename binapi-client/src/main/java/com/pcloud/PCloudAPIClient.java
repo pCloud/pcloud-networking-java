@@ -21,16 +21,15 @@ import com.pcloud.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.*;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class PCloudAPIClient {
 
-    private final int maxIdleConnections;
-    private final int keepAliveDurationMs;
     private int connectTimeoutMs;
     private int writeTimeoutMs;
     private int readTimeoutMs;
@@ -38,11 +37,11 @@ public class PCloudAPIClient {
     private final SocketFactory socketFactory;
     private final SSLSocketFactory sslSocketFactory;
     private final HostnameVerifier hostnameVerifier;
-    private final EndpointProvider endpointProvider;
     private final Authenticator authenticator;
 
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
+    private ExecutorService callExecutor;
 
     private PCloudAPIClient(Builder builder) {
         this.connectTimeoutMs = builder.connectTimeoutMs;
@@ -52,26 +51,27 @@ public class PCloudAPIClient {
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
         this.sslSocketFactory = builder.sslSocketFactory != null ? builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
         this.hostnameVerifier = builder.hostnameVerifier != null ? builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
-        this.endpointProvider = builder.endpointProvider != null ? builder.endpointProvider : EndpointProvider.DEFAULT;
         this.authenticator = builder.authenticator != null ? builder.authenticator : new DefaultAuthenticator();
-
-        this.keepAliveDurationMs = builder.keepAliveDurationMs;
-        this.maxIdleConnections = builder.maxIdleConnectionCount;
-
-        this.connectionPool = new ConnectionPool(maxIdleConnections, keepAliveDurationMs, MILLISECONDS);
+        this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
         this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier, connectTimeoutMs, readTimeoutMs, MILLISECONDS);
+        this.callExecutor = builder.callExecutor != null ? builder.callExecutor :
+                new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "PCloud API Client");
+                    }
+                });
     }
 
     public Call newCall(Request request){
-        return new RealCall(request, connectionPool, connectionFactory, false);
+        if (request == null) {
+            throw new IllegalArgumentException("Request cannot be null.");
+        }
+        return new RealCall(request, callExecutor, new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
-    public int maxIdleConnections() {
-        return maxIdleConnections;
-    }
 
-    public int keepAliveDuration() {
-        return keepAliveDurationMs;
     }
 
     public int connectTimeout() {
@@ -98,10 +98,6 @@ public class PCloudAPIClient {
         return hostnameVerifier;
     }
 
-    public EndpointProvider endpointProvider() {
-        return endpointProvider;
-    }
-
     public ConnectionPool connectionPool() {
         return connectionPool;
     }
@@ -110,17 +106,21 @@ public class PCloudAPIClient {
         return authenticator;
     }
 
+    public ExecutorService callExecutor() {return callExecutor;};
+
     public void shutdown() {
         connectionPool.evictAll();
+    }
+
+    public Builder newBuilder(){
+        return new Builder(this);
     }
 
     public static Builder newClient() {
         return new Builder()
                 .setConnectTimeoutMs(15, SECONDS)
                 .setWriteTimeoutMs(30, SECONDS)
-                .setReadTimeout(30, SECONDS)
-                .setConnectionKeepAliveDuration(10, MINUTES)
-                .setMaxIdleConnections(5);
+                .setReadTimeout(30, SECONDS);
     }
 
     public static class Builder {
@@ -128,13 +128,24 @@ public class PCloudAPIClient {
         private int connectTimeoutMs;
         private int writeTimeoutMs;
         private int readTimeoutMs;
-        private int keepAliveDurationMs;
-        private int maxIdleConnectionCount;
+        private ConnectionPool connectionPool;
         private SocketFactory socketFactory;
         private SSLSocketFactory sslSocketFactory;
         private HostnameVerifier hostnameVerifier;
-        private EndpointProvider endpointProvider;
         private Authenticator authenticator;
+        private ExecutorService callExecutor;
+
+        private Builder(PCloudAPIClient cloudAPIClient) {
+            this.connectTimeoutMs = cloudAPIClient.connectTimeoutMs;
+            this.writeTimeoutMs = cloudAPIClient.writeTimeoutMs;
+            this.readTimeoutMs = cloudAPIClient.readTimeoutMs;
+            this.connectionPool = cloudAPIClient.connectionPool;
+            this.socketFactory = cloudAPIClient.socketFactory;
+            this.sslSocketFactory = cloudAPIClient.sslSocketFactory;
+            this.hostnameVerifier = cloudAPIClient.hostnameVerifier;
+            this.authenticator = cloudAPIClient.authenticator;
+            this.callExecutor = cloudAPIClient.callExecutor;
+        }
 
         private Builder() {
         }
@@ -154,46 +165,44 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public Builder setConnectionKeepAliveDuration(long duration, TimeUnit timeUnit) {
-            int durationMs = convertTimeValue(duration, timeUnit);
-            if (durationMs == 0) {
-                throw new IllegalArgumentException("keepAliveDuration = 0.");
+        public void connectionPool(ConnectionPool connectionPool) {
+            if (connectionPool == null) {
+                throw new IllegalArgumentException("ConnectionPool cannot be null.");
             }
-            this.keepAliveDurationMs = durationMs;
-            return this;
-        }
-
-        public Builder setMaxIdleConnections(int maxIdleConnectionCount) {
-            if (maxIdleConnectionCount < 0) {
-                throw new IllegalArgumentException("maxIdleConnections < 0: ");
-            }
-            this.maxIdleConnectionCount = maxIdleConnectionCount;
-            return this;
+            this.connectionPool = connectionPool;
         }
 
         public Builder setSocketFactory(SocketFactory socketFactory) {
+            if (socketFactory == null) {
+                throw new IllegalArgumentException("SocketFactory cannot be null.");
+            }
             this.socketFactory = socketFactory;
             return this;
         }
 
         public Builder setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
+            if (sslSocketFactory == null) {
+                throw new IllegalArgumentException("SSLSocketFactory cannot be null.");
+            }
             this.sslSocketFactory = sslSocketFactory;
             return this;
         }
 
         public Builder setHostnameVerifier(HostnameVerifier hostnameVerifier) {
+            if (hostnameVerifier == null) {
+                throw new IllegalArgumentException("HostnameVerifier cannot be null.");
+            }
             this.hostnameVerifier = hostnameVerifier;
-            return this;
-        }
-
-        public Builder setEndpointProvider(EndpointProvider endpointProvider) {
-            this.endpointProvider = endpointProvider;
             return this;
         }
 
         public Builder setAuthenticator(Authenticator authenticator) {
             this.authenticator = authenticator;
             return this;
+        }
+
+        public void callExecutor(ExecutorService executorService) {
+            this.callExecutor = executorService;
         }
 
         public PCloudAPIClient create() {

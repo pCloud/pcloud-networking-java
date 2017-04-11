@@ -35,4 +35,9 @@ public abstract class ResponseBody implements Closeable{
     public abstract long contentLength();
 
     public abstract ResponseData data() throws IOException;
+
+    @Override
+    public String toString() {
+        return String.format("[Response]: %d bytes",contentLength());
+    }
 }

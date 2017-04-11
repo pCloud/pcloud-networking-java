@@ -17,6 +17,8 @@
 package com.pcloud;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
 public interface Call {
@@ -24,7 +26,11 @@ public interface Call {
 
     Response execute() throws IOException;
 
-    void execute(Callback callback);
+    Response enqueueAndWait() throws IOException, InterruptedException;
+
+    Response enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException;
+
+    void enqueue(Callback callback);
 
     boolean isExecuted();
 

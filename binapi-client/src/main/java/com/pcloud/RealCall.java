@@ -21,6 +21,7 @@ import okio.BufferedSource;
 import okio.Okio;
 
 import java.io.IOException;
+import java.util.concurrent.*;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
@@ -29,31 +30,117 @@ class RealCall implements Call {
     private Request request;
     private volatile boolean cancelled;
     private volatile boolean executed;
+
     private RealConnection connection;
 
-    private ConnectionPool connectionPool;
-    private ConnectionFactory connectionFactory;
-    private boolean eagerlyCheckConnectivity;
+    private ExecutorService callExecutor;
+    private ConnectionProvider connectionProvider;
 
-    RealCall(Request request, ConnectionPool connectionPool, ConnectionFactory connectionFactory, boolean eagerlyCheckConnectivity) {
+    RealCall(Request request, ExecutorService callExecutor, ConnectionProvider connectionProvider) {
         this.request = request;
-        this.connectionPool = connectionPool;
-        this.connectionFactory = connectionFactory;
-        this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
+        this.callExecutor = callExecutor;
+        this.connectionProvider = connectionProvider;
     }
 
     @Override
     public Response execute() throws IOException {
+        checkAndMarkExecuted();
+        return getResponse();
+    }
+
+    @Override
+    public Response enqueueAndWait() throws IOException, InterruptedException {
+        checkAndMarkExecuted();
+        try {
+            return callExecutor.submit(new Callable<Response>() {
+                @Override
+                public Response call() throws IOException {
+                    return getResponse();
+                }
+            }).get();
+        } catch (ExecutionException e) {
+            throw new IOException(e.getCause());
+        } catch (CancellationException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    public Response enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+        checkAndMarkExecuted();
+        try {
+            return callExecutor.submit(new Callable<Response>() {
+                @Override
+                public Response call() throws IOException {
+                    return getResponse();
+                }
+            }).get(timeout, timeUnit);
+        } catch (ExecutionException e) {
+            throw new IOException(e.getCause());
+        }
+    }
+
+    @Override
+    public void enqueue(final Callback callback) {
+        checkAndMarkExecuted();
+        callExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                boolean callingCallback = false;
+                Response response = null;
+                try {
+                    response = getResponse();
+                    callingCallback = true;
+                    callback.onResponse(RealCall.this, response);
+                } catch (IOException e) {
+                    if (!callingCallback) {
+                        callback.onFailure(RealCall.this, e);
+                    }
+                    closeQuietly(response);
+                }
+            }
+        });
+    }
+
+    @Override
+    public Request request() {
+        return request;
+    }
+
+    @Override
+    public synchronized boolean isExecuted() {
+        return executed;
+    }
+
+
+    @Override
+    public void cancel() {
+        if (!cancelled) {
+            cancelled = true;
+            closeQuietly(connection);
+            connection = null;
+        }
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    private void checkAndMarkExecuted() {
         synchronized (this) {
             if (executed) throw new IllegalStateException("Already Executed");
             executed = true;
         }
+    }
 
+    private Response getResponse() throws IOException {
         if (cancelled) {
             throw new IOException("Cancelled.");
         }
 
-        connection = obtainConnection(request.endpoint());
+        RealConnection connection = connectionProvider.obtainConnection(request.endpoint());
+        this.connection = connection;
         System.out.println("Making request, using connection " + connection);
         boolean success = false;
         try {
@@ -69,7 +156,7 @@ class RealCall implements Call {
 
             Response response = Response.create()
                     .request(request)
-                    .responseBody(createResponseBody(connection.source(), connection))
+                    .responseBody(createResponseBody(connection))
                     .build();
             success = true;
             return response;
@@ -77,17 +164,17 @@ class RealCall implements Call {
             if (!success) {
                 closeQuietly(connection);
             }
-            connection = null;
+            this.connection = null;
         }
     }
 
-    private ResponseBody createResponseBody(final BufferedSource source, final Connection connection) throws IOException {
-
+    private ResponseBody createResponseBody(final Connection connection) throws IOException {
+        final BufferedSource source = connection.source();
         final BytesReader reader = new BytesReader(source) {
             @Override
             public void endObject() throws IOException {
                 super.endObject();
-                if (currentScope() == SCOPE_RESPONSE){
+                if (currentScope() == SCOPE_RESPONSE) {
                     endResponse();
                 }
             }
@@ -119,7 +206,7 @@ class RealCall implements Call {
                     } else if (dataLength > 0) {
                         synchronized (reader) {
                             if (data == null) {
-                                dataSource = new RecyclingFixedLengthSource(connectionPool, connection, dataLength);
+                                dataSource = new RecyclingFixedLengthSource(connectionProvider, connection, dataLength);
                                 data = new ResponseData(Okio.buffer(dataSource), dataLength);
                             }
                         }
@@ -138,7 +225,7 @@ class RealCall implements Call {
                 }
                 if (dataContentLength == 0 || dataSource != null && dataSource.bytesRemaining() == 0) {
                     // All possible data has been read, safe to reuse the connection.
-                    connectionPool.recycle((RealConnection) connection);
+                    connectionProvider.recycleConnection((RealConnection) connection);
                 } else {
                     // It is unknown whether all data from the response has been read, no connection reuse is possible.
                     connection.close();
@@ -147,57 +234,12 @@ class RealCall implements Call {
         };
     }
 
-    @Override
-    public void execute(Callback callback) {
-        throw new UnsupportedOperationException();
-    }
-
-    private RealConnection obtainConnection(Endpoint endpoint) throws IOException {
-        RealConnection connection;
-        while ((connection = connectionPool.get(endpoint)) != null) {
-            if (connection.isHealthy(eagerlyCheckConnectivity)) {
-                return connection;
-            } else {
-                closeQuietly(connection);
-            }
-        }
-
-        // No pooled connections available, just build a new one.
-        return connectionFactory.openConnection(Endpoint.DEFAULT);
-    }
-
-    @Override
-    public Request request() {
-        return request;
-    }
-
-
-    @Override
-    public synchronized boolean isExecuted() {
-        return executed;
-    }
-
-    @Override
-    public void cancel() {
-        if (!cancelled) {
-            cancelled = true;
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
-    }
-
     private static class RecyclingFixedLengthSource extends FixedLengthSource {
 
-        private ConnectionPool connectionPool;
+        private ConnectionProvider connectionPool;
         private Connection connection;
 
-        private RecyclingFixedLengthSource(ConnectionPool pool, Connection connection, long contentLength) {
+        private RecyclingFixedLengthSource(ConnectionProvider pool, Connection connection, long contentLength) {
             super(connection.source(), contentLength);
             this.connection = connection;
             this.connectionPool = pool;
@@ -206,7 +248,7 @@ class RealCall implements Call {
         @Override
         protected void exhausted(boolean reuseSource) {
             if (reuseSource) {
-                connectionPool.recycle((RealConnection) connection);
+                connectionPool.recycleConnection((RealConnection) connection);
             } else {
                 closeQuietly(connection);
             }
