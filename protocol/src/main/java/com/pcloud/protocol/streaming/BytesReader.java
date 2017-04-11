@@ -18,6 +18,7 @@ package com.pcloud.protocol.streaming;
 
 import com.pcloud.ByteCountingSource;
 import com.pcloud.FixedLengthSource;
+import com.pcloud.IOUtils;
 import com.pcloud.protocol.DataSink;
 import okio.*;
 
@@ -298,10 +299,8 @@ public class BytesReader implements ProtocolResponseReader {
         bufferedSource.require(1);
         int type = bufferedSource.buffer().getByte(0) & 0xff;
         if (type == TYPE_DATA) {
-            // Swallow the token, and peek again.
-            bufferedSource.readByte();
-            dataLength = pullNumber(8);
-            return peekType();
+            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, 8);
+            return TYPE_NUMBER_END;
         }
         return type;
     }
@@ -310,10 +309,8 @@ public class BytesReader implements ProtocolResponseReader {
         if (responseStarted) {
             int type = bufferedSource.readByte() & 0xff;
             if (type == TYPE_DATA) {
-                // Store the data content length and
-                // swallow the token.
-                dataLength = pullNumber(8);
-                return pullType();
+                dataLength = IOUtils.peekNumberLe(bufferedSource, 1, 8);
+                return TYPE_NUMBER_END;
             }
             return type;
         } else {
