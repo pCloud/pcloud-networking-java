@@ -16,18 +16,16 @@
 
 package com.pcloud.example;
 
-import com.pcloud.PCloudAPIClient;
-import com.pcloud.Request;
-import com.pcloud.RequestBody;
-import com.pcloud.Response;
+import com.pcloud.*;
 import com.pcloud.networking.Transformer;
+import com.pcloud.protocol.streaming.BytesReader;
+import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.TypeToken;
+import okio.ByteString;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.IOUtils.closeQuietly;
@@ -46,32 +44,112 @@ public class Main {
                 .create();
         try {
             String token = getAuthToken(client, transformer, username, password);
-
-            boolean requestMoreDiffs;
-            long lastDiffId = 0;
-            final int chunkSize = 50000;
-            long start = System.currentTimeMillis();
-            long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-            long currentMemory = startMemory;
-            List<DiffResultResponse.DiffEntry> entries = new LinkedList<>();
-            do {
-                DiffResultResponse resultResponse = getDiffs(client, transformer, token, lastDiffId, chunkSize);
-                lastDiffId = resultResponse.diffId();
-                currentMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-                System.gc();
-                System.out.println("Read " + resultResponse.entries().size() + " diffs. Last diff id " + lastDiffId
-                        + " memory grew with " + (currentMemory - startMemory) / 1024 + " kB.");
-                entries.addAll(resultResponse.entries());
-                requestMoreDiffs = resultResponse.entries().size() == chunkSize;
-            } while (requestMoreDiffs);
-            System.gc();
-            currentMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-            System.out.println(entries.size() + " diffs total for " + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start) +
-                    "s, used memory grew with " + (currentMemory - startMemory) / 1024 + " kB.");
-        } catch (IOException e) {
+            //pullDiffs(transformer, client, token);
+            //getMultiThumb(client, token, 2516863197L);
+            getChecksums(client, token,
+                    2516863197L, 2516863303L,
+                    2516863074L, 2516862988L,
+                    2516869906L, 2516869939L,
+                    2516869733L, 2516869808L,
+                    2516869566L, 2516869479L);
+            getThumb(client, token, 2516863197L);
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             client.shutdown();
+        }
+    }
+
+    private static void pullDiffs(Transformer transformer, PCloudAPIClient client, String token) throws IOException {
+        boolean requestMoreDiffs;
+        long lastDiffId = 0;
+        final int chunkSize = 50000;
+        long start = System.currentTimeMillis();
+        long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+        long currentMemory = startMemory;
+        List<DiffResultResponse.DiffEntry> entries = new LinkedList<>();
+        do {
+            DiffResultResponse resultResponse = getDiffs(client, transformer, token, lastDiffId, chunkSize);
+            lastDiffId = resultResponse.diffId();
+            currentMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+            System.gc();
+            System.out.println("Read " + resultResponse.entries().size() + " diffs. Last diff id " + lastDiffId
+                    + " memory grew with " + (currentMemory - startMemory) / 1024 + " kB.");
+            entries.addAll(resultResponse.entries());
+            requestMoreDiffs = resultResponse.entries().size() == chunkSize;
+        } while (requestMoreDiffs);
+        System.gc();
+        currentMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+        System.out.println(entries.size() + " diffs total for " + TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - start) +
+                "s, used memory grew with " + (currentMemory - startMemory) / 1024 + " kB.");
+    }
+
+    private static void getMultiThumb(PCloudAPIClient cloudAPIClient, String token, long fileId) throws IOException {
+        Map<String, Object> values = new TreeMap<>();
+        values.put("auth", token);
+        values.put("fileid", fileId);
+        values.put("size", "128x128");
+
+        MultiResponse response = null;
+        try {
+            List<Request> requests = new ArrayList<>();
+            for (int i = 0; i < 1; i++){
+                requests.add(Request.create()
+                        .body(RequestBody.fromValues(values))
+                        .methodName("getthumb")
+                        .build());
+            }
+            response = cloudAPIClient.newCall(requests)
+                    .execute();
+
+        } finally {
+            closeQuietly(response);
+        }
+    }
+
+    private static void getChecksums(PCloudAPIClient cloudAPIClient, String token, long... fileids) throws IOException {
+        MultiResponse response = null;
+        try {
+            List<Request> requests = new ArrayList<>();
+            for (int i = 0; i < fileids.length; i++){
+                Map<String, Object> values = new TreeMap<>();
+                values.put("auth", token);
+                values.put("fileid", fileids[i]);
+                requests.add(Request.create()
+                        .body(RequestBody.fromValues(values))
+                        .methodName("getthumb")
+                        .build());
+            }
+            response = cloudAPIClient.newCall(requests)
+                    .enqueueAndWait();
+            response.toString();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            closeQuietly(response);
+        }
+    }
+
+    private static void getThumb(PCloudAPIClient cloudAPIClient, String token, long fileId) throws IOException, InterruptedException {
+        Map<String, Object> values = new TreeMap<>();
+        values.put("auth", token);
+        values.put("fileid", fileId);
+        values.put("size", "128x128");
+
+        Response response = null;
+        try {
+            response = cloudAPIClient.newCall(
+                    Request.create()
+                            .body(RequestBody.fromValues(values))
+                            .methodName("getthumb")
+                            .build())
+                    .enqueueAndWait();
+
+            Map<String, ?> responseValues = response.responseBody().toValues();
+            ResponseData data = response.responseBody().data();
+            responseValues.toString();
+        } finally {
+            closeQuietly(response);
         }
     }
 
