@@ -71,7 +71,28 @@ public class PCloudAPIClient {
         return new RealCall(request, callExecutor, new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
+    public MultiCall newCall(Collection<Request> requests){
+        if (requests == null) {
+            throw new IllegalArgumentException("Requests collection cannot be null.");
+        }
 
+        if (requests.isEmpty()) {
+            throw new IllegalArgumentException("Requests collection is empty.");
+        }
+
+        Endpoint endpoint = null;
+        for (Request request: requests) {
+            if (request == null) {
+                throw new IllegalArgumentException("Collection cannot contain null requests.");
+            }
+
+            if (endpoint != null && !endpoint.equals(request.endpoint())){
+                throw new IllegalArgumentException("Requests from the collection must be opted for the same endpoint.");
+            }
+            endpoint = request.endpoint();
+        }
+
+        return new RealMultiCall(new ArrayList<>(requests), callExecutor, new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     public int connectTimeout() {
