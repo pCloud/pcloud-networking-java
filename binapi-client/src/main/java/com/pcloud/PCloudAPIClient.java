@@ -21,8 +21,7 @@ import com.pcloud.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -37,7 +36,8 @@ public class PCloudAPIClient {
     private final SocketFactory socketFactory;
     private final SSLSocketFactory sslSocketFactory;
     private final HostnameVerifier hostnameVerifier;
-    private final Authenticator authenticator;
+
+    private final List<RequestInterceptor> interceptors;
 
     private ConnectionPool connectionPool;
     private ConnectionFactory connectionFactory;
@@ -51,7 +51,6 @@ public class PCloudAPIClient {
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
         this.sslSocketFactory = builder.sslSocketFactory != null ? builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
         this.hostnameVerifier = builder.hostnameVerifier != null ? builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
-        this.authenticator = builder.authenticator != null ? builder.authenticator : new DefaultAuthenticator();
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
         this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier, connectTimeoutMs, readTimeoutMs, MILLISECONDS);
         this.callExecutor = builder.callExecutor != null ? builder.callExecutor :
@@ -62,13 +61,14 @@ public class PCloudAPIClient {
                         return new Thread(r, "PCloud API Client");
                     }
                 });
+        this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
 
     public Call newCall(Request request){
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null.");
         }
-        return new RealCall(request, callExecutor, new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealCall(request, callExecutor, interceptors, new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     public MultiCall newCall(Collection<Request> requests){
@@ -92,7 +92,7 @@ public class PCloudAPIClient {
             endpoint = request.endpoint();
         }
 
-        return new RealMultiCall(new ArrayList<>(requests), callExecutor, new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors, new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     public int connectTimeout() {
@@ -123,13 +123,14 @@ public class PCloudAPIClient {
         return connectionPool;
     }
 
-    public Authenticator authenticator() {
-        return authenticator;
-    }
-
     public ExecutorService callExecutor() {return callExecutor;};
 
+    public List<RequestInterceptor> interceptors() {
+        return interceptors;
+    }
+
     public void shutdown() {
+        callExecutor.shutdownNow();
         connectionPool.evictAll();
     }
 
@@ -153,8 +154,10 @@ public class PCloudAPIClient {
         private SocketFactory socketFactory;
         private SSLSocketFactory sslSocketFactory;
         private HostnameVerifier hostnameVerifier;
-        private Authenticator authenticator;
+        private RequestInterceptor authenticator;
         private ExecutorService callExecutor;
+
+        List<RequestInterceptor> interceptors;
 
         private Builder(PCloudAPIClient cloudAPIClient) {
             this.connectTimeoutMs = cloudAPIClient.connectTimeoutMs;
@@ -164,11 +167,38 @@ public class PCloudAPIClient {
             this.socketFactory = cloudAPIClient.socketFactory;
             this.sslSocketFactory = cloudAPIClient.sslSocketFactory;
             this.hostnameVerifier = cloudAPIClient.hostnameVerifier;
-            this.authenticator = cloudAPIClient.authenticator;
             this.callExecutor = cloudAPIClient.callExecutor;
+            this.interceptors = new LinkedList<>(cloudAPIClient.interceptors);
         }
 
         private Builder() {
+            this.interceptors = new LinkedList<>();
+        }
+
+        public Builder addInterceptor(RequestInterceptor interceptor){
+            if (interceptor == null) {
+                throw new IllegalArgumentException("RequestInterceptor cannot be null.");
+            }
+            interceptors.add(interceptor);
+            return this;
+        }
+
+        public Builder addInterceptors(Collection<RequestInterceptor> interceptors){
+            if (interceptors == null) {
+                throw new IllegalArgumentException("RequestInterceptor collection cannot be null.");
+            }
+            for (RequestInterceptor r :interceptors){
+                addInterceptor(r);
+            }
+            return this;
+        }
+
+        public Builder addInterceptorAtFront(RequestInterceptor interceptor){
+            if (interceptor == null) {
+                throw new IllegalArgumentException("RequestInterceptor cannot be null.");
+            }
+            interceptors.add(0, interceptor);
+            return this;
         }
 
         public Builder setConnectTimeoutMs(int timeout, TimeUnit timeUnit) {
@@ -217,7 +247,7 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public Builder setAuthenticator(Authenticator authenticator) {
+        public Builder setAuthenticator(RequestInterceptor authenticator) {
             this.authenticator = authenticator;
             return this;
         }

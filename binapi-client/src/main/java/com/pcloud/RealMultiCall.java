@@ -36,11 +36,13 @@ class RealMultiCall implements MultiCall {
 
     private ExecutorService callExecutor;
     private ConnectionProvider connectionProvider;
+    private List<RequestInterceptor> interceptors;
 
-    RealMultiCall(List<Request> requests, ExecutorService callExecutor, ConnectionProvider connectionProvider) {
+    RealMultiCall(List<Request> requests, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
         this.requests = requests;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
+        this.interceptors = interceptors;
     }
 
     @Override
@@ -203,13 +205,17 @@ class RealMultiCall implements MultiCall {
     private void writeRequests(Connection connection) throws IOException {
         long requestKey = 0;
         for (Request request : requests){
-            System.out.println("Making request, using connection " + connection);
             ProtocolRequestWriter writer = new BytesWriter(connection.sink());
             writer.beginRequest()
                     .writeMethodName(request.methodName());
             if (request.dataSource() != null) {
                 writer.writeData(request.dataSource());
             }
+
+            for (RequestInterceptor r: interceptors) {
+                r.intercept(request, writer);
+            }
+
             request.body().writeТо(writer);
 
             // Add the key at the end to avoid overwriting.

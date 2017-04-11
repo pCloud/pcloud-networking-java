@@ -20,8 +20,6 @@ import com.pcloud.networking.ParameterValue;
 
 public class DiffRequest {
 
-    @ParameterValue("auth")
-    private String authToken;
     @ParameterValue("block")
     private long blockTimeoutSeconds;
     @ParameterValue("diffid")
@@ -29,8 +27,7 @@ public class DiffRequest {
     @ParameterValue("limit")
     private int chunkSize;
 
-    public DiffRequest(String authToken, long blockTimeoutSeconds, long lastDiffid, int chunkSize) {
-        this.authToken = authToken;
+    public DiffRequest(long blockTimeoutSeconds, long lastDiffid, int chunkSize) {
         this.blockTimeoutSeconds = blockTimeoutSeconds;
         this.lastDiffid = lastDiffid;
         this.chunkSize = chunkSize;

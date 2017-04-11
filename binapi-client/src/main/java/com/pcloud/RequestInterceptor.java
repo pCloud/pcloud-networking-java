@@ -16,6 +16,11 @@
 
 package com.pcloud;
 
-public interface Authenticator {
-    Request authenticate(Request request);
+import com.pcloud.protocol.streaming.ProtocolWriter;
+
+import java.io.IOException;
+
+public interface RequestInterceptor {
+
+    void intercept(Request request, ProtocolWriter writer) throws IOException;
 }

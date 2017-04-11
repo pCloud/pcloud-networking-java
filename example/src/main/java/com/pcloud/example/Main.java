@@ -32,6 +32,7 @@ import static com.pcloud.IOUtils.closeQuietly;
 
 public class Main {
 
+
     public static void main(String... args) {
 
         final String username = System.getenv("pcloud_username");
@@ -40,19 +41,29 @@ public class Main {
         Transformer transformer = Transformer.create()
                 .build();
 
+
+
+        RequestInterceptor dateFormatInterceptor = (request, writer) -> {
+                writer.writeName("timeformat", TypeToken.STRING).writeValue("timestamp");
+            };
+
         PCloudAPIClient client = PCloudAPIClient.newClient()
+                .addInterceptor(dateFormatInterceptor)
                 .create();
         try {
             String token = getAuthToken(client, transformer, username, password);
+            client = client.newBuilder().addInterceptor((request, writer) -> {
+                writer.writeName("auth", TypeToken.STRING).writeValue(token);
+            }).create();
             //pullDiffs(transformer, client, token);
             //getMultiThumb(client, token, 2516863197L);
-            getChecksums(client, token,
+            getChecksums(client,
                     2516863197L, 2516863303L,
                     2516863074L, 2516862988L,
                     2516869906L, 2516869939L,
                     2516869733L, 2516869808L,
                     2516869566L, 2516869479L);
-            getThumb(client, token, 2516863197L);
+            getThumb(client, 2516863197L);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -69,7 +80,7 @@ public class Main {
         long currentMemory = startMemory;
         List<DiffResultResponse.DiffEntry> entries = new LinkedList<>();
         do {
-            DiffResultResponse resultResponse = getDiffs(client, transformer, token, lastDiffId, chunkSize);
+            DiffResultResponse resultResponse = getDiffs(client, transformer, lastDiffId, chunkSize);
             lastDiffId = resultResponse.diffId();
             currentMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
             System.gc();
@@ -107,13 +118,12 @@ public class Main {
         }
     }
 
-    private static void getChecksums(PCloudAPIClient cloudAPIClient, String token, long... fileids) throws IOException {
+    private static void getChecksums(PCloudAPIClient cloudAPIClient, long... fileids) throws IOException {
         MultiResponse response = null;
         try {
             List<Request> requests = new ArrayList<>();
             for (int i = 0; i < fileids.length; i++){
                 Map<String, Object> values = new TreeMap<>();
-                values.put("auth", token);
                 values.put("fileid", fileids[i]);
                 requests.add(Request.create()
                         .body(RequestBody.fromValues(values))
@@ -130,9 +140,8 @@ public class Main {
         }
     }
 
-    private static void getThumb(PCloudAPIClient cloudAPIClient, String token, long fileId) throws IOException, InterruptedException {
+    private static void getThumb(PCloudAPIClient cloudAPIClient, long fileId) throws IOException, InterruptedException {
         Map<String, Object> values = new TreeMap<>();
-        values.put("auth", token);
         values.put("fileid", fileId);
         values.put("size", "128x128");
 
@@ -174,14 +183,13 @@ public class Main {
         }
     }
 
-    private static DiffResultResponse getDiffs(PCloudAPIClient client, Transformer transformer, String token, long lastDiffId, int chunkSize) throws IOException {
+    private static DiffResultResponse getDiffs(PCloudAPIClient client, Transformer transformer, long lastDiffId, int chunkSize) throws IOException {
         Map<String, Object> values = new HashMap<>();
-        values.put("auth", token);
         values.put("difflimit", chunkSize);
         values.put("diffid", lastDiffId);
         values.put("subscribefor", "diff");
 
-        DiffRequest request = new DiffRequest(token, 60, lastDiffId, chunkSize);
+        DiffRequest request = new DiffRequest(60, lastDiffId, chunkSize);
 
         Response response = null;
         try {

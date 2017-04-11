@@ -21,6 +21,7 @@ import okio.BufferedSource;
 import okio.Okio;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.*;
 
 import static com.pcloud.IOUtils.closeQuietly;
@@ -35,11 +36,13 @@ class RealCall implements Call {
 
     private ExecutorService callExecutor;
     private ConnectionProvider connectionProvider;
+    private List<RequestInterceptor> interceptors;
 
-    RealCall(Request request, ExecutorService callExecutor, ConnectionProvider connectionProvider) {
+    RealCall(Request request, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
         this.request = request;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
+        this.interceptors = interceptors;
     }
 
     @Override
@@ -141,7 +144,6 @@ class RealCall implements Call {
 
         RealConnection connection = connectionProvider.obtainConnection(request.endpoint());
         this.connection = connection;
-        System.out.println("Making request, using connection " + connection);
         boolean success = false;
         try {
             ProtocolRequestWriter writer = new BytesWriter(connection.sink());
@@ -150,7 +152,13 @@ class RealCall implements Call {
             if (request.dataSource() != null) {
                 writer.writeData(request.dataSource());
             }
+
+            for (RequestInterceptor r: interceptors) {
+                r.intercept(request, writer);
+            }
+
             request.body().writeТо(writer);
+
             writer.endRequest();
             writer.flush();
 
