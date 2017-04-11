@@ -154,7 +154,6 @@ public class PCloudAPIClient {
         private SocketFactory socketFactory;
         private SSLSocketFactory sslSocketFactory;
         private HostnameVerifier hostnameVerifier;
-        private RequestInterceptor authenticator;
         private ExecutorService callExecutor;
 
         List<RequestInterceptor> interceptors;
@@ -244,11 +243,6 @@ public class PCloudAPIClient {
                 throw new IllegalArgumentException("HostnameVerifier cannot be null.");
             }
             this.hostnameVerifier = hostnameVerifier;
-            return this;
-        }
-
-        public Builder setAuthenticator(RequestInterceptor authenticator) {
-            this.authenticator = authenticator;
             return this;
         }
 
