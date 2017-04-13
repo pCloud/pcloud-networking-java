@@ -32,7 +32,7 @@ class RealCall implements Call {
     private volatile boolean cancelled;
     private volatile boolean executed;
 
-    private RealConnection connection;
+    private Connection connection;
 
     private ExecutorService callExecutor;
     private ConnectionProvider connectionProvider;
@@ -142,7 +142,7 @@ class RealCall implements Call {
             throw new IOException("Cancelled.");
         }
 
-        RealConnection connection = connectionProvider.obtainConnection(request.endpoint());
+        Connection connection = connectionProvider.obtainConnection(request.endpoint());
         this.connection = connection;
         boolean success = false;
         try {
@@ -233,7 +233,7 @@ class RealCall implements Call {
                 }
                 if (dataContentLength == 0 || dataSource != null && dataSource.bytesRemaining() == 0) {
                     // All possible data has been read, safe to reuse the connection.
-                    connectionProvider.recycleConnection((RealConnection) connection);
+                    connectionProvider.recycleConnection(connection);
                 } else {
                     // It is unknown whether all data from the response has been read, no connection reuse is possible.
                     connection.close();
@@ -256,7 +256,7 @@ class RealCall implements Call {
         @Override
         protected void exhausted(boolean reuseSource) {
             if (reuseSource) {
-                connectionPool.recycleConnection((RealConnection) connection);
+                connectionPool.recycleConnection(connection);
             } else {
                 closeQuietly(connection);
             }

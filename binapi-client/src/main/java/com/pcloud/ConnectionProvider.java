@@ -32,10 +32,10 @@ class ConnectionProvider {
         this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
     }
 
-    RealConnection obtainConnection(Endpoint endpoint) throws IOException {
-        RealConnection connection;
+    Connection obtainConnection(Endpoint endpoint) throws IOException {
+        Connection connection;
         while ((connection = connectionPool.get(endpoint)) != null) {
-            if (connection.isHealthy(eagerlyCheckConnectivity)) {
+            if (((RealConnection)connection).isHealthy(eagerlyCheckConnectivity)) {
                 return connection;
             } else {
                 closeQuietly(connection);
@@ -43,10 +43,10 @@ class ConnectionProvider {
         }
 
         // No pooled connections available, just build a new one.
-        return connectionFactory.openConnection(Endpoint.DEFAULT);
+        return connectionFactory.openConnection(endpoint);
     }
 
-    void recycleConnection(RealConnection connection) {
+    void recycleConnection(Connection connection) {
         connectionPool.recycle(connection);
     }
 }
