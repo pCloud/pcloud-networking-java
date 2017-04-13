@@ -80,6 +80,32 @@ public abstract class DataSource {
     public abstract void writeTo(BufferedSink sink) throws IOException;
 
     /**
+     * Create a {@link DataSource} instance that reads from a {@link ByteString}.
+     *
+     * @param data a byte array. Must not be null.
+     * @return a {@link DataSource} that will read the given byte array.
+     * @throws IllegalArgumentException on a null {@code data} argument.
+     */
+    public static DataSource create(final ByteString data) {
+        if (data == null) {
+            throw new IllegalArgumentException("Data argument cannot be null.");
+        }
+
+        return new DataSource() {
+
+            @Override
+            public long contentLength() {
+                return data.size();
+            }
+
+            @Override
+            public void writeTo(BufferedSink sink) throws IOException {
+                sink.write(data);
+            }
+        };
+    }
+
+    /**
      * Create a {@link DataSource} instance that reads from a byte array.
      *
      * @param data a byte array. Must not be null.
@@ -112,24 +138,6 @@ public abstract class DataSource {
      * @return a {@link DataSource} that will read the given byte array.
      * @throws IllegalArgumentException on a null {@code data} argument.
      */
-    public static DataSource create(final ByteString data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Data argument cannot be null.");
-        }
-
-        return new DataSource() {
-
-            @Override
-            public long contentLength() {
-                return data.size();
-            }
-
-            @Override
-            public void writeTo(BufferedSink sink) throws IOException {
-                sink.write(data);
-            }
-        };
-    }
 
     /**
      * Create a {@link DataSource} instance that reads from a byte array.
