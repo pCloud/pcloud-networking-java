@@ -63,7 +63,7 @@ class RealMultiCall implements MultiCall {
         }
 
         Endpoint endpoint = requests.get(0).endpoint();
-        RealConnection connection = connectionProvider.obtainConnection(endpoint);
+        Connection connection = connectionProvider.obtainConnection(endpoint);
         this.connection = connection;
         boolean success = false;
         Map<Integer, Response> responseMap = new TreeMap<>();
@@ -152,7 +152,7 @@ class RealMultiCall implements MultiCall {
                         throw new IOException("Cancelled.");
                     }
 
-                    connection = connectionProvider.obtainConnection(endpoint);
+                    connection = (RealConnection) connectionProvider.obtainConnection(endpoint);
                     RealMultiCall.this.connection = connection;
 
                     //Write the requests.

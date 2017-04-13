@@ -101,7 +101,7 @@ public class ConnectionPool {
     /**
      * Returns a recycled connection to {@code address}, or null if no such connection exists.
      */
-    synchronized RealConnection get(Endpoint endpoint) {
+    synchronized Connection get(Endpoint endpoint) {
 
         /*
         * Iterate the connections in reverse order
@@ -112,19 +112,19 @@ public class ConnectionPool {
             Connection connection = iterator.previous();
             if (connection.endpoint().equals(endpoint)) {
                 iterator.remove();
-                return (RealConnection) connection;
+                return connection;
             }
         }
 
         return null;
     }
 
-    synchronized void recycle(RealConnection connection) {
+    synchronized void recycle(Connection connection) {
         if (!cleanupRunning) {
             cleanupRunning = true;
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
         }
-        connection.setIdle(System.nanoTime());
+        ((RealConnection)connection).setIdle(System.nanoTime());
         connections.addFirst(connection);
     }
 
