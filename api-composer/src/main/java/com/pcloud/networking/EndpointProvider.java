@@ -26,7 +26,7 @@ public interface EndpointProvider {
     EndpointProvider DEFAULT = new
             EndpointProvider() {
                 @Override
-                public Endpoint endpoint(Request request) {
+                public Endpoint endpoint() {
                     return Endpoint.DEFAULT;
                 }
 
@@ -36,7 +36,7 @@ public interface EndpointProvider {
                 }
             };
 
-    Endpoint endpoint(Request request);
+    Endpoint endpoint();
 
     void enpointConnectionError(Endpoint endpoint, IOException error);
 }

@@ -21,9 +21,9 @@ import java.util.List;
 
 public interface MultiCallback<T,R> {
 
-    void onFailure(MultiCall<T, R> call, IOException e, List<T> completedResponses);
+    void onFailure(MultiCall<T, R> call, IOException e, List<R> completedResponses);
 
-    void onResponse(MultiCall<T, R> call, int key, T response);
+    void onResponse(MultiCall<T, R> call, int key, R response);
 
-    void onComplete(MultiCall<T, R> call, List<T> results);
+    void onComplete(MultiCall<T, R> call, List<R> results);
 }
