@@ -82,16 +82,7 @@ public class ApiComposer {
                             return method.invoke(this, args);
                         }
                         ApiMethod<Object> apiMethod = (ApiMethod<Object>) loadApiMethod(method);
-                        Request request = apiMethod.convertToRequest(args);
-                        Endpoint endpoint = endpointProvider.endpoint(request);
-                        if (!request.endpoint().equals(endpoint)) {
-                            request.newRequest()
-                                    .endpoint(endpoint)
-                                    .build();
-                        }
-
-                        Response response = apiClient.newCall(request).execute();
-                        return apiMethod.convertToReturnType(response.responseBody());
+                        return apiMethod.invoke(args);
                     }
                 });
     }

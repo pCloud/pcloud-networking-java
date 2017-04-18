@@ -16,23 +16,30 @@
 
 package com.pcloud.networking;
 
-import com.pcloud.*;
-import com.pcloud.RequestBody;
+import com.pcloud.Endpoint;
+import com.pcloud.Request;
+import com.pcloud.Response;
+import com.pcloud.ResponseBody;
 import com.pcloud.protocol.streaming.ProtocolWriter;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-interface ApiMethod<T> {
+public class ApiMethodFactories {
 
-    T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
+    private ApiMethodFactories(){
 
-    interface Factory<T> {
-        com.pcloud.networking.ApiMethod<T> create(ApiComposer composer, Method method);
+    }
+
+    class WrappedApiMethod<T> implements ApiMethod<Call<T>> {
+
+        @Override
+        public Call<T> invoke(ApiComposer apiComposer, Object[] args) throws IOException {
+
+        }
     }
 
     class SingleResponseApiMethod<T> implements ApiMethod<T> {
@@ -64,11 +71,11 @@ interface ApiMethod<T> {
             return convertToReturnType(response);
         }
 
-        com.pcloud.Request convertToRequest(final Object[] methodArgs) {
+        com.pcloud.Request convertToRequest(final ArgumentAdapter<? extends Object>[] argumentAdapters, final Object[] methodArgs) {
             final Request.Builder requestBuilder = Request.create()
                     .methodName(apiMethodName);
 
-            requestBuilder.body(new RequestBody() {
+            requestBuilder.body(new com.pcloud.RequestBody() {
                 @SuppressWarnings("unchecked")
                 @Override
                 public void writeТо(ProtocolWriter writer) throws IOException {
@@ -115,17 +122,26 @@ interface ApiMethod<T> {
 
     }
 
-    class DirectMethodfactory<T> implements Factory<T> {
+    <T> ApiMethod.Factory<T> directMethodFactory(){
+        return new ApiMethod.Factory<T>() {
+            @Override
+            public ApiMethod<T> create(ApiComposer composer, java.lang.reflect.Method method) {
+                return new ApiMethod.Builder<T>(composer, method).create();
+            }
+        };
+    }
+
+    class DirectMethodfactory<T> implements ApiMethod.Factory<T> {
         @Override
-        public ApiMethod<T> create(ApiComposer composer, Method method) {
-            return new Builder<T>(composer, method).create();
+        public ApiMethod<T> create(ApiComposer composer, java.lang.reflect.Method method) {
+            return new ApiMethod.Builder<T>(composer, method).create();
         }
     }
 
-    class CallWrappedFactory<T> implements Factory<Call<T>> {
+    class CallWrappedFactory<T> implements ApiMethod.Factory<Call<T>> {
 
         @Override
-        public ApiMethod<Call<T>> create(ApiComposer composer, Method method) {
+        public ApiMethod<Call<T>> create(ApiComposer composer, java.lang.reflect.Method method) {
             return null;
         }
     }
@@ -138,10 +154,10 @@ interface ApiMethod<T> {
 
         private boolean hasDataParameter;
         private ApiComposer apiComposer;
-        private Method javaMethod;
+        private java.lang.reflect.Method javaMethod;
         private Class<T> returnType;
 
-        Builder(ApiComposer composer, Method javaMethod) {
+        Builder(ApiComposer composer, java.lang.reflect.Method javaMethod) {
             this.apiComposer = composer;
             this.javaMethod = javaMethod;
 
@@ -179,8 +195,9 @@ interface ApiMethod<T> {
             if (returnType == null) {
                 return null;
             }
-            return new SingleResponseApiMethod<>(apiComposer, returnType, apiMethodName, argumentAdapters, returnTypeAdapter);
+            return new ApiMethod.SingleResponseApiMethod<>(apiComposer, returnType, apiMethodName, argumentAdapters, returnTypeAdapter);
         }
+
 
         private ArgumentAdapter<?> resolveArgumentAdapter(Type parameterType, Annotation[] annotations) {
             Transformer transformer = apiComposer.transformer();
@@ -226,6 +243,7 @@ interface ApiMethod<T> {
             return apiMethodError(null, message, args);
         }
     }
+
+
+
 }
-
-

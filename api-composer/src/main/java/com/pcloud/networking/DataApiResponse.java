@@ -16,34 +16,25 @@
 
 package com.pcloud.networking;
 
-public class ApiResponse {
-    public static final int RESULT_SUCCESS = 0;
+import com.pcloud.ResponseData;
 
-    @ParameterValue("result")
-    private long resultCode;
+import java.io.Closeable;
 
-    @ParameterValue("error")
-    private String message;
+public final class DataApiResponse extends ApiResponse implements Closeable{
 
-    @SuppressWarnings("unused")
-    protected ApiResponse() {
-        // Keep to allow instantiation during serialization.
+    private ResponseData responseData;
+
+    public DataApiResponse(long resultCode, String message, ResponseData data) {
+        super(resultCode, message);
+        this.responseData = data;
     }
 
-    public ApiResponse(long resultCode, String message) {
-        this.resultCode = resultCode;
-        this.message = message;
+    public ResponseData responseData() {
+        return responseData;
     }
 
-    public String message() {
-        return message;
-    }
-
-    public long resultCode() {
-        return resultCode;
-    }
-
-    public boolean isSuccessful() {
-        return resultCode == RESULT_SUCCESS;
+    @Override
+    public void close() {
+        responseData.close();
     }
 }
