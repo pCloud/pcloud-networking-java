@@ -315,6 +315,7 @@ class RealMultiCall implements MultiCall {
             throw new IOException("Response is missing its id.");
         }
 
+        reader.beginResponse();
         Response response = Response.create()
                 .request(requests.get(id))
                 .responseBody(responseBody)

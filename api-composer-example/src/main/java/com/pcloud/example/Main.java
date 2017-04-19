@@ -25,6 +25,8 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class Main {
 
@@ -47,8 +49,19 @@ public class Main {
 
             UserApi userApi = apiComposer.compose(UserApi.class);
 
-            UserInfoResponse response = userApi.getUserInfo(System.getenv("pcloud_username"), System.getenv("pcloud_password"), true);
-            response.toString();
+            String username = System.getenv("pcloud_username");
+            String password = System.getenv("pcloud_password");
+            UserInfoRequest request = new UserInfoRequest(username, password, true);
+            UserInfoResponse response = userApi.getUserInfo(username, password, true);
+            UserInfoResponse response1 = userApi.getUserInfo1(request);
+            UserInfoResponse response2 = userApi.getUserInfo2(username, password, true).execute();
+            UserInfoResponse response3 = userApi.getUserInfo3(request).execute();
+
+            UserInfoRequest[] requests = new UserInfoRequest[10];
+            Arrays.fill(requests, request);
+            List<UserInfoResponse> response4 = userApi.getUserInfo4(requests).execute();
+            List<UserInfoResponse> response5 = userApi.getUserInfo5(Arrays.asList(requests)).execute();
+            System.out.println();
         } catch (Throwable e) {
             e.printStackTrace();
         }finally {

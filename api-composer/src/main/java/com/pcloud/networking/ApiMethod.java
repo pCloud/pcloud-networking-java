@@ -27,204 +27,62 @@ import java.lang.reflect.Type;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-interface ApiMethod<T> {
+abstract class ApiMethod<T> {
 
-    T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
-
-    interface Factory<T> {
-        com.pcloud.networking.ApiMethod<T> create(ApiComposer composer, Method method);
-    }
-
-    class SingleResponseApiMethod<T> implements ApiMethod<T> {
-
-        private ApiComposer apiComposer;
-        private String apiMethodName;
-        private ArgumentAdapter[] argumentAdapters;
-        private TypeAdapter<T> returnTypeAdapter;
-        private Class<T> returnType;
-
-        private SingleResponseApiMethod(ApiComposer apiComposer, Class<T> returnType, String apiMethodName, ArgumentAdapter[] argumentAdapters, TypeAdapter<T> returnTypeAdapter) {
-            this.apiComposer = apiComposer;
-            this.returnType = returnType;
-            this.apiMethodName = apiMethodName;
-            this.argumentAdapters = argumentAdapters;
-            this.returnTypeAdapter = returnTypeAdapter;
-        }
-
-        T invoke(Object[] args) throws IOException {
-            Request request = convertToRequest(args);
-            Endpoint endpoint = apiComposer.endpointProvider().endpoint(request);
-            if (!request.endpoint().equals(endpoint)) {
-                request.newRequest()
-                        .endpoint(endpoint)
-                        .build();
-            }
-
-            Response response = apiComposer.apiClient().newCall(request).execute();
-            return convertToReturnType(response);
-        }
-
-        com.pcloud.Request convertToRequest(final Object[] methodArgs) {
-            final Request.Builder requestBuilder = Request.create()
-                    .methodName(apiMethodName);
-
-            requestBuilder.body(new RequestBody() {
-                @SuppressWarnings("unchecked")
-                @Override
-                public void writeТо(ProtocolWriter writer) throws IOException {
-                    for (int index = 0; index < methodArgs.length; index++) {
-                        argumentAdapters[index].adapt(requestBuilder, writer, methodArgs[index]);
-                    }
-                }
-            });
-            return requestBuilder.build();
-        }
-
-        @SuppressWarnings("unchecked")
-        T convertToReturnType(Response response) throws IOException {
-            if (returnTypeAdapter != null){
-                boolean success = false;
-                T result;
-                try {
-                    result = returnTypeAdapter.deserialize(response.responseBody().reader());
-
-                    // Try to attach the response data to the result object.
-                    // Not the cleanest way, but no better solution is available
-                    if (returnType == DataApiResponse.class){
-                        ApiResponse apiResponse = (ApiResponse) result;
-                        if (apiResponse.isSuccessful()){
-                            result = (T) new DataApiResponse(
-                                    apiResponse.resultCode(),
-                                    apiResponse.message(),
-                                    response.responseBody().data());
-                        }
-                    }
-                    success = true;
-                } finally {
-                    if (!success){
-                        closeQuietly(response);
-                    }
-                }
-
-                return result;
-            } else {
-                return (T) response;
-            }
-        }
-
-
-    }
-
-    class DirectMethodfactory<T> implements Factory<T> {
+    public static final Factory FAILING_FACTORY = new Factory() {
         @Override
-        public ApiMethod<T> create(ApiComposer composer, Method method) {
-            return new Builder<T>(composer, method).create();
+        ApiMethod<?> create(ApiComposer composer, Method method, Class<?>[] argumentTypes, Annotation[][] argumentAnnotations) {
+            throw apiMethodError(method, "Cannot adapt method, return type '%s' is not supported.", method.getReturnType().getName());
         }
-    }
+    };
 
-    class CallWrappedFactory<T> implements Factory<Call<T>> {
+    abstract T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
 
-        @Override
-        public ApiMethod<Call<T>> create(ApiComposer composer, Method method) {
-            return null;
-        }
-    }
+    abstract static class Factory {
 
-    class Builder<T> {
+        abstract com.pcloud.networking.ApiMethod<?> create(ApiComposer composer, Method method, Class<?>[] argumentTypes, Annotation[][] argumentAnnotations);
 
-        private String apiMethodName;
-        private ArgumentAdapter<?>[] argumentAdapters;
-        private TypeAdapter<T> returnTypeAdapter;
-
-        private boolean hasDataParameter;
-        private ApiComposer apiComposer;
-        private Method javaMethod;
-        private Class<T> returnType;
-
-        Builder(ApiComposer composer, Method javaMethod) {
-            this.apiComposer = composer;
-            this.javaMethod = javaMethod;
-
-            returnType = (Class<T>) javaMethod.getReturnType();
-            if (ApiResponse.class.isAssignableFrom(returnType) ){
-                returnTypeAdapter = apiComposer.transformer().getTypeAdapter(returnType);
-            } else if (returnType == ResponseBody.class) {
-                returnTypeAdapter = null;
-            } else {
-                // Short-circuit to allow composition.
-                returnType = null;
-                return;
-            }
-
-            com.pcloud.networking.Method methodName = javaMethod.getAnnotation(com.pcloud.networking.Method.class);
-            if (methodName == null) {
-                throw apiMethodError("Method must be annotated with the @Method annotation");
-            }
-            if (methodName.value().equals("")) {
-                throw apiMethodError("API method name cannot be empty.");
-            }
-
-            apiMethodName = methodName.value();
-
-            Type[] parameterTypes = javaMethod.getParameterTypes();
-            Annotation[][] parameterAnnotations = javaMethod.getParameterAnnotations();
-            argumentAdapters = new ArgumentAdapter[parameterTypes.length];
-            for (int index = 0; index < parameterTypes.length; index++) {
-                argumentAdapters[index] = resolveArgumentAdapter(parameterTypes[index], parameterAnnotations[index]);
-            }
-        }
-
-
-        com.pcloud.networking.ApiMethod<T> create() {
-            if (returnType == null) {
-                return null;
-            }
-            return new SingleResponseApiMethod<>(apiComposer, returnType, apiMethodName, argumentAdapters, returnTypeAdapter);
-        }
-
-        private ArgumentAdapter<?> resolveArgumentAdapter(Type parameterType, Annotation[] annotations) {
-            Transformer transformer = apiComposer.transformer();
-            for (Annotation annotation : annotations) {
-                Type annotationType = annotation.annotationType();
-                if (annotationType == com.pcloud.networking.RequestBody.class) {
-                    TypeAdapter<?> typeAdapter = transformer.getTypeAdapter(parameterType);
-                    //TODO: Add check if type adapter cannot be resolved
-                    return ArgumentAdapters.requestBody(typeAdapter);
-                } else if (annotationType == Parameter.class) {
-                    String name = ((Parameter) annotation).value();
-                    if (name.equals("")) {
-                        throw apiMethodError("@Parameter-annotated methods cannot have an " +
-                                "empty parameter name.");
-                    }
-                    TypeAdapter<?> typeAdapter = transformer.getTypeAdapter(parameterType);
-                    //TODO: Add check if type adapter cannot be resolved
-                    return ArgumentAdapters.parameter(name, typeAdapter, parameterType);
-                } else if (annotationType == RequestData.class) {
-                    if (hasDataParameter) {
-                        throw apiMethodError("API method cannot have more than one " +
-                                "parameter annotated with @RequestData");
-                    }
-
-                    hasDataParameter = true;
-                    return ArgumentAdapters.dataSource();
-                }
-            }
-
-            throw apiMethodError("Cannot adapt method parameter, missing @Parameter, @RequestBody or @RequestData annotation.");
-        }
-
-        private RuntimeException apiMethodError(Throwable cause, String message, Object... args) {
+        protected static RuntimeException apiMethodError(Method method, Throwable cause, String message, Object... args) {
             message = String.format(message, args);
             return new IllegalArgumentException(message
                     + "\n    for method "
-                    + javaMethod.getDeclaringClass().getSimpleName()
+                    + method.getDeclaringClass().getSimpleName()
                     + "."
-                    + javaMethod.getName(), cause);
+                    + method.getName(), cause);
         }
 
-        private RuntimeException apiMethodError(String message, Object... args) {
-            return apiMethodError(null, message, args);
+        protected static String parseMethodNameAnnotation(Method javaMethod) {
+            com.pcloud.networking.Method methodName = javaMethod.getAnnotation(com.pcloud.networking.Method.class);
+            if (methodName == null) {
+                throw apiMethodError(javaMethod, "Method must be annotated with the @Method annotation");
+            }
+            if (methodName.value().equals("")) {
+                throw apiMethodError(javaMethod, "API method name cannot be empty.");
+            }
+            return methodName.value();
         }
+
+        protected static RuntimeException apiMethodError(Method method, String message, Object... args) {
+            return apiMethodError(method, null, message, args);
+        }
+
+    }
+
+    protected static com.pcloud.Request convertToRequest(Endpoint endpoint, String apiMethodName, final ArgumentAdapter[] argumentAdapters, final Object[] methodArgs) {
+        final Request.Builder requestBuilder = Request.create()
+                .methodName(apiMethodName)
+                .endpoint(endpoint);
+
+        requestBuilder.body(new com.pcloud.RequestBody() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public void writeТо(ProtocolWriter writer) throws IOException {
+                for (int index = 0; index < methodArgs.length; index++) {
+                    argumentAdapters[index].adapt(requestBuilder, writer, methodArgs[index]);
+                }
+            }
+        });
+        return requestBuilder.build();
     }
 }
 

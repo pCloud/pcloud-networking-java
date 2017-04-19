@@ -16,29 +16,36 @@
 
 package com.pcloud.networking;
 
-import com.pcloud.Endpoint;
 import com.pcloud.PCloudAPIClient;
-import com.pcloud.Request;
-import com.pcloud.Response;
 import com.sun.deploy.config.Platform;
 
-import java.lang.reflect.*;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
+
 public class ApiComposer {
 
-    public static Builder create(){
+    public static Builder create() {
         return new Builder();
     }
-    
+
+    private static final List<ApiMethod.Factory> BUILT_IN_FACTORIES = Arrays.asList(
+            DirectApiMethod.FACTORY,
+            CallWrappedApiMethod.FACTORY,
+            MultiCallWrappedApiMethod.FACTORY);
+
     private EndpointProvider endpointProvider;
     private PCloudAPIClient apiClient;
     private Transformer transformer;
     private List<ResponseInterceptor> interceptors;
 
     private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
+    private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_FACTORIES);
 
     private ApiComposer(Builder builder) {
         if (builder.apiClient == null) {
@@ -82,7 +89,7 @@ public class ApiComposer {
                             return method.invoke(this, args);
                         }
                         ApiMethod<Object> apiMethod = (ApiMethod<Object>) loadApiMethod(method);
-                        return apiMethod.invoke(args);
+                        return apiMethod.invoke(ApiComposer.this, args);
                     }
                 });
     }
@@ -90,10 +97,22 @@ public class ApiComposer {
     private ApiMethod<?> loadApiMethod(Method javaMethod) {
         ApiMethod<?> apiMethod = apiMethodsCache.get(javaMethod);
         if (apiMethod == null) {
-            apiMethod = new ApiMethod.Builder<>(this, javaMethod).create();
+            Class<?>[] argumentTypes = javaMethod.getParameterTypes();
+            Annotation[][] argumentAnnotations = javaMethod.getParameterAnnotations();
+            for (ApiMethod.Factory factory : factories){
+                if((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null){
+                    break;
+                }
+            }
+
+            if (apiMethod == null) {
+                throw apiMethodError(javaMethod, "Cannot adapt method, return type '%s' is not supported.",
+                        javaMethod.getReturnType().getName());
+            }
+
             apiMethodsCache.put(javaMethod, apiMethod);
         }
-        
+
         return apiMethod;
     }
 
@@ -107,7 +126,7 @@ public class ApiComposer {
         }
     }
 
-    public Builder newBuilder(){
+    public Builder newBuilder() {
         return new Builder(this);
     }
 
@@ -172,7 +191,7 @@ public class ApiComposer {
             if (interceptors == null) {
                 throw new IllegalArgumentException("ResponseInterceptor collection argument cannot be null.");
             }
-            for (ResponseInterceptor r : interceptors){
+            for (ResponseInterceptor r : interceptors) {
                 removeInterceptor(r);
             }
             return this;
@@ -182,7 +201,7 @@ public class ApiComposer {
             if (interceptors == null) {
                 throw new IllegalArgumentException("ResponseInterceptor collection argument cannot be null.");
             }
-            for (ResponseInterceptor r : interceptors){
+            for (ResponseInterceptor r : interceptors) {
                 addInterceptor(r);
             }
             return this;

@@ -39,9 +39,8 @@ public interface Call<T> extends Cloneable {
      *
      * @return the result of the call
      * @throws IOException if a problem occurred talking to the server.
-     * @throws ApiError    returning any reported problems by the pCloud API.
      */
-    T execute() throws IOException, ApiError;
+    T execute() throws IOException;
 
     /**
      * Asynchronously send the request and notify {@code callback} of its response or if an error

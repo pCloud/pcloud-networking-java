@@ -16,11 +16,28 @@
 
 package com.pcloud.example;
 
-import com.pcloud.networking.Method;
-import com.pcloud.networking.Parameter;
+import com.pcloud.networking.*;
+
+import java.util.List;
 
 public interface UserApi {
 
     @Method("userinfo")
     UserInfoResponse getUserInfo(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken);
+
+    @Method("userinfo")
+    UserInfoResponse getUserInfo1(@RequestBody UserInfoRequest request);
+
+    @Method("userinfo")
+    Call<UserInfoResponse> getUserInfo2(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken);
+
+    @Method("userinfo")
+    Call<UserInfoResponse> getUserInfo3(@RequestBody UserInfoRequest request);
+
+    @Method("userinfo")
+    MultiCall<UserInfoRequest, UserInfoResponse> getUserInfo4(@RequestBody UserInfoRequest... request);
+
+    @Method("userinfo")
+    MultiCall<UserInfoRequest, UserInfoResponse> getUserInfo5(@RequestBody List<UserInfoRequest> request);
+
 }
