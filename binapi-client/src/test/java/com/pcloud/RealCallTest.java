@@ -37,17 +37,14 @@ import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Created by Sajuuk-khar on 13.4.2017 г..
+ * Created by Dimitard on 13.4.2017 г..
  */
 public class RealCallTest {
 
-    private static final String MOCK_USERNAME = "mockuser@qa.mobileinno.com";
-    private static final String MOCK_PASSWORD = "mockpass";
     private static final String MOCK_HOST = "mockbinapi@pcloud.com";
     private static final int    MOCK_PORT = 123;
     private static final int    MOCK_TIMEOUT_TIME = 250;
     private static final byte[] MOCK_EMPTY_ARRAY_RESPONSE = new byte[] {2, 0, 0, 0, 16, -1};
-    private static final byte[] MOCK_WRONG_RESPONSE = new byte[] {2, 0, 0, 0, 16, -31};
 
 
     private ExecutorService executor;
@@ -74,8 +71,8 @@ public class RealCallTest {
 
     @Test
     public void testExecuteMarksTheCallAsExecuted() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
-        mockConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
+        mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));
 
         RealCall call = getMockRealCall(request, executor);
 
@@ -86,8 +83,8 @@ public class RealCallTest {
 
     @Test
     public void testExecutingTwiceThrowsIllegalStateException() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
-        mockConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
+        mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));
 
         final RealCall call = getMockRealCall(request, executor);
 
@@ -103,8 +100,8 @@ public class RealCallTest {
 
     @Test
     public void testExecutingAfterCancelThrowsIOException() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
-        mockConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
+        mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));
 
         final RealCall call = getMockRealCall(request, executor);
 
@@ -120,7 +117,7 @@ public class RealCallTest {
 
     @Test
     public void testConnectionCloseAfterException() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
         Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
         doThrow(IOException.class).when(connection).source();
 
@@ -141,12 +138,12 @@ public class RealCallTest {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
         Connection connection = createDummyConnection(endpoint, MOCK_EMPTY_ARRAY_RESPONSE);
         mockConnection(connection);
-        Request request = getUserInfoRequest(endpoint);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
 
         final RealCall call = getMockRealCall(request, realExecutor);
 
         Response response = call.enqueueAndWait();
-        readResponse((BytesReader)response.responseBody().reader());
+        ResponseUtils.readResponse((BytesReader)response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).obtainConnection(endpoint);
@@ -155,7 +152,7 @@ public class RealCallTest {
 
     @Test
     public void testEnqueueWithTimeoutBlocksUntilTimeout() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
         final Connection connection = createDummyConnection(Endpoint.DEFAULT, MOCK_EMPTY_ARRAY_RESPONSE);
         mockConnection(connection);
 
@@ -183,7 +180,7 @@ public class RealCallTest {
     public void testSuccessfulEnqueueReportsResultToTheCallback() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
         final Connection connection = createDummyConnection(endpoint, MOCK_EMPTY_ARRAY_RESPONSE);
-        Request request = getUserInfoRequest(endpoint);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
         mockConnection(connection);
 
         final RealCall call = getMockRealCall(request, realExecutor);
@@ -209,7 +206,7 @@ public class RealCallTest {
 
     @Test
     public void testExceptionDuringEnqueuingReportsTheFailureToTheCallback() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
         final Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
         doThrow(IOException.class).when(connection).source();
 
@@ -233,7 +230,7 @@ public class RealCallTest {
 
     @Test
     public void testClosingTheResponseBodyBeforeFullyReadingItClosesTheConnection() throws Exception {
-        Request request = getUserInfoRequest(Endpoint.DEFAULT);
+        Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
         Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
 
         mockConnection(connection);
@@ -252,7 +249,7 @@ public class RealCallTest {
     @Test
     public void testClosingTheResponseBodyAfterFullyReadingItRecyclesTheConnection() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
-        Request request = getUserInfoRequest(endpoint);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
         Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
 
         mockConnection(connection);
@@ -261,7 +258,7 @@ public class RealCallTest {
 
         Response response = call.execute();
 
-        readResponse((BytesReader)response.responseBody().reader());
+        ResponseUtils.readResponse((BytesReader)response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).recycleConnection(connection);
@@ -271,7 +268,7 @@ public class RealCallTest {
     @Test
     public void testConnectionProviderSearchesForConnectionOnTheRequestEndpoint() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
-        Request request = getUserInfoRequest(endpoint);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
         Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
 
         mockConnection(connection);
@@ -285,39 +282,41 @@ public class RealCallTest {
     }
 
     @Test
-    public void testReadingWrongResponseThrowsProtocolException() throws Exception {
+    public void testConnectionCloseAfterExceptionDuringRequestWriting() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
-        Request request = getUserInfoRequest(endpoint);
-        Connection connection = createDummyConnection(request.endpoint(), MOCK_WRONG_RESPONSE);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
+        Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
 
         mockConnection(connection);
 
         final RealCall call = getMockRealCall(request, executor);
+        when(connection.sink()).thenThrow(IOException.class);
 
-
-        final Response response = call.execute();
-        assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
-            @Override
-            public void call() throws Throwable {
-                readResponse((BytesReader)response.responseBody().reader());
-            }
-        }).isInstanceOf(ProtocolException.class);
-
-
-        verify(connectionProvider).obtainConnection(endpoint);
-    }
-
-
-    private void readResponse(BytesReader reader) throws IOException {
-        reader.beginObject();
-        while(reader.hasNext()) {
-            reader.skipValue();
+        try {
+            call.execute();
+        } catch (Exception e) {
+            verify(connectionProvider).obtainConnection(endpoint);
+            verify(connection).close();
         }
-        reader.endObject();
     }
 
-    private void mockConnection(Endpoint endpoint, byte[] data) throws IOException {
-        mockConnection(createDummyConnection(endpoint, data));
+    @Test
+    public void testConnectionCloseAfterExceptionDuringResponseRead() throws Exception {
+        Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
+        Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
+
+        mockConnection(connection);
+
+        final RealCall call = getMockRealCall(request, executor);
+        when(connection.source()).thenThrow(IOException.class);
+
+        try {
+            call.execute();
+        } catch (Exception e) {
+            verify(connectionProvider).obtainConnection(endpoint);
+            verify(connection).close();
+        }
     }
 
     private void mockConnection(Connection connection) throws IOException {
@@ -332,18 +331,6 @@ public class RealCallTest {
     private RealCall getMockRealCall(Request request, ExecutorService executor) {
         return spy(new RealCall(request,
                 executor, new ArrayList<RequestInterceptor>(), connectionProvider));
-    }
-
-    private Request getUserInfoRequest(Endpoint endpoint) {
-        Map<String, Object> values = new HashMap<>();
-        values.put("getauth", 1);
-        values.put("username", MOCK_USERNAME);
-        values.put("password", MOCK_PASSWORD);
-        return Request.create()
-                .methodName("userinfo")
-                .body(RequestBody.fromValues(values))
-                .endpoint(endpoint)
-                .build();
     }
 
     @AfterClass
