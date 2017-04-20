@@ -19,15 +19,20 @@ package com.pcloud.networking;
 import com.pcloud.Response;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static com.pcloud.IOUtils.closeQuietly;
+
 class ApiClientCall<T> implements Call<T> {
 
+    private ApiComposer apiComposer;
     private com.pcloud.Call rawCall;
     private ResponseAdapter<T> responseAdapter;
 
-    ApiClientCall(com.pcloud.Call rawCall, ResponseAdapter<T> responseAdapter) {
+    ApiClientCall(ApiComposer apiComposer, com.pcloud.Call rawCall, ResponseAdapter<T> responseAdapter) {
+        this.apiComposer = apiComposer;
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
     }
@@ -88,10 +93,26 @@ class ApiClientCall<T> implements Call<T> {
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public Call<T> clone() {
-        return new ApiClientCall<>(rawCall, responseAdapter);
+        return new ApiClientCall<>(apiComposer, rawCall, responseAdapter);
     }
 
     protected T adapt(Response response) throws IOException {
-        return responseAdapter.adapt(response);
+        if (isCanceled()) {
+            throw new IOException("Cancelled");
+        }
+        T result = responseAdapter.adapt(response);
+
+        if (result instanceof ApiResponse) {
+            List<ResponseInterceptor> interceptors = apiComposer.interceptors();
+            for (ResponseInterceptor interceptor : interceptors) {
+                try {
+                    interceptor.intercept((ApiResponse) result);
+                } catch (Exception e) {
+                    closeQuietly(response);
+                    throw new RuntimeException(String.format("Error while calling ResponseInterceptor of type '%s'", interceptor.getClass()), e);
+                }
+            }
+        }
+        return result;
     }
 }

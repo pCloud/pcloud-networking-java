@@ -30,11 +30,13 @@ import static com.pcloud.IOUtils.closeQuietly;
 
 class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
 
+    private ApiComposer apiComposer;
     private com.pcloud.MultiCall rawCall;
     private ResponseAdapter<R> responseAdapter;
     private List<T> requests;
 
-    ApiClientMultiCall(com.pcloud.MultiCall rawCall, ResponseAdapter<R> responseAdapter, List<T> requests) {
+    ApiClientMultiCall(ApiComposer apiComposer, com.pcloud.MultiCall rawCall, ResponseAdapter<R> responseAdapter, List<T> requests) {
+        this.apiComposer = apiComposer;
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
         this.requests = Collections.unmodifiableList(requests);
@@ -121,7 +123,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public MultiCall<T, R> clone() {
-        return new ApiClientMultiCall<>(rawCall, responseAdapter, requests);
+        return new ApiClientMultiCall<>(apiComposer, rawCall, responseAdapter, requests);
     }
 
     private List<R> adapt(MultiResponse multiResponse) throws IOException {
@@ -138,14 +140,23 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     }
 
     private R adapt(Response response) throws IOException {
-        try {
-            if (isCancelled()) {
-                throw new IOException("Cancelled");
-            }
-            return responseAdapter.adapt(response);
-        } finally {
-            closeQuietly(response);
+        if (isCancelled()) {
+            throw new IOException("Cancelled");
         }
+        R result = responseAdapter.adapt(response);
+
+        if (result instanceof ApiResponse) {
+            List<ResponseInterceptor> interceptors = apiComposer.interceptors();
+            for (ResponseInterceptor interceptor : interceptors) {
+                try {
+                    interceptor.intercept((ApiResponse) result);
+                } catch (Exception e) {
+                    closeQuietly(response);
+                    throw new RuntimeException(String.format("Error while calling ResponseInterceptor of type '%s'", interceptor.getClass()), e);
+                }
+            }
+        }
+        return result;
     }
 
     private static void growSize(List<?> list, int count) {

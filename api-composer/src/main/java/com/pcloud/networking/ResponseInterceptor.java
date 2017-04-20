@@ -17,6 +17,5 @@
 package com.pcloud.networking;
 
 public interface ResponseInterceptor {
-
     void intercept(ApiResponse response);
 }

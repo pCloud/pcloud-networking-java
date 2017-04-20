@@ -46,12 +46,12 @@ class DirectApiMethod<T> extends ApiMethod<T> {
 
     private String apiMethodName;
     private RequestAdapter requestAdapter;
-    private ResponseAdapter<T> returnTypeAdapter;
+    private ResponseAdapter<T> responseAdapter;
 
-    private DirectApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> returnTypeAdapter) {
+    private DirectApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> responseAdapter) {
         this.apiMethodName = apiMethodName;
         this.requestAdapter = requestAdapter;
-        this.returnTypeAdapter = returnTypeAdapter;
+        this.responseAdapter = responseAdapter;
     }
 
     @Override
@@ -62,6 +62,7 @@ class DirectApiMethod<T> extends ApiMethod<T> {
         requestAdapter.adapt(builder, args);
 
         com.pcloud.Call rawCall = apiComposer.apiClient().newCall(builder.build());
-        return returnTypeAdapter.adapt(rawCall.execute());
+        ApiClientCall<T> call = new ApiClientCall<>(apiComposer, rawCall, responseAdapter);
+        return call.execute();
     }
 }

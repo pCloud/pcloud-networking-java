@@ -45,7 +45,7 @@ class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
                 .methodName(apiMethodName);
         requestAdapter.adapt(builder, args);
         com.pcloud.Call rawCall = apiComposer.apiClient().newCall(builder.build());
-        return new ApiClientCall<>(rawCall, returnTypeAdapter);
+        return new ApiClientCall<>(apiComposer, rawCall, returnTypeAdapter);
     }
 
     private static class Factory extends ApiMethod.Factory {
