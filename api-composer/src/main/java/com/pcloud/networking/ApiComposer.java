@@ -17,12 +17,12 @@
 package com.pcloud.networking;
 
 import com.pcloud.PCloudAPIClient;
-import com.sun.deploy.config.Platform;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +44,7 @@ public class ApiComposer {
     private Transformer transformer;
     private List<ResponseInterceptor> interceptors;
 
+    private boolean loadEagerly;
     private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
     private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_FACTORIES);
 
@@ -56,6 +57,7 @@ public class ApiComposer {
         this.apiClient = builder.apiClient;
         this.transformer = builder.transformer != null ? builder.transformer : Transformer.create().build();
         this.interceptors = new ArrayList<>(builder.interceptors);
+        this.loadEagerly = builder.loadEagerly;
     }
 
     public Transformer transformer() {
@@ -77,10 +79,16 @@ public class ApiComposer {
     @SuppressWarnings("unchecked")
     public <T> T compose(Class<T> apiType) {
         validateApiInterface(apiType);
+
+        if (loadEagerly){
+            Method[] methods = apiType.getDeclaredMethods();
+            for (Method method : methods){
+                loadApiMethod(method);
+            }
+        }
+
         return (T) Proxy.newProxyInstance(apiType.getClassLoader(), new Class<?>[]{apiType},
                 new InvocationHandler() {
-                    private final Platform platform = Platform.get();
-
                     @Override
                     public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args)
                             throws Throwable {
@@ -97,14 +105,7 @@ public class ApiComposer {
     private ApiMethod<?> loadApiMethod(Method javaMethod) {
         ApiMethod<?> apiMethod = apiMethodsCache.get(javaMethod);
         if (apiMethod == null) {
-            Class<?>[] argumentTypes = javaMethod.getParameterTypes();
-            Annotation[][] argumentAnnotations = javaMethod.getParameterAnnotations();
-            for (ApiMethod.Factory factory : factories){
-                if((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null){
-                    break;
-                }
-            }
-
+            apiMethod = createApiMethod(javaMethod);
             if (apiMethod == null) {
                 throw apiMethodError(javaMethod, "Cannot adapt method, return type '%s' is not supported.",
                         javaMethod.getReturnType().getName());
@@ -113,6 +114,18 @@ public class ApiComposer {
             apiMethodsCache.put(javaMethod, apiMethod);
         }
 
+        return apiMethod;
+    }
+
+    private ApiMethod<?> createApiMethod(Method javaMethod) {
+        ApiMethod<?> apiMethod = null;
+        Type[] argumentTypes = javaMethod.getGenericParameterTypes();
+        Annotation[][] argumentAnnotations = javaMethod.getParameterAnnotations();
+        for (ApiMethod.Factory factory : factories){
+            if((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null){
+                break;
+            }
+        }
         return apiMethod;
     }
 
@@ -136,6 +149,7 @@ public class ApiComposer {
         private PCloudAPIClient apiClient;
         private Transformer transformer;
         private List<ResponseInterceptor> interceptors = new LinkedList<>();
+        private boolean loadEagerly;
 
         private Builder() {
         }
@@ -204,6 +218,11 @@ public class ApiComposer {
             for (ResponseInterceptor r : interceptors) {
                 addInterceptor(r);
             }
+            return this;
+        }
+
+        public Builder loadEagerly(boolean loadEagerly) {
+            this.loadEagerly = loadEagerly;
             return this;
         }
 

@@ -17,22 +17,17 @@
 package com.pcloud.networking;
 
 import com.pcloud.Response;
+import com.pcloud.ResponseBody;
+import com.pcloud.ResponseData;
 
 import java.io.IOException;
 
-class DatApiClientCall extends ApiClientCall<DataApiResponse> {
+import static com.pcloud.IOUtils.closeQuietly;
 
-    DatApiClientCall(com.pcloud.Call rawCall, TypeAdapter<DataApiResponse> responseAdapter) {
-        super(rawCall, responseAdapter);
-    }
+class ResponseBodyAdapter implements ResponseAdapter<ResponseBody> {
 
     @Override
-    protected DataApiResponse adapt(Response response) throws IOException {
-        DataApiResponse result = super.adapt(response);
-        if (result.isSuccessful()) {
-            result = new DataApiResponse(result.resultCode(), result.message(), response.responseBody().data());
-        }
-
-        return result;
+    public ResponseBody adapt(Response response) throws IOException {
+        return response.responseBody();
     }
 }

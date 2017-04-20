@@ -20,7 +20,7 @@ import com.pcloud.Response;
 
 import java.io.IOException;
 
-interface ReturnTypeAdapter<T> {
+interface ResponseAdapter<T> {
 
     T adapt(Response response) throws IOException;
 }

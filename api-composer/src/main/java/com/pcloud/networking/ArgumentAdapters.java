@@ -24,10 +24,9 @@ import okio.ByteString;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 
-public class ArgumentAdapters {
+class ArgumentAdapters {
 
     private ArgumentAdapters() {
 
@@ -60,15 +59,6 @@ public class ArgumentAdapters {
         };
     }
 
-    static <T> ArgumentAdapter<T> noOp(){
-        return new ArgumentAdapter<T>() {
-            @Override
-            public void adapt(Request.Builder builder, ProtocolWriter writer, T argValue) throws IOException {
-
-            }
-        };
-    }
-
     static <T> ArgumentAdapter<T> dataSource() {
 
         return new ArgumentAdapter<T>() {
@@ -96,5 +86,4 @@ public class ArgumentAdapters {
             }
         };
     }
-
 }

@@ -28,13 +28,13 @@ import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-public class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
+class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
 
     private com.pcloud.MultiCall rawCall;
-    private TypeAdapter<R> responseAdapter;
+    private ResponseAdapter<R> responseAdapter;
     private List<T> requests;
 
-    ApiClientMultiCall(com.pcloud.MultiCall rawCall, TypeAdapter<R> responseAdapter, List<T> requests) {
+    ApiClientMultiCall(com.pcloud.MultiCall rawCall, ResponseAdapter<R> responseAdapter, List<T> requests) {
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
         this.requests = Collections.unmodifiableList(requests);
@@ -48,19 +48,6 @@ public class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     @Override
     public List<R> execute() throws IOException {
         return adapt(rawCall.execute());
-    }
-
-    private List<R> adapt(MultiResponse multiResponse) throws IOException {
-        try {
-            int responseCount = multiResponse.responses().size();
-            List<R> responses = new ArrayList<>(responseCount);
-            for (Response response : multiResponse.responses()) {
-                responses.add(adapt(response));
-            }
-            return responses;
-        } finally {
-            closeQuietly(multiResponse);
-        }
     }
 
     @Override
@@ -80,31 +67,38 @@ public class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
         }
 
         final int responseCount = requests.size();
+        final List<R> results = new ArrayList<>(responseCount);
+        growSize(results, responseCount);
+
         rawCall.enqueue(new com.pcloud.MultiCallback() {
-
-
-            List<R> results = new ArrayList<>(responseCount);
 
             @Override
             public void onFailure(com.pcloud.MultiCall call, IOException e, List<Response> completedResponses) {
-                callback.onFailure(ApiClientMultiCall.this, e, Collections.unmodifiableList(results));
+                if (!isCancelled()) {
+                    callback.onFailure(ApiClientMultiCall.this, e, Collections.unmodifiableList(results));
+                }
             }
 
             @Override
             public void onResponse(com.pcloud.MultiCall call, int key, Response response) throws IOException {
-                if (results.isEmpty()) {
-                    for (int i = 0; i < responseCount; i++){
-                        results.add(null);
+                if (!isCancelled()) {
+                    try {
+                        R result = adapt(response);
+                        results.set(key, result);
+                        callback.onResponse(ApiClientMultiCall.this, key, result);
+                    } catch (IOException e) {
+                        callback.onFailure(ApiClientMultiCall.this, e, results);
+                        // Cancel the wrapped MultiCall to stop receiving other responses.
+                        rawCall.cancel();
                     }
                 }
-                R result = adapt(response);
-                results.set(key, result);
-                callback.onResponse(ApiClientMultiCall.this, key, result);
             }
 
             @Override
             public void onComplete(com.pcloud.MultiCall call, MultiResponse response) throws IOException {
-                callback.onComplete(ApiClientMultiCall.this, Collections.unmodifiableList(results));
+                if (!isCancelled()) {
+                    callback.onComplete(ApiClientMultiCall.this, Collections.unmodifiableList(results));
+                }
             }
         });
     }
@@ -124,7 +118,41 @@ public class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
         return rawCall.isCancelled();
     }
 
+    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @Override
+    public MultiCall<T, R> clone() {
+        return new ApiClientMultiCall<>(rawCall, responseAdapter, requests);
+    }
+
+    private List<R> adapt(MultiResponse multiResponse) throws IOException {
+        try {
+            int responseCount = multiResponse.responses().size();
+            List<R> responses = new ArrayList<>(responseCount);
+            for (Response response : multiResponse.responses()) {
+                responses.add(adapt(response));
+            }
+            return responses;
+        } finally {
+            closeQuietly(multiResponse);
+        }
+    }
+
     private R adapt(Response response) throws IOException {
-        return responseAdapter.deserialize(response.responseBody().reader());
+        try {
+            if (isCancelled()) {
+                throw new IOException("Cancelled");
+            }
+            return responseAdapter.adapt(response);
+        } finally {
+            closeQuietly(response);
+        }
+    }
+
+    private static void growSize(List<?> list, int count) {
+        if (count > 0) {
+            for (int i = 0; i < count; i++) {
+                list.add(null);
+            }
+        }
     }
 }

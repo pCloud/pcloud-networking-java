@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public interface MultiCall<T,R> {
+public interface MultiCall<T,R> extends Cloneable{
     List<T> requests();
 
     List<R> execute() throws IOException;
@@ -37,4 +37,6 @@ public interface MultiCall<T,R> {
     void cancel();
 
     boolean isCancelled();
+
+    MultiCall<T,R> clone();
 }

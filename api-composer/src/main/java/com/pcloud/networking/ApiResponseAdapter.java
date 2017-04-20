@@ -16,9 +16,27 @@
 
 package com.pcloud.networking;
 
-public interface ConverterFactory {
+import com.pcloud.Response;
 
+import java.io.IOException;
 
+import static com.pcloud.IOUtils.closeQuietly;
 
-    <T> ReturnTypeAdapter<T> createReturnTypeAdapter();
+class ApiResponseAdapter<T> implements ResponseAdapter<T> {
+
+    private TypeAdapter<? extends ApiResponse> typeAdapter;
+
+    ApiResponseAdapter(TypeAdapter<? extends ApiResponse> typeAdapter) {
+        this.typeAdapter = typeAdapter;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public T adapt(Response response) throws IOException {
+        try {
+            return (T) typeAdapter.deserialize(response.responseBody().reader());
+        } finally {
+            closeQuietly(response);
+        }
+    }
 }

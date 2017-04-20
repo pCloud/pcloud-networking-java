@@ -45,6 +45,7 @@ public class Main {
             ApiComposer apiComposer = ApiComposer.create()
                     .apiClient(apiClient)
                     .transformer(transformer)
+                    .loadEagerly(true)
                     .create();
 
             UserApi userApi = apiComposer.compose(UserApi.class);

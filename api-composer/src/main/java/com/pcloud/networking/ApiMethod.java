@@ -16,40 +16,22 @@
 
 package com.pcloud.networking;
 
-import com.pcloud.*;
-import com.pcloud.RequestBody;
-import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.ResponseBody;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-
-import static com.pcloud.IOUtils.closeQuietly;
+import java.util.Arrays;
 
 abstract class ApiMethod<T> {
 
-    public static final Factory FAILING_FACTORY = new Factory() {
-        @Override
-        ApiMethod<?> create(ApiComposer composer, Method method, Class<?>[] argumentTypes, Annotation[][] argumentAnnotations) {
-            throw apiMethodError(method, "Cannot adapt method, return type '%s' is not supported.", method.getReturnType().getName());
-        }
-    };
-
     abstract T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
 
+    @SuppressWarnings({"WeakerAccess", "unused"})
     abstract static class Factory {
 
-        abstract com.pcloud.networking.ApiMethod<?> create(ApiComposer composer, Method method, Class<?>[] argumentTypes, Annotation[][] argumentAnnotations);
-
-        protected static RuntimeException apiMethodError(Method method, Throwable cause, String message, Object... args) {
-            message = String.format(message, args);
-            return new IllegalArgumentException(message
-                    + "\n    for method "
-                    + method.getDeclaringClass().getSimpleName()
-                    + "."
-                    + method.getName(), cause);
-        }
+        abstract com.pcloud.networking.ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
 
         protected static String parseMethodNameAnnotation(Method javaMethod) {
             com.pcloud.networking.Method methodName = javaMethod.getAnnotation(com.pcloud.networking.Method.class);
@@ -62,27 +44,100 @@ abstract class ApiMethod<T> {
             return methodName.value();
         }
 
+        protected static boolean isAllowedResponseType(Class<?> type) {
+            return ApiResponse.class.isAssignableFrom(type) || type == ResponseBody.class;
+        }
+
+        protected static boolean isAllowedResponseType(Type type) {
+            return isAllowedResponseType(Types.getRawType(type));
+        }
+
+        protected static ResponseAdapter<?> getResponseAdapter(ApiComposer composer, Method method, Type returnType) {
+            return getResponseAdapter(composer, method, Types.getRawType(returnType));
+        }
+
+        @SuppressWarnings("unchecked")
+        protected static <T> ResponseAdapter<T> getResponseAdapter(ApiComposer composer, Method method, Class<T> returnType) {
+            if (ApiResponse.class.isAssignableFrom(returnType)) {
+                TypeAdapter<T> typeAdapter = getTypeAdapter(composer, method, returnType);
+                if (DataApiResponse.class.isAssignableFrom(returnType)) {
+                    return new DataApiResponseAdapter<>((TypeAdapter<? extends DataApiResponse>) typeAdapter);
+                } else {
+                    return new ApiResponseAdapter<>((TypeAdapter<? extends ApiResponse>) typeAdapter);
+                }
+            } else if (returnType == ResponseBody.class) {
+                return (ResponseAdapter<T>) new ResponseBodyAdapter();
+            } else {
+                throw apiMethodError(method, "Return type '%s' is not supported," +
+                                " must be or extend from %s, or be '%s'",
+                        returnType, Arrays.asList(DataApiResponse.class, ApiResponse.class), ResponseBody.class);
+            }
+        }
+
+        protected static RequestAdapter createRequestAdapter(ApiComposer composer, Method method, Type[] parameterTypes, Annotation[][] annotations) {
+            int argumentCount = parameterTypes.length;
+            boolean hasDataParameter = false;
+            ArgumentAdapter[] argumentAdapters = new ArgumentAdapter[argumentCount];
+            for (int index = 0; index < argumentCount; index++) {
+                Annotation[] argumentAnnotations = annotations[index];
+                Type parameterType = parameterTypes[index];
+
+                ArgumentAdapter resolvedAdapter = null;
+                for (Annotation annotation : argumentAnnotations) {
+                    Type annotationType = annotation.annotationType();
+                    if (annotationType == com.pcloud.networking.RequestBody.class) {
+                        TypeAdapter<?> typeAdapter = getTypeAdapter(composer, method, parameterType);
+                        resolvedAdapter = ArgumentAdapters.requestBody(typeAdapter);
+                    } else if (annotationType == Parameter.class) {
+                        String name = ((Parameter) annotation).value();
+                        if (name.equals("")) {
+                            throw apiMethodError(method, "@Parameter-annotated methods cannot have an " +
+                                    "empty parameter name.");
+                        }
+                        TypeAdapter<?> typeAdapter = getTypeAdapter(composer, method, parameterType);
+                        resolvedAdapter = ArgumentAdapters.parameter(name, typeAdapter, parameterType);
+                    } else if (annotationType == RequestData.class) {
+                        if (hasDataParameter) {
+                            throw apiMethodError(method, "API method cannot have more than one " +
+                                    "parameter annotated with @RequestData");
+                        }
+
+                        hasDataParameter = true;
+                        resolvedAdapter = ArgumentAdapters.dataSource();
+                    }
+                }
+
+                if (resolvedAdapter == null) {
+                    throw apiMethodError(method, "Each API method parameter must be annotated with one of %s",
+                            Arrays.<Type>asList(RequestBody.class, Parameter.class, RequestData.class));
+                }
+
+                argumentAdapters[index] = resolvedAdapter;
+            }
+
+            return new DefaultRequestAdapter(argumentAdapters);
+        }
+
+        protected static <T> TypeAdapter<T> getTypeAdapter(ApiComposer composer, Method method, Type parameterType) {
+            TypeAdapter<T> typeAdapter = composer.transformer().getTypeAdapter(parameterType);
+            if (typeAdapter == null) {
+                throw apiMethodError(method, "Cannot find a suitable TypeAdapter for argument of type '%s'.", parameterType);
+            }
+            return typeAdapter;
+        }
+
+        protected static RuntimeException apiMethodError(Method method, Throwable cause, String message, Object... args) {
+            message = String.format(message, args);
+            return new IllegalArgumentException(message
+                    + "\n    for method "
+                    + method.getDeclaringClass().getSimpleName()
+                    + "."
+                    + method.getName(), cause);
+        }
+
         protected static RuntimeException apiMethodError(Method method, String message, Object... args) {
             return apiMethodError(method, null, message, args);
         }
-
-    }
-
-    protected static com.pcloud.Request convertToRequest(Endpoint endpoint, String apiMethodName, final ArgumentAdapter[] argumentAdapters, final Object[] methodArgs) {
-        final Request.Builder requestBuilder = Request.create()
-                .methodName(apiMethodName)
-                .endpoint(endpoint);
-
-        requestBuilder.body(new com.pcloud.RequestBody() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public void writeТо(ProtocolWriter writer) throws IOException {
-                for (int index = 0; index < methodArgs.length; index++) {
-                    argumentAdapters[index].adapt(requestBuilder, writer, methodArgs[index]);
-                }
-            }
-        });
-        return requestBuilder.build();
     }
 }
 

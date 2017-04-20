@@ -21,6 +21,24 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 
 import java.io.IOException;
 
-interface ArgumentAdapter<T> {
-    void adapt(Request.Builder builder, ProtocolWriter writer, T argValue) throws IOException;
+class DefaultRequestAdapter implements RequestAdapter{
+
+    private ArgumentAdapter[] argumentAdapters;
+
+    DefaultRequestAdapter(ArgumentAdapter[] argumentAdapters) {
+        this.argumentAdapters = argumentAdapters;
+    }
+
+    @Override
+    public void adapt(final Request.Builder requestBuilder, final Object... args) {
+        requestBuilder.body(new com.pcloud.RequestBody() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public void writeТо(ProtocolWriter writer) throws IOException {
+                for (int index = 0; index < args.length; index++) {
+                    argumentAdapters[index].adapt(requestBuilder, writer, args[index]);
+                }
+            }
+        });
+    }
 }

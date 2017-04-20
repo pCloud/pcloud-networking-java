@@ -19,23 +19,22 @@ package com.pcloud.networking;
 import com.pcloud.Response;
 
 import java.io.IOException;
-
-import static com.pcloud.IOUtils.closeQuietly;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 class ApiClientCall<T> implements Call<T> {
 
     private com.pcloud.Call rawCall;
-    private TypeAdapter<T> responseAdapter;
+    private ResponseAdapter<T> responseAdapter;
 
-    ApiClientCall(com.pcloud.Call rawCall, TypeAdapter<T> responseAdapter) {
+    ApiClientCall(com.pcloud.Call rawCall, ResponseAdapter<T> responseAdapter) {
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
     }
 
     @Override
     public T execute() throws IOException {
-        Response response = rawCall.execute();
-        return adapt(response);
+        return adapt(rawCall.execute());
     }
 
     @Override
@@ -55,11 +54,20 @@ class ApiClientCall<T> implements Call<T> {
                 try {
                     callback.onResponse(ApiClientCall.this, adapt(response));
                 } catch (IOException e) {
-                    closeQuietly(response);
                     callback.onFailure(ApiClientCall.this, e);
                 }
             }
         });
+    }
+
+    @Override
+    public T enqueueAndWait() throws IOException, InterruptedException {
+        return adapt(rawCall.enqueueAndWait());
+    }
+
+    @Override
+    public T enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+        return adapt(rawCall.enqueueAndWait(timeout, timeUnit));
     }
 
     @Override
@@ -77,12 +85,13 @@ class ApiClientCall<T> implements Call<T> {
         return rawCall.isCancelled();
     }
 
+    @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public Call<T> clone() {
-        return null;
+        return new ApiClientCall<>(rawCall, responseAdapter);
     }
 
-    protected T adapt(Response response) throws IOException{
-        return responseAdapter.deserialize(response.responseBody().reader());
+    protected T adapt(Response response) throws IOException {
+        return responseAdapter.adapt(response);
     }
 }

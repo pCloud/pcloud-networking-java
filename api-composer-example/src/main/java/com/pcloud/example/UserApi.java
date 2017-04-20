@@ -39,5 +39,4 @@ public interface UserApi {
 
     @Method("userinfo")
     MultiCall<UserInfoRequest, UserInfoResponse> getUserInfo5(@RequestBody List<UserInfoRequest> request);
-
 }
