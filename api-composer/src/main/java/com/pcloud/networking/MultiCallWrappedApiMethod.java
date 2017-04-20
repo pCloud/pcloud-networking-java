@@ -65,7 +65,7 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<MultiCall<T, R>> {
 
         com.pcloud.MultiCall rawCall = apiComposer.apiClient()
                 .newCall(rawRequests);
-        return new ApiClientMultiCall<>(rawCall, returnTypeAdapter, requests);
+        return new ApiClientMultiCall<>(apiComposer, rawCall, returnTypeAdapter, requests);
     }
 
     private static class Factory extends ApiMethod.Factory {
