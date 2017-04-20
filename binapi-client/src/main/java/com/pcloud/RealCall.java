@@ -54,32 +54,48 @@ class RealCall implements Call {
     @Override
     public Response enqueueAndWait() throws IOException, InterruptedException {
         checkAndMarkExecuted();
+        Response response = null;
+        boolean success = false;
         try {
-            return callExecutor.submit(new Callable<Response>() {
+            response = callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get();
+            success = true;
+            return response;
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
         } catch (CancellationException e) {
             throw new IOException(e);
+        } finally {
+            if (!success){
+                closeQuietly(response);
+            }
         }
     }
 
     @Override
     public Response enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
+        Response response = null;
+        boolean success = false;
         try {
-            return callExecutor.submit(new Callable<Response>() {
+            response = callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get(timeout, timeUnit);
+            success = true;
+            return response;
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
+        } finally {
+            if (!success){
+                closeQuietly(response);
+            }
         }
     }
 

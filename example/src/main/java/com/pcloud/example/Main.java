@@ -27,6 +27,7 @@ import okio.ByteString;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
@@ -162,7 +163,7 @@ public class Main {
         }
     }
 
-    private static String getAuthToken(PCloudAPIClient client, Transformer transformer, String username, String password) throws IOException {
+    private static String getAuthToken(PCloudAPIClient client, Transformer transformer, String username, String password) throws IOException, InterruptedException {
         Map<String, Object> values = new HashMap<>();
         values.put("getauth", 1);
         values.put("username", username);
@@ -174,7 +175,7 @@ public class Main {
                     .methodName("userinfo")
                     .body(RequestBody.fromValues(values))
                     .build())
-                    .execute();
+                    .enqueueAndWait();
             UserInfoResponse apiResponse = transformer.getTypeAdapter(UserInfoResponse.class)
                     .deserialize(response.responseBody().reader());
             return apiResponse.authenticationToken();
