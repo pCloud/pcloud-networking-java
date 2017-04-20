@@ -130,6 +130,12 @@ class RealCall implements Call {
         return cancelled;
     }
 
+    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @Override
+    public Call clone() {
+        return new RealCall(request, callExecutor, interceptors, connectionProvider);
+    }
+
     private void checkAndMarkExecuted() {
         synchronized (this) {
             if (executed) throw new IllegalStateException("Already Executed");

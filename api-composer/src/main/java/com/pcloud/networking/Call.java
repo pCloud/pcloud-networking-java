@@ -16,7 +16,11 @@
 
 package com.pcloud.networking;
 
+import com.pcloud.Response;
+
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * An abstraction over a RPC call to pCloud's API servers.
@@ -50,6 +54,10 @@ public interface Call<T> extends Cloneable {
      * @throws IllegalArgumentException on a null {@code callback} argument.
      */
     void enqueue(Callback<T> callback);
+
+    T enqueueAndWait() throws IOException, InterruptedException;
+
+    T enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException;
 
     /**
      * Returns true if this call has been either {@linkplain #execute() executed} or {@linkplain
