@@ -17,8 +17,13 @@
 package com.pcloud.protocol.streaming;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class SerializationException extends IOException {
+
+    public SerializationException(String message, Object... args) {
+        this(String.format(Locale.US, message, args));
+    }
 
     public SerializationException(String message) {
         super(message);

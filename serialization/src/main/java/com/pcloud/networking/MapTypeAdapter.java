@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 pCloud AG.
+ * Copyright (c) 2017 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,31 +21,33 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import com.pcloud.protocol.streaming.SerializationException;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.Map;
 
-abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T>{
+abstract class MapTypeAdapter<K,V> extends TypeAdapter<Map<K,V>>{
 
-    private TypeAdapter<E> elementAdapter;
+    private TypeAdapter<K> keyAdapter;
+    private TypeAdapter<V> valueAdapter;
 
-    CollectionTypeAdapter(TypeAdapter<E> elementAdapter) {
-        this.elementAdapter = elementAdapter;
+    MapTypeAdapter(TypeAdapter<K> keyAdapter, TypeAdapter<V> valueAdapter) {
+        this.keyAdapter = keyAdapter;
+        this.valueAdapter = valueAdapter;
     }
 
     @Override
-    public T deserialize(ProtocolReader reader) throws IOException {
-        T container = instantiateCollection();
-        reader.beginArray();
+    public Map<K,V> deserialize(ProtocolReader reader) throws IOException {
+        Map<K,V> container = instantiateCollection();
+        reader.beginObject();
         while (reader.hasNext()) {
-            container.add(elementAdapter.deserialize(reader));
+            container.put(keyAdapter.deserialize(reader), valueAdapter.deserialize(reader));
         }
-        reader.endArray();
+        reader.endObject();
         return container;
     }
 
     @Override
-    public void serialize(ProtocolWriter writer, T value) throws IOException {
+    public void serialize(ProtocolWriter writer, Map<K,V> value) throws IOException {
         throw new SerializationException("'%s' serialization is not supported.", value.getClass());
     }
 
-    protected abstract T instantiateCollection();
+    protected abstract Map<K,V> instantiateCollection();
 }
