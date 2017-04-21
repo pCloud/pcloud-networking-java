@@ -24,7 +24,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * Created by Georgi on 26.12.2016 г..
  */
-public interface MultiCall {
+public interface MultiCall extends Cloneable {
     List<Request> requests();
 
     MultiResponse execute() throws IOException;
@@ -40,4 +40,6 @@ public interface MultiCall {
     void cancel();
 
     boolean isCancelled();
+
+    MultiCall clone();
 }

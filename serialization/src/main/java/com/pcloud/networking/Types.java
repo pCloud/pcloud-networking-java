@@ -27,6 +27,19 @@ final class Types {
     }
 
 
+    static Type getParameterUpperBound(int index, ParameterizedType type) {
+        Type[] types = type.getActualTypeArguments();
+        if (index < 0 || index >= types.length) {
+            throw new IllegalArgumentException(
+                    "Index " + index + " not in range [0," + types.length + ") for " + type);
+        }
+        Type paramType = types[index];
+        if (paramType instanceof WildcardType) {
+            return ((WildcardType) paramType).getUpperBounds()[0];
+        }
+        return paramType;
+    }
+
     /**
      * Returns a new parameterized type, applying {@code typeArguments} to {@code rawType}. Use this
      * method if {@code rawType} is not enclosed in another type.

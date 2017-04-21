@@ -16,17 +16,25 @@
 
 package com.pcloud.networking;
 
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 
 class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
+        if (!(type instanceof ParameterizedType)) {
+            return null;
+        }
+
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isAssignableFrom(List.class)) {
             return newArrayListAdapter(type, transformer);
         } else if (rawType == Set.class) {
             return newLinkedHashSetAdapter(type, transformer);
+        } else if (rawType == Map.class) {
+            return newMapAdapter((ParameterizedType) type, transformer);
         }
         return null;
     }
@@ -50,6 +58,19 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
             @Override
             protected Set<T> instantiateCollection() {
                 return new LinkedHashSet<>();
+            }
+        };
+    }
+
+    static <K, V> TypeAdapter<Map<K, V>> newMapAdapter(ParameterizedType type, Transformer transformer) {
+        Type keyElementType = Types.getParameterUpperBound(0, type);
+        Type valueElementType = Types.getParameterUpperBound(1, type);
+        TypeAdapter<K> keyAdapter = transformer.getTypeAdapter(keyElementType);
+        TypeAdapter<V> valueAdapter = transformer.getTypeAdapter(valueElementType);
+        return new MapTypeAdapter<K, V>(keyAdapter, valueAdapter) {
+            @Override
+            protected Map<K, V> instantiateCollection() {
+                return new TreeMap<>();
             }
         };
     }
