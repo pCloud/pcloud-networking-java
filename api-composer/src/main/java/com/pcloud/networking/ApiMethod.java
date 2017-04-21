@@ -126,6 +126,14 @@ abstract class ApiMethod<T> {
             return typeAdapter;
         }
 
+        protected static void checkMethodThrowsExceptions(Method method, Type... exceptionTypes){
+            List<Class<?>> declaredExceptions = Arrays.asList(method.getExceptionTypes());
+            List<Type> expectedExceptions = Arrays.asList(exceptionTypes);
+            if (!declaredExceptions.containsAll(expectedExceptions)){
+                throw apiMethodError(method, "Method should declare that it throws %s.", expectedExceptions);
+            }
+        }
+
         protected static RuntimeException apiMethodError(Method method, Throwable cause, String message, Object... args) {
             message = String.format(message, args);
             return new IllegalArgumentException(message

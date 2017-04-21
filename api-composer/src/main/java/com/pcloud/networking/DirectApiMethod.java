@@ -38,6 +38,7 @@ class DirectApiMethod<T> extends ApiMethod<T> {
 
             String apiMethodName = parseMethodNameAnnotation(method);
             RequestAdapter requestAdapter = createRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
+            checkMethodThrowsExceptions(method, IOException.class);
             ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, returnType);
 
             return new DirectApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter);
