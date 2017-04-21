@@ -29,4 +29,6 @@ public interface ProtocolResponseReader extends ProtocolReader {
     long endResponse() throws IOException;
 
     long dataContentLength();
+
+    ProtocolResponseReader newPeekingReader();
 }

@@ -19,10 +19,10 @@ package com.pcloud.protocol.streaming;
 import com.pcloud.protocol.DataSource;
 import okio.Buffer;
 import okio.BufferedSink;
+import okio.Utf8;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,8 +31,6 @@ import java.util.EnumSet;
 import static com.pcloud.IOUtils.closeQuietly;
 
 public class BytesWriter implements ProtocolRequestWriter {
-
-    private static final Charset PROTOCOL_CHARSET = Charset.forName("UTF-8");
 
     // Request parameter types
     private static final int REQUEST_PARAM_TYPE_STRING = 0;
@@ -98,9 +96,8 @@ public class BytesWriter implements ProtocolRequestWriter {
         checkNextValueTypeMatches(REQUEST_PARAM_TYPE_UNKNOWN);
 
         Buffer metadataBuffer = new Buffer();
-        byte[] methodNameBytes = methodName.getBytes(PROTOCOL_CHARSET);
 
-        int methodNameLength = methodNameBytes.length;
+        int methodNameLength = (int) Utf8.size(methodName);
         if (methodNameLength > 127) {
             throw new SerializationException("Method name cannot be longer than 127 characters.");
         }
@@ -117,7 +114,7 @@ public class BytesWriter implements ProtocolRequestWriter {
         }
 
         metadataBuffer.writeByte(methodNameLength);
-        metadataBuffer.write(methodNameBytes);
+        metadataBuffer.writeUtf8(methodName);
 
         if (hasData) {
             metadataBuffer.writeLongLe(dataSourceLength);
@@ -194,15 +191,14 @@ public class BytesWriter implements ProtocolRequestWriter {
     }
 
     private void writeNextValueTypeAndName() throws SerializationException {
-        byte[] bytes = nextValueName.getBytes(PROTOCOL_CHARSET);
-        int parameterNameLength = bytes.length;
+        int parameterNameLength = (int) Utf8.size(nextValueName);
         if (parameterNameLength > REQUEST_PARAM_NAME_LENGTH_LIMIT) {
             throw new SerializationException("Parameter '" + nextValueName + "' is too long, should be no more than 63 characters.");
         }
 
         int encodedParamData = parameterNameLength | (nextValueType << 6);
         paramsBuffer.writeByte(encodedParamData);
-        paramsBuffer.write(bytes);
+        paramsBuffer.writeUtf8(nextValueName);
         nextValueName = null;
         nextValueType = REQUEST_PARAM_TYPE_UNKNOWN;
     }
@@ -250,9 +246,8 @@ public class BytesWriter implements ProtocolRequestWriter {
     }
 
     private void writeString(String value) {
-        byte[] bytes = value.getBytes(PROTOCOL_CHARSET);
-        paramsBuffer.writeIntLe(bytes.length);
-        paramsBuffer.write(bytes);
+        paramsBuffer.writeIntLe((int) Utf8.size(value));
+        paramsBuffer.writeUtf8(value);
     }
 
     @Override

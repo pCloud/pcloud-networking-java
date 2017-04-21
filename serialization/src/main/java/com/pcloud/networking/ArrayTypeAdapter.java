@@ -18,6 +18,7 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.UnserializableTypeException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -52,7 +53,7 @@ class ArrayTypeAdapter extends TypeAdapter<Object>  {
 
     @Override
     public void serialize(ProtocolWriter writer, Object value) throws IOException {
-        throw new ProtocolException("Serializing arrays is not supported.");
+        throw new UnserializableTypeException(value.getClass());
     }
 
     @Override public String toString() {

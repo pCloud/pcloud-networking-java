@@ -35,8 +35,8 @@ class RealMultiCall implements MultiCall {
     private Connection connection;
 
     private ExecutorService callExecutor;
-    private ConnectionProvider connectionProvider;
     private List<RequestInterceptor> interceptors;
+    private ConnectionProvider connectionProvider;
 
     RealMultiCall(List<Request> requests, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
         this.requests = requests;
@@ -76,7 +76,7 @@ class RealMultiCall implements MultiCall {
             final int expectedCount = requests.size();
             initializeResponseMap(responseMap, expectedCount);
             int completedCount = 0;
-            while (completedCount < expectedCount){
+            while (completedCount < expectedCount) {
                 readNextResponse(connection, responseMap);
                 completedCount++;
             }
@@ -95,12 +95,6 @@ class RealMultiCall implements MultiCall {
         return new MultiResponse(new ArrayList<>(responseMap.values()));
     }
 
-    private void initializeResponseMap(Map<Integer, Response> responseMap, int expectedCount) {
-        for (int i = 0; i < expectedCount; i++){
-            responseMap.put(i, null);
-        }
-    }
-
     @Override
     public MultiResponse enqueueAndWait() throws IOException, InterruptedException {
         checkAndMarkExecuted();
@@ -113,7 +107,7 @@ class RealMultiCall implements MultiCall {
             }).get();
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
-        } catch (CancellationException e){
+        } catch (CancellationException e) {
             throw new IOException(e);
         }
     }
@@ -159,7 +153,7 @@ class RealMultiCall implements MultiCall {
                     writeRequests(connection);
 
                     int completedCount = 0;
-                    while (completedCount < expectedCount){
+                    while (completedCount < expectedCount) {
                         int key = readNextResponse(connection, responseMap);
                         completedCount++;
                         // Guard against calling onFailure() for IOException errors
@@ -173,7 +167,7 @@ class RealMultiCall implements MultiCall {
                     MultiResponse response = new MultiResponse(new ArrayList<>(responseMap.values()));
                     callingCallback = true;
                     callback.onComplete(RealMultiCall.this, response);
-                } catch (IOException e){
+                } catch (IOException e) {
                     List<Response> completedResponses =
                             Collections.unmodifiableList(new ArrayList<>(responseMap.values()));
                     if (!callingCallback) {
@@ -195,37 +189,6 @@ class RealMultiCall implements MultiCall {
         });
     }
 
-    private void closeAndClearCompletedResponses(Map<?, ? extends Closeable> responseMap) {
-        for (Closeable r : responseMap.values()){
-            closeQuietly(r);
-        }
-        responseMap.clear();
-    }
-
-    private void writeRequests(Connection connection) throws IOException {
-        long requestKey = 0;
-        for (Request request : requests){
-            ProtocolRequestWriter writer = new BytesWriter(connection.sink());
-            writer.beginRequest()
-                    .writeMethodName(request.methodName());
-            if (request.dataSource() != null) {
-                writer.writeData(request.dataSource());
-            }
-
-            for (RequestInterceptor r: interceptors) {
-                r.intercept(request, writer);
-            }
-
-            request.body().writeТо(writer);
-
-            // Add the key at the end to avoid overwriting.
-            writer.writeName("id", TypeToken.NUMBER).writeValue(requestKey);
-            writer.endRequest();
-            writer.flush();
-            requestKey++;
-        }
-    }
-
     @Override
     public synchronized boolean isExecuted() {
         return executed;
@@ -237,6 +200,54 @@ class RealMultiCall implements MultiCall {
             cancelled = true;
             closeQuietly(connection);
             connection = null;
+        }
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @Override
+    public MultiCall clone() {
+        return new RealMultiCall(requests, callExecutor, interceptors, connectionProvider);
+    }
+
+    private void initializeResponseMap(Map<Integer, Response> responseMap, int expectedCount) {
+        for (int i = 0; i < expectedCount; i++) {
+            responseMap.put(i, null);
+        }
+    }
+
+    private void closeAndClearCompletedResponses(Map<?, ? extends Closeable> responseMap) {
+        for (Closeable r : responseMap.values()) {
+            closeQuietly(r);
+        }
+        responseMap.clear();
+    }
+
+    private void writeRequests(Connection connection) throws IOException {
+        long requestKey = 0;
+        for (Request request : requests) {
+            ProtocolRequestWriter writer = new BytesWriter(connection.sink());
+            writer.beginRequest()
+                    .writeMethodName(request.methodName());
+            if (request.dataSource() != null) {
+                writer.writeData(request.dataSource());
+            }
+
+            for (RequestInterceptor r : interceptors) {
+                r.intercept(request, writer);
+            }
+
+            request.body().writeТо(writer);
+
+            // Add the key at the end to avoid overwriting.
+            writer.writeName("id", TypeToken.NUMBER).writeValue(requestKey);
+            writer.endRequest();
+            writer.flush();
+            requestKey++;
         }
     }
 
@@ -253,15 +264,7 @@ class RealMultiCall implements MultiCall {
         final Buffer responseBuffer = new Buffer();
         connection.source().read(responseBuffer, responseLength + 4);
 
-        final BytesReader reader = new BytesReader(responseBuffer) {
-            @Override
-            public void endObject() throws IOException {
-                super.endObject();
-                if (currentScope() == SCOPE_RESPONSE){
-                    endResponse();
-                }
-            }
-        };
+        final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
 
         ResponseBody responseBody = new ResponseBody() {
             @Override
@@ -285,49 +288,44 @@ class RealMultiCall implements MultiCall {
             }
         };
 
-        // Find the 'id' key value nad check for a 'data' key
+        // Find the 'id' key value and check for a 'data' key
         // Clone the buffer to allow reading of the buffered data
         // without consuming the bytes form the original buffer.
-        BytesReader valuesReader = new BytesReader(responseBuffer.clone());
-        if (responseLength != valuesReader.beginResponse()){
+        ProtocolResponseReader peekingReader = reader.newPeekingReader();
+        if (responseLength != peekingReader.beginResponse()) {
             throw new AssertionError("Peeked and read response lengths are not equal.");
         }
-        valuesReader.beginObject();
+        peekingReader.beginObject();
         int id = -1;
         long dataLength = -1;
-        while (valuesReader.hasNext()){
-            String name = valuesReader.readString();
+        while (peekingReader.hasNext()) {
+            String name = peekingReader.readString();
             if (name.equals("id")) {
-                id = (int) valuesReader.readNumber();
+                id = (int) peekingReader.readNumber();
+            } else {
+                peekingReader.skipValue();
             }
-            else {
-                valuesReader.skipValue();
-            }
-            if ((dataLength = valuesReader.dataContentLength()) != -1) {
+            if ((dataLength = peekingReader.dataContentLength()) != -1) {
                 break;
             }
         }
-        if (dataLength > 0){
+        if (dataLength > 0) {
             throw new IOException("MultiCalls are not supported for responses returning data.");
         }
 
-        if (id == -1){
+        if (id == -1) {
             throw new IOException("Response is missing its id.");
         }
 
+        reader.beginResponse();
         Response response = Response.create()
                 .request(requests.get(id))
                 .responseBody(responseBody)
                 .build();
-        if(responseMap.put(id, response) != null) {
-            throw new IOException("Server responded with multiple responses with id '"+id+"'.");
+        if (responseMap.put(id, response) != null) {
+            throw new IOException("Server responded with multiple responses with id '" + id + "'.");
         }
 
         return id;
-    }
-
-    @Override
-    public boolean isCancelled() {
-        return cancelled;
     }
 }

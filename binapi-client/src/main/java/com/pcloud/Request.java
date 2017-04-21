@@ -98,11 +98,12 @@ public class Request {
             return this;
         }
 
-        public void endpoint(Endpoint endpoint) {
+        public Builder endpoint(Endpoint endpoint) {
             if (endpoint == null) {
                 throw new IllegalArgumentException("Endpoint argument cannot be null.");
             }
             this.endpoint = endpoint;
+            return this;
         }
 
         public Request build() {

@@ -47,7 +47,7 @@ public class ResponseData implements Closeable{
 
     public ByteString byteString() throws IOException {
         try {
-            return source.readByteString(contentLength());
+            return source.readByteString(contentLength);
         } finally {
             close();
         }
@@ -55,7 +55,7 @@ public class ResponseData implements Closeable{
 
     public byte[] bytes() throws IOException {
         try {
-            return source.readByteArray(contentLength());
+            return source.readByteArray(contentLength);
         } finally {
             close();
         }

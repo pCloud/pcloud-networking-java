@@ -16,11 +16,9 @@
 
 package com.pcloud.protocol.streaming;
 
-import com.pcloud.ByteCountingSource;
-import com.pcloud.FixedLengthSource;
 import com.pcloud.IOUtils;
-import com.pcloud.protocol.DataSink;
-import okio.*;
+import okio.BufferedSource;
+import okio.Okio;
 
 import java.io.IOException;
 import java.net.ProtocolException;
@@ -60,24 +58,28 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int TYPE_AGGREGATE_END_ARRAY = -5;
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
 
+    private int currentScope = SCOPE_NONE;
+    private int previousScope = SCOPE_NONE;
     private Deque<Integer> scopeStack = new ArrayDeque<>(10);
-    private List<String> stringCache = new ArrayList<>();
-
-    private BufferedSource rawSource;
     private BufferedSource bufferedSource;
-    private ByteCountingSource countingParametersSource;
 
-    private boolean responseStarted;
-    private volatile long responseLength = UNKNOWN_SIZE;
+    private List<String> stringCache = new ArrayList<>();
     private volatile long dataLength = UNKNOWN_SIZE;
+
+    private BytesReader(BytesReader reader) {
+        this.currentScope = reader.currentScope;
+        this.previousScope = reader.previousScope;
+        this.scopeStack = new ArrayDeque<>(reader.scopeStack);
+        this.bufferedSource = reader.bufferedSource;
+        this.stringCache = new ArrayList<>(reader.stringCache);
+        this.dataLength = reader.dataLength;
+    }
 
     public BytesReader(BufferedSource bufferedSource) {
         if (bufferedSource == null) {
             throw new IllegalArgumentException("Source argument cannot be null.");
         }
-        this.rawSource = bufferedSource;
-        this.countingParametersSource = new ByteCountingSource(bufferedSource);
-        this.bufferedSource = Okio.buffer(countingParametersSource);
+        this.bufferedSource = bufferedSource;
     }
 
     @Override
@@ -87,11 +89,9 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long beginResponse() throws IOException {
-        if (!responseStarted) {
-            responseStarted = true;
-            responseLength = pullNumber(4);
-            scopeStack.push(SCOPE_RESPONSE);
-            return responseLength;
+        if (currentScope == SCOPE_NONE) {
+            pushScope(SCOPE_RESPONSE);
+            return pullNumber(4);
         }
 
         throw new SerializationException("Trying to start reading a response, which has already been started.");
@@ -99,20 +99,27 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long endResponse() throws IOException {
-        int scope = currentScope();
-        if (responseStarted && scope == SCOPE_RESPONSE) {
-            if (countingParametersSource.bytesRead() < responseLength) {
-                while (hasNext()) {
-                    skipValue();
-                }
+        if (currentScope != SCOPE_RESPONSE) {
+            if (currentScope == SCOPE_NONE) {
+                throw new SerializationException("Trying to end a response " +
+                        "but none is being read, first call beginResponse()");
+            } else {
+                throw new SerializationException("Trying to end a response, " +
+                        "but current scope is " + scopeName(currentScope));
             }
-            scopeStack.clear();
-            stringCache.clear();
-            if (dataLength == UNKNOWN_SIZE) {
-                dataLength = 0;
+        }
+
+        // Check if anything was read and skip it until end.
+        if (previousScope == SCOPE_NONE) {
+            while (hasNext()) {
+                skipValue();
             }
-        } else {
-            throw new SerializationException("Trying to end a response, but current scope is " + scopeName(scope));
+        }
+        popScope();
+        stringCache.clear();
+
+        if (dataLength == UNKNOWN_SIZE) {
+            dataLength = 0;
         }
 
         return dataLength;
@@ -124,7 +131,7 @@ public class BytesReader implements ProtocolResponseReader {
         if (type == TYPE_BEGIN_OBJECT ||
                 (type == TYPE_BEGIN_ARRAY &&
                         peekType() == TYPE_END_ARRAY_OBJECT)) {
-            scopeStack.push(SCOPE_OBJECT);
+            pushScope(SCOPE_OBJECT);
         } else {
             throw typeMismatchError(TYPE_BEGIN_OBJECT, type);
         }
@@ -134,7 +141,7 @@ public class BytesReader implements ProtocolResponseReader {
     public void beginArray() throws IOException {
         int type = pullType();
         if (type == TYPE_BEGIN_ARRAY) {
-            scopeStack.push(SCOPE_ARRAY);
+            pushScope(SCOPE_ARRAY);
         } else {
             throw typeMismatchError(TYPE_BEGIN_ARRAY, type);
         }
@@ -144,11 +151,10 @@ public class BytesReader implements ProtocolResponseReader {
     public void endArray() throws IOException {
         int type = pullType();
         if (type == TYPE_END_ARRAY_OBJECT) {
-            int scope = scopeStack.peek();
-            if (scope == SCOPE_ARRAY) {
-                scopeStack.pop();
+            if (currentScope == SCOPE_ARRAY) {
+                popScope();
             } else {
-                throw new IllegalStateException("Trying to close an array, but current scope is " + scopeName(scope));
+                throw new IllegalStateException("Trying to close an array, but current scope is " + scopeName(currentScope));
             }
         } else {
             throw typeMismatchError(TYPE_AGGREGATE_END_ARRAY, type);
@@ -159,11 +165,10 @@ public class BytesReader implements ProtocolResponseReader {
     public void endObject() throws IOException {
         int type = pullType();
         if (type == TYPE_END_ARRAY_OBJECT) {
-            int scope = currentScope();
-            if (scope == SCOPE_OBJECT) {
-                scopeStack.pop();
+            if (currentScope == SCOPE_OBJECT) {
+                popScope();
             } else {
-                throw new IllegalStateException("Trying to close an object, but current scope is " + scopeName(scope));
+                throw new IllegalStateException("Trying to close an object, but current scope is " + scopeName(currentScope));
             }
         } else {
             throw typeMismatchError(TYPE_AGGREGATE_END_OBJECT, type);
@@ -234,6 +239,17 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     @Override
+    public ProtocolResponseReader newPeekingReader() {
+        BytesReader reader = new BytesReader(this);
+        /*
+        * Swap the BufferedSource for an implementation that reads ahead the byte stream
+        * without consuming it.
+        * */
+        reader.bufferedSource = Okio.buffer(new PeekingSource(reader.bufferedSource.buffer(), 0L));
+        return reader;
+    }
+
+    @Override
     public void skipValue() throws IOException {
         final int type = peekType();
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
@@ -252,8 +268,7 @@ public class BytesReader implements ProtocolResponseReader {
             readString();
         } else if (type == TYPE_BOOLEAN_TRUE || type == TYPE_BOOLEAN_FALSE) {
             bufferedSource.skip(1);
-        }
-        else if (type == TYPE_BEGIN_OBJECT) {
+        } else if (type == TYPE_BEGIN_OBJECT) {
             // Object
             beginObject();
             while (hasNext()) {
@@ -286,13 +301,25 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public int currentScope() {
-        Integer scope = scopeStack.peek();
-        return scope != null ? scope : SCOPE_NONE;
+        return currentScope;
     }
 
     @Override
     public void close() {
-        closeQuietly(rawSource);
+        closeQuietly(bufferedSource);
+    }
+
+    private void pushScope(int newScope) {
+        previousScope = currentScope;
+        scopeStack.push(newScope);
+        currentScope = newScope;
+    }
+
+    private void popScope() {
+        if (currentScope != SCOPE_NONE) {
+            previousScope = scopeStack.pop();
+            currentScope = scopeStack.isEmpty() ? SCOPE_NONE : scopeStack.peek();
+        }
     }
 
     private int peekType() throws IOException {
@@ -306,16 +333,15 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     private int pullType() throws IOException {
-        if (responseStarted) {
-            int type = bufferedSource.readByte() & 0xff;
-            if (type == TYPE_DATA) {
-                dataLength = IOUtils.peekNumberLe(bufferedSource, 1, 8);
-                return TYPE_NUMBER_END;
-            }
-            return type;
-        } else {
+        if (currentScope == SCOPE_NONE) {
             throw new IllegalStateException("First call beginResponse().");
         }
+        int type = bufferedSource.readByte() & 0xff;
+        if (type == TYPE_DATA) {
+            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, 8);
+            return TYPE_NUMBER_END;
+        }
+        return type;
     }
 
     private long pullNumber(int byteCount) throws IOException {
@@ -335,7 +361,7 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     private SerializationException typeMismatchError(int expectedType, int actualType) {
-        return new SerializationException("Expected '" + typeName(expectedType) + "', but was '" + typeName(actualType)+"'.");
+        return new SerializationException("Expected '" + typeName(expectedType) + "', but was '" + typeName(actualType) + "'.");
     }
 
     private TypeToken getToken(int type) throws SerializationException {
@@ -359,7 +385,7 @@ public class BytesReader implements ProtocolResponseReader {
             // Boolean
             return TypeToken.BOOLEAN;
         } else if (type == TYPE_END_ARRAY_OBJECT) {
-            return scopeStack.peek() == TYPE_BEGIN_OBJECT ? END_OBJECT : END_ARRAY;
+            return currentScope == TYPE_BEGIN_OBJECT ? END_OBJECT : END_ARRAY;
         } else {
             throw new SerializationException("Unknown type " + type);
         }
@@ -386,7 +412,7 @@ public class BytesReader implements ProtocolResponseReader {
             typeToken = END_OBJECT;
         } else {
             try {
-                typeToken =  getToken(type);
+                typeToken = getToken(type);
             } catch (SerializationException e) {
                 return "(Unknown type " + type + ")";
             }

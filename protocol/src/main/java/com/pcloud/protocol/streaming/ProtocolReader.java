@@ -49,4 +49,6 @@ public interface ProtocolReader extends AutoCloseable, Closeable {
     boolean hasNext() throws IOException;
 
     void skipValue() throws IOException;
+
+    ProtocolReader newPeekingReader();
 }

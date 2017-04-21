@@ -78,7 +78,7 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
-            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, getParameterValueType(field));
+            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, Util.getParameterType(field.getType()));
             ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n"
@@ -109,23 +109,5 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     private boolean includeField(boolean platformType, int modifiers) {
         if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) return false;
         return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || !platformType;
-    }
-
-    private TypeToken getParameterValueType(Field field) {
-        Class<?> type = field.getType();
-        if (type == Long.class || type == long.class ||
-                type == Integer.class || type == int.class ||
-                type == Short.class || type == short.class ||
-                type == Byte.class || type == byte.class ||
-                type == Double.class || type == double.class ||
-                type == Float.class || type == float.class) {
-            return TypeToken.NUMBER;
-        } else if (type == String.class || Types.getRawType(type).isEnum()) {
-            return TypeToken.STRING;
-        } else if (type == Boolean.class || type == boolean.class) {
-            return TypeToken.BOOLEAN;
-        }
-
-        return null;
     }
 }

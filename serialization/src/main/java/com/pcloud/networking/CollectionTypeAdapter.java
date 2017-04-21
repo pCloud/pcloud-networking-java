@@ -18,9 +18,9 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
+import com.pcloud.protocol.streaming.UnserializableTypeException;
 
 import java.io.IOException;
-import java.net.ProtocolException;
 import java.util.Collection;
 
 abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T>{
@@ -44,7 +44,7 @@ abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAda
 
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
-        throw new ProtocolException("Serializing arrays is not supported.");
+        throw new UnserializableTypeException(value.getClass());
     }
 
     protected abstract T instantiateCollection();

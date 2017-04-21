@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-public interface Call {
+public interface Call extends Cloneable {
     Request request();
 
     Response execute() throws IOException;
@@ -37,4 +37,6 @@ public interface Call {
     void cancel();
 
     boolean isCancelled();
+
+    Call clone();
 }

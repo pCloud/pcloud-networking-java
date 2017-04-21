@@ -16,8 +16,10 @@
 
 package com.pcloud;
 
-import com.pcloud.protocol.streaming.*;
-import okio.BufferedSource;
+import com.pcloud.protocol.streaming.BytesReader;
+import com.pcloud.protocol.streaming.BytesWriter;
+import com.pcloud.protocol.streaming.ProtocolReader;
+import com.pcloud.protocol.streaming.ProtocolRequestWriter;
 import okio.Okio;
 
 import java.io.IOException;
@@ -54,32 +56,48 @@ class RealCall implements Call {
     @Override
     public Response enqueueAndWait() throws IOException, InterruptedException {
         checkAndMarkExecuted();
+        Response response = null;
+        boolean success = false;
         try {
-            return callExecutor.submit(new Callable<Response>() {
+            response = callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get();
+            success = true;
+            return response;
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
         } catch (CancellationException e) {
             throw new IOException(e);
+        } finally {
+            if (!success){
+                closeQuietly(response);
+            }
         }
     }
 
     @Override
     public Response enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
+        Response response = null;
+        boolean success = false;
         try {
-            return callExecutor.submit(new Callable<Response>() {
+            response = callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get(timeout, timeUnit);
+            success = true;
+            return response;
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
+        } finally {
+            if (!success){
+                closeQuietly(response);
+            }
         }
     }
 
@@ -130,6 +148,12 @@ class RealCall implements Call {
         return cancelled;
     }
 
+    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @Override
+    public Call clone() {
+        return new RealCall(request, callExecutor, interceptors, connectionProvider);
+    }
+
     private void checkAndMarkExecuted() {
         synchronized (this) {
             if (executed) throw new IllegalStateException("Already Executed");
@@ -177,19 +201,8 @@ class RealCall implements Call {
     }
 
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
-        final BufferedSource source = connection.source();
-        final BytesReader reader = new BytesReader(source) {
-            @Override
-            public void endObject() throws IOException {
-                super.endObject();
-                if (currentScope() == SCOPE_RESPONSE) {
-                    endResponse();
-                }
-            }
-        };
-
+        final BytesReader reader = new SelfEndingBytesReader(connection.source());
         final long contentLength = reader.beginResponse();
-
         return new ResponseBody() {
 
             private ResponseData data;
