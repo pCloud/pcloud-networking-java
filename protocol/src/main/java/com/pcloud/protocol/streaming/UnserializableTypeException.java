@@ -16,19 +16,11 @@
 
 package com.pcloud.protocol.streaming;
 
-import java.io.IOException;
+import java.lang.reflect.Type;
 
-@SuppressWarnings("WeakerAccess")
-public interface ProtocolResponseReader extends ProtocolReader {
+public class UnserializableTypeException extends SerializationException {
 
-    int SCOPE_RESPONSE = 1;
-    int UNKNOWN_SIZE = -1;
-
-    long beginResponse() throws IOException;
-
-    long endResponse() throws IOException;
-
-    long dataContentLength();
-
-    ProtocolResponseReader newPeekingReader();
+    public UnserializableTypeException(Type type) {
+        super("'%s' serialization is not supported.", type);
+    }
 }
