@@ -23,6 +23,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.List;
 
 abstract class ApiMethod<T> {
 
@@ -74,7 +75,7 @@ abstract class ApiMethod<T> {
             }
         }
 
-        protected static RequestAdapter createRequestAdapter(ApiComposer composer, Method method, Type[] parameterTypes, Annotation[][] annotations) {
+        protected static RequestAdapter getRequestAdapter(ApiComposer composer, Method method, Type[] parameterTypes, Annotation[][] annotations) {
             int argumentCount = parameterTypes.length;
             boolean hasDataParameter = false;
             ArgumentAdapter[] argumentAdapters = new ArgumentAdapter[argumentCount];

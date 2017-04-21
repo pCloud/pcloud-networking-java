@@ -102,7 +102,7 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<MultiCall<T, R>> {
             @SuppressWarnings("unchecked")
             RequestContainerAdapter<Object, ?> containerAdapter =
                     (RequestContainerAdapter<Object, ?>) getContainerAdapter(method, argumentTypes[0], expectedRequestType);
-            RequestAdapter requestAdapter = createRequestAdapter(composer, method, new Type[]{expectedRequestType}, argumentAnnotations);
+            RequestAdapter requestAdapter = getRequestAdapter(composer, method, new Type[]{expectedRequestType}, argumentAnnotations);
             ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, innerReturnType);
 
             return new MultiCallWrappedApiMethod<>(apiMethodName, containerAdapter, requestAdapter, returnTypeAdapter);

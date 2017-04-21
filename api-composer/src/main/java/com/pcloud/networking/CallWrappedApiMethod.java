@@ -70,7 +70,7 @@ class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
             }
 
             String apiMethodName = parseMethodNameAnnotation(method);
-            RequestAdapter requestAdapter = createRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
+            RequestAdapter requestAdapter = getRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
             ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, innerReturnType);
 
             return new CallWrappedApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter);
