@@ -18,15 +18,16 @@ package com.pcloud.example;
 
 import com.pcloud.networking.*;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface UserApi {
 
     @Method("userinfo")
-    UserInfoResponse getUserInfo(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken);
+    UserInfoResponse getUserInfo(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken) throws IOException;
 
     @Method("userinfo")
-    UserInfoResponse getUserInfo1(@RequestBody UserInfoRequest request);
+    UserInfoResponse getUserInfo1(@RequestBody UserInfoRequest request) throws IOException;
 
     @Method("userinfo")
     Call<UserInfoResponse> getUserInfo2(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken);

@@ -264,15 +264,7 @@ class RealMultiCall implements MultiCall {
         final Buffer responseBuffer = new Buffer();
         connection.source().read(responseBuffer, responseLength + 4);
 
-        final BytesReader reader = new BytesReader(responseBuffer) {
-            @Override
-            public void endObject() throws IOException {
-                super.endObject();
-                if (currentScope() == SCOPE_RESPONSE) {
-                    endResponse();
-                }
-            }
-        };
+        final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
 
         ResponseBody responseBody = new ResponseBody() {
             @Override
@@ -296,24 +288,24 @@ class RealMultiCall implements MultiCall {
             }
         };
 
-        // Find the 'id' key value nad check for a 'data' key
+        // Find the 'id' key value and check for a 'data' key
         // Clone the buffer to allow reading of the buffered data
         // without consuming the bytes form the original buffer.
-        BytesReader valuesReader = new BytesReader(responseBuffer.clone());
-        if (responseLength != valuesReader.beginResponse()) {
+        ProtocolResponseReader peekingReader = reader.newPeekingReader();
+        if (responseLength != peekingReader.beginResponse()) {
             throw new AssertionError("Peeked and read response lengths are not equal.");
         }
-        valuesReader.beginObject();
+        peekingReader.beginObject();
         int id = -1;
         long dataLength = -1;
-        while (valuesReader.hasNext()) {
-            String name = valuesReader.readString();
+        while (peekingReader.hasNext()) {
+            String name = peekingReader.readString();
             if (name.equals("id")) {
-                id = (int) valuesReader.readNumber();
+                id = (int) peekingReader.readNumber();
             } else {
-                valuesReader.skipValue();
+                peekingReader.skipValue();
             }
-            if ((dataLength = valuesReader.dataContentLength()) != -1) {
+            if ((dataLength = peekingReader.dataContentLength()) != -1) {
                 break;
             }
         }

@@ -19,6 +19,7 @@ package com.pcloud.networking;
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
 import com.pcloud.protocol.streaming.SerializationException;
+import com.pcloud.protocol.streaming.UnserializableTypeException;
 
 import java.io.IOException;
 import java.util.Map;
@@ -46,7 +47,7 @@ abstract class MapTypeAdapter<K,V> extends TypeAdapter<Map<K,V>>{
 
     @Override
     public void serialize(ProtocolWriter writer, Map<K,V> value) throws IOException {
-        throw new SerializationException("'%s' serialization is not supported.", value.getClass());
+        throw new UnserializableTypeException(value.getClass());
     }
 
     protected abstract Map<K,V> instantiateCollection();
