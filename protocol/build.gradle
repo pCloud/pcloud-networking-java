@@ -11,5 +11,5 @@ dependencies {
     compile project(':utils')
     testCompile group: 'junit', name: 'junit', version: '4.11'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
-    compile 'com.squareup.okio:okio:1.11.0'
+    compile 'com.squareup.okio:okio:1.12.0'
 }
