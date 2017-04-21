@@ -133,7 +133,6 @@ public class RealCallTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testEnqueueAndWaitBlocksUntilResponse() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
         Connection connection = createDummyConnection(endpoint, MOCK_EMPTY_ARRAY_RESPONSE);
@@ -156,7 +155,6 @@ public class RealCallTest {
         final Connection connection = createDummyConnection(Endpoint.DEFAULT, MOCK_EMPTY_ARRAY_RESPONSE);
         mockConnection(connection);
 
-        @SuppressWarnings("unchecked")
         final RealCall call = getMockRealCall(request, realExecutor);
 
         doAnswer(new Answer() {
@@ -183,25 +181,23 @@ public class RealCallTest {
         Request request = RequestUtils.getUserInfoRequest(endpoint);
         mockConnection(connection);
 
-        final RealCall call = getMockRealCall(request, realExecutor);
+        final RealCall call = getMockRealCall(request, executor);
 
         Callback callback = mock(Callback.class);
-        doAnswer(new Answer<Object>() {
+        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
-                Response response = (Response) args[0];
-
-                BytesReader reader = (BytesReader) response.responseBody().reader();
-                reader.beginObject();
-                response.responseBody().close();
-                verify(connectionProvider).recycleConnection(connection);
-                return null;
+                Runnable runnable = (Runnable) args[0];
+                runnable.run();
+                return new FutureTask<Void>(runnable, null);
             }
-        }).when(callback).onResponse(any(Call.class), any(Response.class));
+        });
 
         call.enqueue(callback);
 
+        verify(callback).onResponse(eq(call), any(Response.class));
+        verify(callback, never()).onFailure(eq(call), any(IOException.class));
     }
 
     @Test
@@ -212,20 +208,24 @@ public class RealCallTest {
 
         mockConnection(connection);
 
-        final RealCall call = getMockRealCall(request, realExecutor);
+        final RealCall call = getMockRealCall(request, executor);
+
 
         Callback callback = mock(Callback.class);
-        doAnswer(new Answer<Object>() {
+        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
-                verify(connectionProvider, never()).recycleConnection(connection);
-                verify(connection).close();
-                return null;
+                Object[] args = invocation.getArguments();
+                Runnable runnable = (Runnable) args[0];
+                runnable.run();
+                return new FutureTask<Void>(runnable, null);
             }
-        }).when(callback).onFailure(any(Call.class), any(IOException.class));
+        });
 
         call.enqueue(callback);
 
+        verify(callback).onFailure(eq(call), any(IOException.class));
+        verify(callback, never()).onResponse(eq(call), any(Response.class));
     }
 
     @Test
