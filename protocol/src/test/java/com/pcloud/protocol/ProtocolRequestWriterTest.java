@@ -78,7 +78,7 @@ public class ProtocolRequestWriterTest {
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
                 .writeMethodName(null)
-                .writeName(null, TypeToken.BOOLEAN);
+                .writeName(null);
     }
 
     @Test
@@ -111,9 +111,9 @@ public class ProtocolRequestWriterTest {
     public void name() throws Exception {
         writer.beginRequest()
                 .writeMethodName("command")
-                .writeName("key", TypeToken.NUMBER).writeValue(1)
-                .writeName("value", TypeToken.BOOLEAN).writeValue(true)
-                .writeName("param", TypeToken.STRING).writeValue("something")
+                .writeName("key").writeValue(1)
+                .writeName("value").writeValue(true)
+                .writeName("param").writeValue("something")
                 .writeData(null)
                 .endRequest()
                 .flush();
