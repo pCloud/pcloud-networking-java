@@ -37,7 +37,7 @@ public class DataApiResponse extends ApiResponse implements Closeable{
      * <b>NOTE:</b> Should be called only once per instance.
      * @param data data object to be injected, can be null.
      */
-    void setResponseData(ResponseData data){
+    final void setResponseData(ResponseData data){
         synchronized (this) {
             if (this.responseData != null) {
                 throw new AssertionError("ResponseData already set to instance.");
