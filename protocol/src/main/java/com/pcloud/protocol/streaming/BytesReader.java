@@ -370,8 +370,9 @@ public class BytesReader implements ProtocolResponseReader {
             // Number, it may be a 1-8 byte long integer or an index for
             // number types with compression optimization
             return NUMBER;
-        } else if (type >= TYPE_STRING_START && type <= TYPE_STRING_END ||
-                type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
+        } else if ((type >= TYPE_STRING_START && type <= TYPE_STRING_END)
+                || (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END)
+                || (type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END)) {
             // Number, it may be a 1-8 byte long integer or an index for
             // number types with compression optimization
             return STRING;
