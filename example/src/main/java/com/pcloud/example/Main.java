@@ -45,7 +45,7 @@ public class Main {
 
 
         RequestInterceptor dateFormatInterceptor = (request, writer) -> {
-                writer.writeName("timeformat", TypeToken.STRING).writeValue("timestamp");
+                writer.writeName("timeformat").writeValue("timestamp");
             };
 
         PCloudAPIClient client = PCloudAPIClient.newClient()
@@ -54,9 +54,9 @@ public class Main {
         try {
             String token = getAuthToken(client, transformer, username, password);
             client = client.newBuilder().addInterceptor((request, writer) -> {
-                writer.writeName("auth", TypeToken.STRING).writeValue(token);
+                writer.writeName("auth").writeValue(token);
             }).create();
-            //pullDiffs(transformer, client, token);
+            pullDiffs(transformer, client, token);
             //getMultiThumb(client, token, 2516863197L);
             getChecksums(client,
                     2516863197L, 2516863303L,

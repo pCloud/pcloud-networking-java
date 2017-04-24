@@ -16,26 +16,19 @@
 
 package com.pcloud.networking;
 
-import com.pcloud.protocol.streaming.TypeToken;
-
 import java.lang.reflect.Type;
 
 class Util {
 
-    static TypeToken getParameterType(Type type) {
-        if (type == Long.class || type == long.class ||
+    static boolean typeIsSerializable(Type type) {
+        return type == Long.class || type == long.class ||
                 type == Integer.class || type == int.class ||
                 type == Short.class || type == short.class ||
                 type == Byte.class || type == byte.class ||
                 type == Double.class || type == double.class ||
-                type == Float.class || type == float.class) {
-            return TypeToken.NUMBER;
-        } else if (type == String.class || Types.getRawType(type).isEnum()) {
-            return TypeToken.STRING;
-        } else if (type == Boolean.class || type == boolean.class) {
-            return TypeToken.BOOLEAN;
-        }
-
-        return null;
+                type == Float.class || type == float.class ||
+                type == String.class || Types.getRawType(type).isEnum() ||
+                type == Boolean.class || type == boolean.class;
     }
+
 }
