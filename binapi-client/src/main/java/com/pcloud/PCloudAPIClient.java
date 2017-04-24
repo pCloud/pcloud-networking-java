@@ -247,8 +247,9 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public void callExecutor(ExecutorService executorService) {
+        public Builder callExecutor(ExecutorService executorService) {
             this.callExecutor = executorService;
+            return this;
         }
 
         public PCloudAPIClient create() {
