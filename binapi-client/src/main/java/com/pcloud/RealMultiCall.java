@@ -244,7 +244,7 @@ class RealMultiCall implements MultiCall {
             request.body().writeТо(writer);
 
             // Add the key at the end to avoid overwriting.
-            writer.writeName("id", TypeToken.NUMBER).writeValue(requestKey);
+            writer.writeName("id").writeValue(requestKey);
             writer.endRequest();
             writer.flush();
             requestKey++;
