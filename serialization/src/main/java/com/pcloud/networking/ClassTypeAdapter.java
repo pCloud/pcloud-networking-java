@@ -90,11 +90,13 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         final String name;
         final Field field;
         final TypeAdapter<T> adapter;
+        final boolean serializationAllowed;
 
-        Binding(String name, Field field, TypeAdapter<T> adapter) {
+        Binding(String name, Field field, TypeAdapter<T> adapter, boolean serializationAllowed) {
             this.name = name;
             this.field = field;
             this.adapter = adapter;
+            this.serializationAllowed = serializationAllowed;
         }
 
         void read(ProtocolReader reader, Object value) throws IOException, IllegalAccessException {
@@ -111,6 +113,10 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         @SuppressWarnings("unchecked")
             //Field's values are of type T.
         void write(ProtocolWriter writer, Object value) throws IllegalAccessException, IOException {
+            if (!serializationAllowed) {
+                throw new SerializationException("Cannot serialize object fields of type '%s'.", field.getType());
+            }
+
             writer.writeName(name);
             T fieldValue = (T) field.get(value);
             adapter.serialize(writer, fieldValue);
