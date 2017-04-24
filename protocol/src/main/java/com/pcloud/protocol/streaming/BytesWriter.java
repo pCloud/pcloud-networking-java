@@ -112,14 +112,13 @@ public class BytesWriter implements ProtocolRequestWriter {
         if (hasData) {
             methodNameLength = methodNameLength | (1 << REQUEST_BINARY_DATA_FLAG_POSITION);
         }
-
         metadataBuffer.writeByte(methodNameLength);
-        metadataBuffer.writeUtf8(methodName);
 
         if (hasData) {
             metadataBuffer.writeLongLe(dataSourceLength);
         }
 
+        metadataBuffer.writeUtf8(methodName);
         metadataBuffer.writeByte(parameterCount);
 
         final long requestSize = metadataBuffer.size() + paramsBuffer.size();

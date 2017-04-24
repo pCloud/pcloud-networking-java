@@ -104,7 +104,7 @@ abstract class ApiMethod<T> {
                         }
 
                         hasDataParameter = true;
-                        resolvedAdapter = ArgumentAdapters.dataSource();
+                        resolvedAdapter = ArgumentAdapters.dataSource(parameterType);
                     }
                 }
 

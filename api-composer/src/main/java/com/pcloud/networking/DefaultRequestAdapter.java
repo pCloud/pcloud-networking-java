@@ -30,13 +30,17 @@ class DefaultRequestAdapter implements RequestAdapter{
     }
 
     @Override
-    public void adapt(final Request.Builder requestBuilder, final Object... args) {
+    public void adapt(final Request.Builder requestBuilder, final Object... args)  throws IOException{
+
+        for (int index = 0; index < args.length; index++) {
+            argumentAdapters[index].adapt(requestBuilder, args[index]);
+        }
+
         requestBuilder.body(new com.pcloud.RequestBody() {
-            @SuppressWarnings("unchecked")
             @Override
             public void writeТо(ProtocolWriter writer) throws IOException {
                 for (int index = 0; index < args.length; index++) {
-                    argumentAdapters[index].adapt(requestBuilder, writer, args[index]);
+                    argumentAdapters[index].adapt(writer, args[index]);
                 }
             }
         });
