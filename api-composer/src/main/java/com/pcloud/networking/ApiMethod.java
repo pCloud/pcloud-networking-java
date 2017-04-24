@@ -95,8 +95,16 @@ abstract class ApiMethod<T> {
                             throw apiMethodError(method, "@Parameter-annotated methods cannot have an " +
                                     "empty parameter name.");
                         }
+
+                        if (!parameterAnnotatedTypeIsSerializable(parameterType)) {
+                            throw new IllegalArgumentException("Cannot create adapt method argument of type '"
+                                    + parameterType + "'," +
+                                    " @Parameter-annotated arguments must be of type long, int, short, byte, boolean " +
+                                    "or boxed equivalents, String or an enum.");
+                        }
+
                         TypeAdapter<?> typeAdapter = getTypeAdapter(composer, method, parameterType);
-                        resolvedAdapter = ArgumentAdapters.parameter(name, typeAdapter, parameterType);
+                        resolvedAdapter = ArgumentAdapters.parameter(name, typeAdapter);
                     } else if (annotationType == RequestData.class) {
                         if (hasDataParameter) {
                             throw apiMethodError(method, "API method cannot have more than one " +
@@ -146,6 +154,17 @@ abstract class ApiMethod<T> {
 
         protected static RuntimeException apiMethodError(Method method, String message, Object... args) {
             return apiMethodError(method, null, message, args);
+        }
+
+        static boolean parameterAnnotatedTypeIsSerializable(Type type) {
+            return type == Long.class || type == long.class ||
+                    type == Integer.class || type == int.class ||
+                    type == Short.class || type == short.class ||
+                    type == Byte.class || type == byte.class ||
+                    type == Double.class || type == double.class ||
+                    type == Float.class || type == float.class ||
+                    type == String.class || Types.getRawType(type).isEnum() ||
+                    type == Boolean.class || type == boolean.class;
         }
     }
 }

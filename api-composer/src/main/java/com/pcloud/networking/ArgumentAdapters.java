@@ -36,9 +36,9 @@ class ArgumentAdapters {
         }
     }
 
-    private static abstract class BuilderArgumentAdapter<T> implements ArgumentAdapter<T>{
+    private static abstract class BuilderArgumentAdapter<T> implements ArgumentAdapter<T> {
 
-        public void adapt(ProtocolWriter writer, T argValue) throws IOException{
+        public void adapt(ProtocolWriter writer, T argValue) throws IOException {
             //Empty
         }
     }
@@ -47,19 +47,12 @@ class ArgumentAdapters {
 
     }
 
-    static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter, Type parameterType) {
-
-        final TypeToken typeToken = Util.getParameterType(parameterType);
-
-        if (typeToken == null) {
-            throw new IllegalArgumentException("Cannot create adapter for parameter of type '" + parameterType + "'.");
-        }
-
+    static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter) {
         return new BodyWritingArgumentAdapter<T>() {
 
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
-                writer.writeName(name, typeToken);
+                writer.writeName(name);
                 adapter.serialize(writer, argValue);
             }
         };
