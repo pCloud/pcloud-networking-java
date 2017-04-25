@@ -146,13 +146,14 @@ public class Main {
         values.put("fileid", fileId);
         values.put("size", "128x128");
 
+        Request request =  Request.create()
+                .body(RequestBody.fromValues(values))
+                .methodName("getthumb")
+                .build();
+
         Response response = null;
         try {
-            response = cloudAPIClient.newCall(
-                    Request.create()
-                            .body(RequestBody.fromValues(values))
-                            .methodName("getthumb")
-                            .build())
+            response = cloudAPIClient.newCall(request)
                     .enqueueAndWait();
 
             Map<String, ?> responseValues = response.responseBody().toValues();

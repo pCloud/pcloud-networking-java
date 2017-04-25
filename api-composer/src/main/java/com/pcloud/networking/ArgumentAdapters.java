@@ -52,7 +52,12 @@ class ArgumentAdapters {
 
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
+
+                if(argValue == null) {
+                    throw new IllegalArgumentException("The parameter cannot be null");
+                }
                 writer.writeName(name);
+
                 adapter.serialize(writer, argValue);
             }
         };
@@ -62,6 +67,9 @@ class ArgumentAdapters {
         return new BodyWritingArgumentAdapter<T>() {
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
+                if(argValue == null) {
+                    throw new IllegalArgumentException("The RequestBody cannot be null");
+                }
                 adapter.serialize(writer, argValue);
             }
         };
