@@ -22,12 +22,12 @@ import java.util.Map;
 /**
  * Created by Dimitard 20.4.2017 г..
  */
-public class RequestUtils {
+class RequestUtils {
 
     private static final String MOCK_USERNAME = "mockuser@qa.mobileinno.com";
     private static final String MOCK_PASSWORD = "mockpass";
 
-    public static Request getUserInfoRequest(Endpoint endpoint) {
+    static Request getUserInfoRequest(Endpoint endpoint) {
         Map<String, Object> values = new HashMap<>();
         values.put("getauth", 1);
         values.put("username", MOCK_USERNAME);

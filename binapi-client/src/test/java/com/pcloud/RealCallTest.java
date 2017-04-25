@@ -142,7 +142,7 @@ public class RealCallTest {
         final RealCall call = getMockRealCall(request, realExecutor);
 
         Response response = call.enqueueAndWait();
-        ResponseUtils.readResponse((BytesReader)response.responseBody().reader());
+        readResponse((BytesReader)response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).obtainConnection(endpoint);
@@ -258,7 +258,7 @@ public class RealCallTest {
 
         Response response = call.execute();
 
-        ResponseUtils.readResponse((BytesReader)response.responseBody().reader());
+        readResponse((BytesReader)response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).recycleConnection(connection);
@@ -282,6 +282,7 @@ public class RealCallTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testConnectionCloseAfterExceptionDuringRequestWriting() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
         Request request = RequestUtils.getUserInfoRequest(endpoint);
@@ -301,6 +302,7 @@ public class RealCallTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testConnectionCloseAfterExceptionDuringResponseRead() throws Exception {
         Endpoint endpoint = new Endpoint(MOCK_HOST, MOCK_PORT);
         Request request = RequestUtils.getUserInfoRequest(endpoint);
@@ -317,6 +319,14 @@ public class RealCallTest {
             verify(connectionProvider).obtainConnection(endpoint);
             verify(connection).close();
         }
+    }
+
+    public void readResponse(BytesReader reader) throws IOException {
+        reader.beginObject();
+        while(reader.hasNext()) {
+            reader.skipValue();
+        }
+        reader.endObject();
     }
 
     private void mockConnection(Connection connection) throws IOException {
