@@ -23,7 +23,7 @@ import java.lang.reflect.Type;
 
 public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
 
-    ProtocolWriter writeName(String name, TypeToken type) throws IOException;
+    ProtocolWriter writeName(String name) throws IOException;
 
     ProtocolWriter writeValue(Object value) throws IOException;
 

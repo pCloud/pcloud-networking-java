@@ -35,7 +35,7 @@ public class Main {
                 .addInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                        writer.writeName("timeformat", TypeToken.STRING).writeValue("timestamp");
+                        writer.writeName("timeformat").writeValue("timestamp");
                     }
                 })
                 .create();

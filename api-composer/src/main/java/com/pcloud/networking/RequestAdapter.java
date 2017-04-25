@@ -18,6 +18,7 @@ package com.pcloud.networking;
 
 import com.pcloud.Request;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 
@@ -28,5 +29,5 @@ public interface RequestAdapter {
         RequestAdapter create(ApiComposer composer, java.lang.reflect.Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
     }
 
-    void adapt(Request.Builder builder, Object... args);
+    void adapt(Request.Builder builder, Object... args) throws IOException;
 }

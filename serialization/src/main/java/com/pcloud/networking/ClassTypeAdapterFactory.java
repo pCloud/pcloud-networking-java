@@ -16,8 +16,6 @@
 
 package com.pcloud.networking;
 
-import com.pcloud.protocol.streaming.TypeToken;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
@@ -78,7 +76,7 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
-            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, Util.getParameterType(field.getType()));
+            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, fieldTypeIsSerializable(fieldType));
             ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n"
@@ -109,5 +107,16 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     private boolean includeField(boolean platformType, int modifiers) {
         if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) return false;
         return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || !platformType;
+    }
+
+    static boolean fieldTypeIsSerializable(Type type) {
+        return type == Long.class || type == long.class ||
+                type == Integer.class || type == int.class ||
+                type == Short.class || type == short.class ||
+                type == Byte.class || type == byte.class ||
+                type == Double.class || type == double.class ||
+                type == Float.class || type == float.class ||
+                type == String.class || Types.getRawType(type).isEnum() ||
+                type == Boolean.class || type == boolean.class;
     }
 }

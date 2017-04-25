@@ -22,5 +22,8 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import java.io.IOException;
 
 interface ArgumentAdapter<T> {
-    void adapt(Request.Builder builder, ProtocolWriter writer, T argValue) throws IOException;
+
+    void adapt(Request.Builder builder, T argValue) throws IOException;
+
+    void adapt(ProtocolWriter writer, T argValue) throws IOException;
 }

@@ -215,11 +215,12 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public void connectionPool(ConnectionPool connectionPool) {
+        public Builder connectionPool(ConnectionPool connectionPool) {
             if (connectionPool == null) {
                 throw new IllegalArgumentException("ConnectionPool cannot be null.");
             }
             this.connectionPool = connectionPool;
+            return this;
         }
 
         public Builder setSocketFactory(SocketFactory socketFactory) {
@@ -246,8 +247,9 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public void callExecutor(ExecutorService executorService) {
+        public Builder callExecutor(ExecutorService executorService) {
             this.callExecutor = executorService;
+            return this;
         }
 
         public PCloudAPIClient create() {

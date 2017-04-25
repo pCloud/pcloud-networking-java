@@ -27,7 +27,7 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
 
     ProtocolRequestWriter writeMethodName(String name) throws IOException;
 
-    ProtocolRequestWriter writeName(String name, TypeToken type) throws IOException;
+    ProtocolRequestWriter writeName(String name) throws IOException;
 
     ProtocolRequestWriter writeValue(Object value) throws IOException;
 

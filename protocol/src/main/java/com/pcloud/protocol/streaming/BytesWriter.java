@@ -36,7 +36,6 @@ public class BytesWriter implements ProtocolRequestWriter {
     private static final int REQUEST_PARAM_TYPE_STRING = 0;
     private static final int REQUEST_PARAM_TYPE_NUMBER = 1;
     private static final int REQUEST_PARAM_TYPE_BOOLEAN = 2;
-    private static final int REQUEST_PARAM_TYPE_UNKNOWN = -1;
 
     private static final int REQUEST_PARAM_COUNT_LIMIT = 255;
     private static final int REQUEST_PARAM_NAME_LENGTH_LIMIT = 63;
@@ -51,7 +50,6 @@ public class BytesWriter implements ProtocolRequestWriter {
     private boolean requestStarted;
     private int parameterCount;
 
-    private int nextValueType = REQUEST_PARAM_TYPE_UNKNOWN;
     private String nextValueName;
 
     public BytesWriter(BufferedSink sink) {
@@ -75,6 +73,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     @Override
     public ProtocolRequestWriter writeMethodName(String name) throws IOException {
         checkRequestStarted();
+        checkWriteValueFinished();
         if (name == null) {
             throw new IllegalArgumentException("'name' argument cannot be null.");
         }
@@ -88,12 +87,12 @@ public class BytesWriter implements ProtocolRequestWriter {
     @Override
     public ProtocolRequestWriter endRequest() throws IOException {
         checkRequestStarted();
+        checkWriteValueFinished();
 
         if (methodName == null) {
             throw new IllegalArgumentException("Cannot end request, writeMethodName() has not been called.");
         }
 
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_UNKNOWN);
 
         Buffer metadataBuffer = new Buffer();
 
@@ -112,14 +111,13 @@ public class BytesWriter implements ProtocolRequestWriter {
         if (hasData) {
             methodNameLength = methodNameLength | (1 << REQUEST_BINARY_DATA_FLAG_POSITION);
         }
-
         metadataBuffer.writeByte(methodNameLength);
-        metadataBuffer.writeUtf8(methodName);
 
         if (hasData) {
             metadataBuffer.writeLongLe(dataSourceLength);
         }
 
+        metadataBuffer.writeUtf8(methodName);
         metadataBuffer.writeByte(parameterCount);
 
         final long requestSize = metadataBuffer.size() + paramsBuffer.size();
@@ -141,6 +139,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     @Override
     public ProtocolRequestWriter writeData(DataSource source) throws IOException {
         checkRequestStarted();
+        checkWriteValueFinished();
         if (dataSource != null) {
             throw new IllegalStateException("data() already called for current request.");
         }
@@ -154,14 +153,15 @@ public class BytesWriter implements ProtocolRequestWriter {
     }
 
     @Override
-    public ProtocolRequestWriter writeName(String name, TypeToken typeToken) throws IOException {
+    public ProtocolRequestWriter writeName(String name) throws IOException {
         checkRequestStarted();
+        checkWriteValueFinished();
 
         if (name == null) {
             throw new IllegalArgumentException("Name parameter cannot be null.");
         }
 
-        if (nextValueType != REQUEST_PARAM_TYPE_UNKNOWN) {
+        if (nextValueName != null) {
             throw new IllegalStateException("A previous writeName() was not matched with a writeValue() call.");
         }
 
@@ -169,38 +169,21 @@ public class BytesWriter implements ProtocolRequestWriter {
             throw new SerializationException("Request parameter count limit reached.");
         }
 
-        final int type;
-        switch (typeToken) {
-            case NUMBER:
-                type = REQUEST_PARAM_TYPE_NUMBER;
-                break;
-            case STRING:
-                type = REQUEST_PARAM_TYPE_STRING;
-                break;
-            case BOOLEAN:
-                type = REQUEST_PARAM_TYPE_BOOLEAN;
-                break;
-            default:
-                throw new IllegalArgumentException("TypeToken must be one of: " + EnumSet.of(TypeToken.NUMBER, TypeToken.STRING, TypeToken.BOOLEAN));
-        }
-
         nextValueName = name;
-        nextValueType = type;
         parameterCount++;
         return this;
     }
 
-    private void writeNextValueTypeAndName() throws SerializationException {
+    private void writeNextValueTypeAndName(int type) throws SerializationException {
         int parameterNameLength = (int) Utf8.size(nextValueName);
         if (parameterNameLength > REQUEST_PARAM_NAME_LENGTH_LIMIT) {
-            throw new SerializationException("Parameter '" + nextValueName + "' is too long, should be no more than 63 characters.");
+            throw new SerializationException("Parameter name '%s' is too long.", nextValueName);
         }
 
-        int encodedParamData = parameterNameLength | (nextValueType << 6);
+        int encodedParamData = parameterNameLength | (type << 6);
         paramsBuffer.writeByte(encodedParamData);
         paramsBuffer.writeUtf8(nextValueName);
         nextValueName = null;
-        nextValueType = REQUEST_PARAM_TYPE_UNKNOWN;
     }
 
     @Override
@@ -234,12 +217,11 @@ public class BytesWriter implements ProtocolRequestWriter {
 
     @Override
     public ProtocolRequestWriter writeValue(String value) throws IOException {
-        checkRequestStarted();
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_STRING);
+        checkWriteNameCalled();
         if (value == null) {
             throw new IllegalArgumentException("Value argument cannot be null");
         }
-        writeNextValueTypeAndName();
+        writeNextValueTypeAndName(REQUEST_PARAM_TYPE_STRING);
         writeString(value);
 
         return this;
@@ -252,14 +234,12 @@ public class BytesWriter implements ProtocolRequestWriter {
 
     @Override
     public ProtocolRequestWriter writeValue(long value) throws IOException {
-        checkRequestStarted();
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
+        checkWriteNameCalled();
         if (value < 0) {
-            nextValueType = REQUEST_PARAM_TYPE_STRING;
-            writeNextValueTypeAndName();
+            writeNextValueTypeAndName(REQUEST_PARAM_TYPE_STRING);
             writeString(String.valueOf(value));
         } else {
-            writeNextValueTypeAndName();
+            writeNextValueTypeAndName(REQUEST_PARAM_TYPE_NUMBER);
             paramsBuffer.writeLongLe(value);
         }
 
@@ -268,29 +248,24 @@ public class BytesWriter implements ProtocolRequestWriter {
 
     @Override
     public ProtocolRequestWriter writeValue(boolean value) throws IOException {
-        checkRequestStarted();
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_BOOLEAN);
-        writeNextValueTypeAndName();
+        checkWriteNameCalled();
+        writeNextValueTypeAndName(REQUEST_PARAM_TYPE_BOOLEAN);
         paramsBuffer.writeByte(value ? 1 : 0);
         return this;
     }
 
     @Override
     public ProtocolRequestWriter writeValue(double value) throws IOException {
-        checkRequestStarted();
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
-        nextValueType = REQUEST_PARAM_TYPE_STRING;
-        writeNextValueTypeAndName();
+        checkWriteNameCalled();
+        writeNextValueTypeAndName(REQUEST_PARAM_TYPE_STRING);
         writeString(String.valueOf(value));
         return this;
     }
 
     @Override
     public ProtocolRequestWriter writeValue(float value) throws IOException {
-        checkRequestStarted();
-        checkNextValueTypeMatches(REQUEST_PARAM_TYPE_NUMBER);
-        nextValueType = REQUEST_PARAM_TYPE_STRING;
-        writeNextValueTypeAndName();
+        checkWriteNameCalled();
+        writeNextValueTypeAndName(REQUEST_PARAM_TYPE_STRING);
         writeString(String.valueOf(value));
         return this;
     }
@@ -313,26 +288,15 @@ public class BytesWriter implements ProtocolRequestWriter {
         }
     }
 
-    private void checkNextValueTypeMatches(int actualType) {
-        if (nextValueType != actualType) {
-            if (nextValueType == REQUEST_PARAM_TYPE_UNKNOWN) {
-                throw new IllegalStateException("Call writeName() before calling this method.");
-            }
-
-            throw new IllegalStateException("Expected one of the following methods: " + typeToWriteValueMethods(nextValueType));
+    private void checkWriteValueFinished(){
+        if (nextValueName != null) {
+            throw new IllegalStateException("Expected a call to one of the writeValue() methods.");
         }
     }
 
-    private Collection<String> typeToWriteValueMethods(int type) {
-        switch (type) {
-            case REQUEST_PARAM_TYPE_NUMBER:
-                return Arrays.asList("writeValue(int)", "writeValue(Integer)");
-            case REQUEST_PARAM_TYPE_BOOLEAN:
-                return Arrays.asList("writeValue(boolean)", "writeValue(Boolean)");
-            case REQUEST_PARAM_TYPE_STRING:
-                return Collections.singletonList("writeValue(String)");
-            default:
-                throw new AssertionError();
+    private void checkWriteNameCalled(){
+        if (nextValueName == null) {
+            throw new IllegalStateException("Call writeName() before calling this method.");
         }
     }
 }

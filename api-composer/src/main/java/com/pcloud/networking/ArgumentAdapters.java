@@ -28,62 +28,78 @@ import java.lang.reflect.Type;
 
 class ArgumentAdapters {
 
+    private static abstract class BodyWritingArgumentAdapter<T> implements ArgumentAdapter<T> {
+
+        @Override
+        public void adapt(Request.Builder builder, T argValue) throws IOException {
+            //Empty
+        }
+    }
+
+    private static abstract class BuilderArgumentAdapter<T> implements ArgumentAdapter<T> {
+
+        public void adapt(ProtocolWriter writer, T argValue) throws IOException {
+            //Empty
+        }
+    }
+
     private ArgumentAdapters() {
 
     }
 
-    static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter, Type parameterType) {
-
-        final TypeToken typeToken = Util.getParameterType(parameterType);
-
-        if (typeToken == null) {
-            throw new IllegalArgumentException("Cannot create adapter for parameter of type '" + parameterType + "'.");
-        }
-
-        return new ArgumentAdapter<T>() {
+    static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter) {
+        return new BodyWritingArgumentAdapter<T>() {
 
             @Override
-            public void adapt(Request.Builder requestBuilder, ProtocolWriter writer, T argValue) throws IOException {
-                writer.writeName(name, typeToken);
+            public void adapt(ProtocolWriter writer, T argValue) throws IOException {
+                writer.writeName(name);
                 adapter.serialize(writer, argValue);
             }
         };
     }
 
     static <T> ArgumentAdapter<T> requestBody(final TypeAdapter<T> adapter) {
-        return new ArgumentAdapter<T>() {
+        return new BodyWritingArgumentAdapter<T>() {
             @Override
-            public void adapt(Request.Builder requestBuilder, ProtocolWriter writer, T argValue) throws IOException {
+            public void adapt(ProtocolWriter writer, T argValue) throws IOException {
                 adapter.serialize(writer, argValue);
             }
         };
     }
 
-    static <T> ArgumentAdapter<T> dataSource() {
+    static <T> ArgumentAdapter<T> dataSource(Type dataSourceType) {
 
-        return new ArgumentAdapter<T>() {
-            @Override
-            public void adapt(Request.Builder builder, ProtocolWriter writer, T argValue) throws IOException {
-                if (argValue == null) {
-                    throw new IllegalArgumentException("Method arguments annotated with @RequestData cannot be null.");
+        final Class<?> argType = Types.getRawType(dataSourceType);
+        if (DataSource.class.isAssignableFrom(argType)) {
+            return new BuilderArgumentAdapter<T>() {
+                @Override
+                public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    builder.dataSource((DataSource) argValue);
                 }
-
-                DataSource dataSource;
-                Class<?> argType = argValue.getClass();
-                if (DataSource.class.isAssignableFrom(argType)) {
-                    dataSource = (DataSource) argValue;
-                } else if (File.class.isAssignableFrom(argType)) {
-                    dataSource = DataSource.create((File) argValue);
-                } else if (ByteString.class.isAssignableFrom(argType)) {
-                    dataSource = DataSource.create((ByteString) argValue);
-                } else if (byte[].class == argType) {
-                    dataSource = DataSource.create((byte[]) argValue);
-                } else {
-                    throw new IllegalStateException("Cannot convert argument of type '" + argType + "' to DataSource.");
+            };
+        } else if (File.class.isAssignableFrom(argType)) {
+            return new BuilderArgumentAdapter<T>() {
+                @Override
+                public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    builder.dataSource(DataSource.create((File) argValue));
                 }
-
-                builder.dataSource(dataSource);
-            }
-        };
+            };
+        } else if (ByteString.class.isAssignableFrom(argType)) {
+            return new BuilderArgumentAdapter<T>() {
+                @Override
+                public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    builder.dataSource(DataSource.create((ByteString) argValue));
+                }
+            };
+        } else if (byte[].class == argType) {
+            return new BuilderArgumentAdapter<T>() {
+                @Override
+                public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    builder.dataSource(DataSource.create((byte[]) argValue));
+                }
+            };
+        } else {
+            throw new IllegalStateException("Cannot convert argument of type '" + argType + "' to DataSource.");
+        }
     }
 }

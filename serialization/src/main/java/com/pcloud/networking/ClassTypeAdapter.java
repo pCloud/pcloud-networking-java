@@ -90,13 +90,13 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         final String name;
         final Field field;
         final TypeAdapter<T> adapter;
-        final TypeToken fieldParameterType;
+        final boolean serializationAllowed;
 
-        Binding(String name, Field field, TypeAdapter<T> adapter, TypeToken fieldParameterType) {
+        Binding(String name, Field field, TypeAdapter<T> adapter, boolean serializationAllowed) {
             this.name = name;
             this.field = field;
             this.adapter = adapter;
-            this.fieldParameterType = fieldParameterType;
+            this.serializationAllowed = serializationAllowed;
         }
 
         void read(ProtocolReader reader, Object value) throws IOException, IllegalAccessException {
@@ -105,19 +105,21 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
                 field.set(value, fieldValue);
             } catch (SerializationException e) {
                 throw new SerializationException("Cannot deserialize field '"
-                        + field.getDeclaringClass().getName() + "."+field.getName()+"'" +
-                        " of type '"+field.getType().getName()+"'.", e);
+                        + field.getDeclaringClass().getName() + "." + field.getName() + "'" +
+                        " of type '" + field.getType().getName() + "'.", e);
             }
         }
 
         @SuppressWarnings("unchecked")
-            // We require that field's values are of type T.
+            //Field's values are of type T.
         void write(ProtocolWriter writer, Object value) throws IllegalAccessException, IOException {
-            if (fieldParameterType != null) {
-                writer.writeName(name, fieldParameterType);
-                T fieldValue = (T) field.get(value);
-                adapter.serialize(writer, fieldValue);
+            if (!serializationAllowed) {
+                throw new SerializationException("Cannot serialize object fields of type '%s'.", field.getType());
             }
+
+            writer.writeName(name);
+            T fieldValue = (T) field.get(value);
+            adapter.serialize(writer, fieldValue);
         }
     }
 }
