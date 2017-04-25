@@ -44,8 +44,8 @@ public class Transformer {
         typeToAdapterMap = new LinkedHashMap<>();
         pendingAdapterRef = new ThreadLocal<>();
         adapterFactories = new ArrayList<>();
-        adapterFactories.addAll(DEFAULT_FACTORIES);
         adapterFactories.addAll(builder.factories);
+        adapterFactories.addAll(DEFAULT_FACTORIES);
     }
 
     public <T> TypeAdapter<T> getTypeAdapter(Class<T> type) {
