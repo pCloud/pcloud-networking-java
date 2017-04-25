@@ -98,7 +98,7 @@ public class BytesWriter implements ProtocolRequestWriter {
 
         int methodNameLength = (int) Utf8.size(methodName);
         if (methodNameLength > 127) {
-            throw new SerializationException("Method name cannot be longer than 127 characters.");
+            throw new SerializationException("Method name cannot be larger than 127 bytes.");
         }
 
         final long dataSourceLength = dataSource != null ? dataSource.contentLength() : 0;
