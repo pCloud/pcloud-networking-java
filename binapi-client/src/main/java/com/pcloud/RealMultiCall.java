@@ -261,10 +261,9 @@ class RealMultiCall implements MultiCall {
 
     private int readNextResponse(final Connection connection, Map<Integer, Response> responseMap) throws IOException {
 
-        BufferedSource responseSource = connection.source();
-        final long responseLength = IOUtils.peekNumberLe(responseSource, 4);
+        final long responseLength = IOUtils.peekNumberLe(connection.source(), 4);
         final Buffer responseBuffer = new Buffer();
-        responseSource.read(responseBuffer, responseLength + 4);
+        connection.source().read(responseBuffer, responseLength + 4);
 
         final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
 

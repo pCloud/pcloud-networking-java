@@ -16,6 +16,7 @@
 
 package com.pcloud;
 
+import okio.Buffer;
 import okio.BufferedSource;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.AfterClass;
@@ -220,9 +221,10 @@ public class RealMultiCallTest {
     @SuppressWarnings("unchecked")
     public void testSuccessfulEnqueueReportsFailuresToTheCallback() throws Exception {
         List<Request> requestList = getMockRequestList(Endpoint.DEFAULT, 3);
-        final Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(requestList.size()));
-        BufferedSource connectionSource = connection.source();
-        when(connection.source()).thenReturn(connectionSource).thenThrow(IOException.class);
+        byte[] responseData = getMockByteDataResponse(requestList.size());
+        responseData[EMPTY_ARRAY_RESPONSE_LENGTH + 1] = -1;
+
+        final Connection connection = createDummyConnection(Endpoint.DEFAULT, responseData);
         mockConnection(connection);
 
         final RealMultiCall call = getMockRealMultiCall(requestList, executor);
