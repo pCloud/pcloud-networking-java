@@ -17,6 +17,7 @@
 package com.pcloud.protocol.streaming;
 
 import okio.Buffer;
+import okio.BufferedSource;
 import okio.ForwardingSource;
 
 import java.io.IOException;
@@ -26,10 +27,10 @@ class PeekingSource extends ForwardingSource {
     private Buffer source;
     private long offset;
 
-    PeekingSource(Buffer delegate, long offset) {
+    PeekingSource(BufferedSource delegate, long offset) {
         super(delegate);
         this.offset = offset;
-        this.source = delegate;
+        this.source = delegate.buffer();
     }
 
     @Override

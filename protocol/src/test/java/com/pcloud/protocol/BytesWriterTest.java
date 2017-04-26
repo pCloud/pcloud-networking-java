@@ -27,34 +27,38 @@ package com.pcloud.protocol;
 import com.pcloud.protocol.streaming.BytesWriter;
 import com.pcloud.protocol.streaming.ProtocolRequestWriter;
 import com.pcloud.protocol.streaming.SerializationException;
-import com.pcloud.protocol.streaming.TypeToken;
+
 import okio.Buffer;
 import okio.BufferedSink;
+import okio.ByteString;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import static org.junit.Assert.assertArrayEquals;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import static org.mockito.Matchers.any;
+
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
-public class ProtocolRequestWriterTest {
+public class BytesWriterTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
 
     private ProtocolRequestWriter writer;
     private BufferedSink dataSink;
+    private BufferedSink buffer;
 
     @Before
     public void setUp() {
-        dataSink = spy(BufferedSink.class);
+        buffer = new Buffer();
+        dataSink = spy(new DummyBufferedSink(buffer));
         writer = new BytesWriter(dataSink);
     }
 
@@ -229,13 +233,7 @@ public class ProtocolRequestWriterTest {
     @Test
     public void writeData_Throws_If_Called_Twice() throws Exception {
 
-        DataSource source = new DataSource() {
-            @Override
-            public void writeTo(BufferedSink sink) throws IOException {
-                sink.writeByte(123);
-                sink.writeByte(123);
-            }
-        };
+        DataSource source =  DataSource.create(ByteString.encodeUtf8("abc"));
         exception.expect(IllegalStateException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -263,20 +261,53 @@ public class ProtocolRequestWriterTest {
                 .writeName("somename")
                 .writeValue("somevalue")
                 .endRequest();
-        verify(dataSink, times(2)).write(any(Buffer.class),any(Long.class));
+        verify(dataSink, times(2)).write(any(Buffer.class), any(Long.class));
         verify(dataSink).writeShortLe(any(Integer.class));
     }
 
 
     @Test
-    public void name() throws Exception {
+    public void bytes_In_Data_Sink_Test_With_All_Possible_Values_And_No_Data() throws Exception {
         writer.beginRequest()
-                .writeMethodName("command")
-                .writeName("key").writeValue(1)
-                .writeName("value").writeValue(true)
-                .writeName("param").writeValue("something")
-                .writeData(null)
-                .endRequest()
-                .flush();
+                .writeMethodName("somemethod")
+                .writeName("long").writeValue(1)
+                .writeName("boolean").writeValue(true)
+                .writeName("string").writeValue("something")
+                .writeName("float").writeValue(2.3f)
+                .writeName("double").writeValue(2.05d)
+                .endRequest();
+        //these are the bytes from the request itself
+        byte[] bytes = dataSink.buffer().readByteString().toByteArray();
+        writer.flush();
+        //This is a string representation of what the hex from the request above should look like
+        String string = "52000a736f6d656d6574686f6405446c6f6e67010000000000000087626f6f6c65616e0106737472696e6709000000736f6d657468696e6705666c6f617403000000322e3306646f75626c6504000000322e3035";
+        //these are the bytes as they should be if the writer is working as expected
+        byte[] expectedBytes = ByteString.decodeHex(string).toByteArray();
+        //the two arrays should contain identical bytes
+        assertArrayEquals(expectedBytes, bytes);
+    }
+
+    @Test
+    public void bytes_In_Data_Sink_Test_With_All_Possible_Values_And_Data() throws Exception {
+
+        writer.beginRequest()
+                .writeMethodName("somemethod")
+                .writeName("long").writeValue(1)
+                .writeName("boolean").writeValue(true)
+                .writeName("string").writeValue("something")
+                .writeName("float").writeValue(2.3f)
+                .writeName("double").writeValue(2.05d)
+                .writeData(DataSource.create(ByteString.encodeUtf8("abc")))
+                .endRequest();
+
+        //these are the bytes from the request itself
+        byte[] bytes = dataSink.buffer().readByteString().toByteArray();
+        writer.flush();
+        //This is a string representation of what the hex from the request above should look like
+        String string = "5a008a0300000000000000736f6d656d6574686f6405446c6f6e67010000000000000087626f6f6c65616e0106737472696e6709000000736f6d657468696e6705666c6f617403000000322e3306646f75626c6504000000322e3035616263";
+        //these are the bytes as they should be if the writer is working as expected
+        byte[] expectedBytes = ByteString.decodeHex(string).toByteArray();
+        //the two arrays should contain identical bytes
+        assertArrayEquals(expectedBytes, bytes);
     }
 }

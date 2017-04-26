@@ -56,14 +56,14 @@ public class Main {
             client = client.newBuilder().addInterceptor((request, writer) -> {
                 writer.writeName("auth").writeValue(token);
             }).create();
-            pullDiffs(transformer, client, token);
-            //getMultiThumb(client, token, 2516863197L);
-            getChecksums(client,
+           // pullDiffs(transformer, client, token);
+           // getMultiThumb(client, token, 2516863197L);
+            /*getChecksums(client,
                     2516863197L, 2516863303L,
                     2516863074L, 2516862988L,
                     2516869906L, 2516869939L,
                     2516869733L, 2516869808L,
-                    2516869566L, 2516869479L);
+                    2516869566L, 2516869479L);*/
             getThumb(client, 2516863197L);
         } catch (Exception e) {
             e.printStackTrace();
@@ -143,8 +143,8 @@ public class Main {
 
     private static void getThumb(PCloudAPIClient cloudAPIClient, long fileId) throws IOException, InterruptedException {
         Map<String, Object> values = new TreeMap<>();
-        values.put("fileid", fileId);
-        values.put("size", "128x128");
+        values.put("path", "/cat.jpg");
+        values.put("size", "32x32");
 
         Response response = null;
         try {
