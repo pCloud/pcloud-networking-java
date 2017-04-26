@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package com.pcloud.example;
+package com.pcloud.networking;
 
 import com.pcloud.*;
-import com.pcloud.networking.Transformer;
-import com.pcloud.protocol.streaming.BytesReader;
-import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.TypeToken;
-import okio.ByteString;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 

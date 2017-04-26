@@ -1,15 +1,7 @@
-package com.pcloud.example;
-
-import com.pcloud.networking.ApiResponse;
-import com.pcloud.networking.ParameterValue;
+package com.pcloud.networking;
 
 import java.util.List;
 
-/**
- * Created by Georgi on 4/21/2017.
- */
-
-@SuppressWarnings("unused")
 public class FolderResponse extends ApiResponse {
 
     @ParameterValue("metadata")

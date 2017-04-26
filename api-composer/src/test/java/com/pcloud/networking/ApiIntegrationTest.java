@@ -1,10 +1,26 @@
-package com.pcloud.example;
+/*
+ * Copyright (c) 2017 pCloud AG
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import com.pcloud.*;
-import com.pcloud.networking.ApiComposer;
-import com.pcloud.networking.Transformer;
+package com.pcloud.networking;
+
+import com.pcloud.PCloudAPIClient;
+import com.pcloud.Request;
+import com.pcloud.RequestInterceptor;
+import com.pcloud.Response;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.TypeToken;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -15,10 +31,7 @@ import java.util.Map;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-/**
- * Created by Georgi on 4/24/2017.
- */
-public abstract class AbstractTest {
+public abstract class ApiIntegrationTest {
 
     protected static PCloudAPIClient apiClient;
     protected static Transformer transformer;
@@ -35,10 +48,7 @@ public abstract class AbstractTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-
-        Map<String, String> env = System.getenv();
-        username = env.get("pcloud_username");
-        password = env.get("pcloud_password");
+        resolveTestAccountCredentials();
 
         apiClient = PCloudAPIClient.newClient()
                 .addInterceptor(new RequestInterceptor() {
@@ -58,7 +68,6 @@ public abstract class AbstractTest {
             }
         }).create();
 
-
         apiComposer = ApiComposer.create()
                 .apiClient(apiClient)
                 .transformer(transformer)
@@ -68,6 +77,20 @@ public abstract class AbstractTest {
         donwloadApi = apiComposer.compose(FileOperationApi.class);
         folderApi = apiComposer.compose(FolderApi.class);
         userApi = apiComposer.compose(UserApi.class);
+    }
+
+    private static void resolveTestAccountCredentials() {
+        Map<String, String> env = System.getenv();
+        username = env.get("pcloud_username");
+        password = env.get("pcloud_password");
+
+        if (username == null) {
+            throw new IllegalStateException("'pcloud_username' environment variable not set.");
+        }
+
+        if (password == null) {
+            throw new IllegalStateException("'pcloud_password' environment variable not set.");
+        }
     }
 
     private static String getAuthToken(PCloudAPIClient client, Transformer transformer, String username, String password) throws IOException, InterruptedException {
@@ -80,7 +103,7 @@ public abstract class AbstractTest {
         try {
             response = client.newCall(Request.create()
                     .methodName("userinfo")
-                    .body(RequestBody.fromValues(values))
+                    .body(com.pcloud.RequestBody.fromValues(values))
                     .build())
                     .enqueueAndWait();
             UserInfoResponse apiResponse = transformer.getTypeAdapter(UserInfoResponse.class)

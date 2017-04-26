@@ -11,10 +11,6 @@ dependencies {
     compile project(':protocol')
     testCompile group: 'junit', name: 'junit', version: '4.11'
     compile 'com.squareup.okio:okio:1.11.0'
-
-    // https://mvnrepository.com/artifact/org.mockito/mockito-all
-    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
-
 }
 group 'com.pcloud'
 version '1.0-SNAPSHOT'

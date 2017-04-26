@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package com.pcloud.example;
-
-import com.pcloud.networking.*;
+package com.pcloud.networking;
 
 import java.io.IOException;
 import java.util.List;
