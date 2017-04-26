@@ -1,11 +1,9 @@
 package com.pcloud.example;
 
-import com.pcloud.PCloudAPIClient;
-import com.pcloud.Request;
-import com.pcloud.RequestBody;
-import com.pcloud.Response;
+import com.pcloud.*;
 import com.pcloud.networking.ApiComposer;
 import com.pcloud.networking.Transformer;
+import com.pcloud.protocol.streaming.ProtocolWriter;
 import com.pcloud.protocol.streaming.TypeToken;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -43,13 +41,21 @@ public abstract class AbstractTest {
         password = env.get("pcloud_password");
 
         apiClient = PCloudAPIClient.newClient()
-                .addInterceptor((request, writer) -> writer.writeName("timeformat", TypeToken.STRING).writeValue("timestamp"))
+                .addInterceptor(new RequestInterceptor() {
+                    @Override
+                    public void intercept(Request request, ProtocolWriter writer) throws IOException {
+                        writer.writeName("timeformat").writeValue("timestamp");
+                    }
+                })
                 .create();
         transformer = Transformer.create().build();
 
-        String token = getAuthToken(apiClient, transformer, username, password);
-        apiClient = apiClient.newBuilder().addInterceptor((request, writer) -> {
-            writer.writeName("auth", TypeToken.STRING).writeValue(token);
+        final String token = getAuthToken(apiClient, transformer, username, password);
+        apiClient = apiClient.newBuilder().addInterceptor(new RequestInterceptor() {
+            @Override
+            public void intercept(Request request, ProtocolWriter writer) throws IOException {
+                writer.writeName("auth").writeValue(token);
+            }
         }).create();
 
 
