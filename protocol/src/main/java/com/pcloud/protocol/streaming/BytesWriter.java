@@ -19,7 +19,9 @@ package com.pcloud.protocol.streaming;
 import com.pcloud.protocol.DataSource;
 import okio.Buffer;
 import okio.BufferedSink;
+import okio.ByteString;
 import okio.Utf8;
+import sun.rmi.runtime.Log;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -98,7 +100,7 @@ public class BytesWriter implements ProtocolRequestWriter {
 
         int methodNameLength = (int) Utf8.size(methodName);
         if (methodNameLength > 127) {
-            throw new SerializationException("Method name cannot be longer than 127 characters.");
+            throw new SerializationException("Method name cannot be larger than 127 bytes.");
         }
 
         final long dataSourceLength = dataSource != null ? dataSource.contentLength() : 0;

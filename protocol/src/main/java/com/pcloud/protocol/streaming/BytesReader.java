@@ -230,7 +230,8 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public boolean hasNext() throws IOException {
-        return peekType() != TYPE_END_ARRAY_OBJECT;
+        return !(currentScope == SCOPE_RESPONSE && previousScope != SCOPE_NONE)
+                && peekType() != TYPE_END_ARRAY_OBJECT;
     }
 
     @Override
@@ -245,12 +246,17 @@ public class BytesReader implements ProtocolResponseReader {
         * Swap the BufferedSource for an implementation that reads ahead the byte stream
         * without consuming it.
         * */
-        reader.bufferedSource = Okio.buffer(new PeekingSource(reader.bufferedSource.buffer(), 0L));
+        reader.bufferedSource = Okio.buffer(new PeekingSource(reader.bufferedSource, 0L));
         return reader;
     }
 
     @Override
     public void skipValue() throws IOException {
+
+        if(currentScope == SCOPE_NONE){
+            throw new IllegalStateException("Trying to skipValue, but currentScope is " + currentScope + ". You must call beginResponse() first.");
+        }
+
         final int type = peekType();
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
             // Skip 1-8 bytes depending on number size + 1 byte for the type.
