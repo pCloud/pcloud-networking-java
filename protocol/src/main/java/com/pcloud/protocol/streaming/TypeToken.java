@@ -16,6 +16,9 @@
 
 package com.pcloud.protocol.streaming;
 
+/**
+ * Enumeration of constant values representing different types when reading data from a source
+ */
 public enum TypeToken {
     NUMBER("Number"),
     STRING("String"),

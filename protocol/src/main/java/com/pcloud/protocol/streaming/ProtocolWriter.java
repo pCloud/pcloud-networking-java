@@ -21,25 +21,101 @@ import java.io.Flushable;
 import java.io.IOException;
 import java.lang.reflect.Type;
 
+/**
+ * A contract for a writer object which can write data into a data sink
+ * @see BytesWriter
+ * @see com.pcloud.protocol.ValueWriter
+ */
 public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
 
+    /**
+     * Write a key for a data pair
+     * <p>
+     * The data is written in key - value pairs so every call of this
+     * method should be followed by one of the writeValue overloads.
+     * <p>
+     *
+     * @param name the key for this data pair
+     * @return a reference to this object
+     * @throws IOException
+     */
     ProtocolWriter writeName(String name) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value an object to be written in the data sink
+     * @return a reference to this object
+     * @throws IOException
+     */
     ProtocolWriter writeValue(Object value) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value a String to be written in the data sink
+     * @return a reference to this object
+     * @throws IOException
+     */
     ProtocolWriter writeValue(String value) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value a double to be written in the data sink
+     * @return
+     * @throws IOException
+     */
     ProtocolWriter writeValue(double value) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value a float to be written in the data sink
+     * @return
+     * @throws IOException
+     */
     ProtocolWriter writeValue(float value) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value a long to be written in the data sink
+     * @return
+     * @throws IOException
+     */
     ProtocolWriter writeValue(long value) throws IOException;
 
+    /**
+     * Write a value for a data pair
+     * <p>
+     * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
+     *
+     * @param value a boolean to be written in the data sink
+     * @return
+     * @throws IOException
+     */
     ProtocolWriter writeValue(boolean value) throws IOException;
 
+    /**
+     *  Close the data source
+     */
     @Override
     void close();
 
+    /**
+     *  Flush the data source
+     */
     @Override
     void flush() throws IOException;
 }

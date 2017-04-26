@@ -28,6 +28,16 @@ import java.util.*;
 import static com.pcloud.IOUtils.closeQuietly;
 import static com.pcloud.protocol.streaming.TypeToken.*;
 
+/**
+ * Reads bytes from source
+ * <p>
+ * An implementation of {@linkplain ProtocolResponseReader} which is able to read bytes from a {@linkplain BufferedSource}
+ * <p>
+ * Generally used to read the bytes of a network response into serialized data
+ *
+ * @see ProtocolReader
+ * @see ProtocolResponseReader
+ */
 public class BytesReader implements ProtocolResponseReader {
 
     private static final Charset PROTOCOL_CHARSET = Charset.forName("UTF-8");
@@ -75,6 +85,13 @@ public class BytesReader implements ProtocolResponseReader {
         this.dataLength = reader.dataLength;
     }
 
+    /**
+     * Create a {@linkplain BytesReader} instance
+     * <p>
+     *
+     * @param bufferedSource a {@linkplain BufferedSource} to read the data from
+     * @throws IllegalArgumentException on a null {@linkplain BufferedSource} argument
+     */
     public BytesReader(BufferedSource bufferedSource) {
         if (bufferedSource == null) {
             throw new IllegalArgumentException("Source argument cannot be null.");
@@ -253,7 +270,7 @@ public class BytesReader implements ProtocolResponseReader {
     @Override
     public void skipValue() throws IOException {
 
-        if(currentScope == SCOPE_NONE){
+        if (currentScope == SCOPE_NONE) {
             throw new IllegalStateException("Trying to skipValue, but currentScope is " + currentScope + ". You must call beginResponse() first.");
         }
 
@@ -310,6 +327,9 @@ public class BytesReader implements ProtocolResponseReader {
         return currentScope;
     }
 
+    /**
+     * Close the {@linkplain BufferedSource}
+     */
     @Override
     public void close() {
         closeQuietly(bufferedSource);
@@ -379,8 +399,7 @@ public class BytesReader implements ProtocolResponseReader {
         } else if ((type >= TYPE_STRING_START && type <= TYPE_STRING_END)
                 || (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END)
                 || (type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_REUSED_END)) {
-            // Number, it may be a 1-8 byte long integer or an index for
-            // number types with compression optimization
+            // String
             return STRING;
         } else if (type == TYPE_BEGIN_OBJECT) {
             // Object

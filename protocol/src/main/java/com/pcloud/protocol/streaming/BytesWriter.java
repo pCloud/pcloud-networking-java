@@ -32,6 +32,18 @@ import java.util.EnumSet;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+/**
+ * Writes bytes into a sink
+ * <p>
+ * An implementation of a {@linkplain ProtocolRequestWriter} which is able to write bytes into a {@linkplain BufferedSink}
+ * <p>
+ * Generally used to write a network request
+ * <p>
+ *
+ * @see ProtocolWriter
+ * @see ProtocolRequestWriter
+ * @see BufferedSink
+ */
 public class BytesWriter implements ProtocolRequestWriter {
 
     // Request parameter types
@@ -54,6 +66,13 @@ public class BytesWriter implements ProtocolRequestWriter {
 
     private String nextValueName;
 
+    /**
+     * Create a {@linkplain BytesReader} instance
+     * <p>
+     *
+     * @param sink a {@linkplain BufferedSink} to house the bytes
+     * @throws IllegalArgumentException on a null {@linkplain BufferedSink} argument
+     */
     public BytesWriter(BufferedSink sink) {
         if (sink == null) {
             throw new IllegalArgumentException("'sink' argument cannot be null.");
@@ -85,6 +104,7 @@ public class BytesWriter implements ProtocolRequestWriter {
         methodName = name;
         return this;
     }
+
 
     @Override
     public ProtocolRequestWriter endRequest() throws IOException {
@@ -272,6 +292,9 @@ public class BytesWriter implements ProtocolRequestWriter {
         return this;
     }
 
+    /**
+     * Close the {@linkplain BufferedSink}
+     */
     @Override
     public void close() {
         closeQuietly(sink);
@@ -279,6 +302,12 @@ public class BytesWriter implements ProtocolRequestWriter {
         dataSource = null;
     }
 
+    /**
+     * Flush the {@linkplain BufferedSink}
+     * <p>
+     *
+     * @throws IOException
+     */
     @Override
     public void flush() throws IOException {
         sink.flush();
@@ -290,13 +319,13 @@ public class BytesWriter implements ProtocolRequestWriter {
         }
     }
 
-    private void checkWriteValueFinished(){
+    private void checkWriteValueFinished() {
         if (nextValueName != null) {
             throw new IllegalStateException("Expected a call to one of the writeValue() methods.");
         }
     }
 
-    private void checkWriteNameCalled(){
+    private void checkWriteNameCalled() {
         if (nextValueName == null) {
             throw new IllegalStateException("Call writeName() before calling this method.");
         }

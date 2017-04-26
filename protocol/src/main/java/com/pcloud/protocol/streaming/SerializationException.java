@@ -19,6 +19,11 @@ package com.pcloud.protocol.streaming;
 import java.io.IOException;
 import java.util.Locale;
 
+/**
+ * An exception thrown whenever something goes wrong during data serialization
+ * @see BytesWriter
+ * @see BytesReader
+ */
 public class SerializationException extends IOException {
 
     public SerializationException(String message, Object... args) {
