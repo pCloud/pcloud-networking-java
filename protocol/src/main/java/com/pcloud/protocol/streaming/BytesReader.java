@@ -40,8 +40,8 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int TYPE_NUMBER_END = 15;
     private static final int TYPE_BEGIN_OBJECT = 16;
     private static final int TYPE_BEGIN_ARRAY = 17;
-    private static final int TYPE_BOOLEAN_TRUE = 18;
-    private static final int TYPE_BOOLEAN_FALSE = 19;
+    private static final int TYPE_BOOLEAN_FALSE = 18;
+    private static final int TYPE_BOOLEAN_TRUE = 19;
     private static final int TYPE_DATA = 20;
     private static final int TYPE_STRING_COMPRESSED_START = 100;
     private static final int TYPE_STRING_COMPRESSED_END = 149;
