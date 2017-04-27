@@ -57,22 +57,19 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int TYPE_AGGREGATE_NUMBER = -4;
     private static final int TYPE_AGGREGATE_END_ARRAY = -5;
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
+    public static final int DEFAULT_STRING_CACHE_SIZE = 50;
 
     private int currentScope = SCOPE_NONE;
     private int previousScope = SCOPE_NONE;
-    private Deque<Integer> scopeStack = new ArrayDeque<>(10);
+    private Deque<Integer> scopeStack = new ArrayDeque<>(5);
     private BufferedSource bufferedSource;
 
-    private List<String> stringCache = new ArrayList<>();
+    private int lastStringId;
+    private String[] stringCache;
     private volatile long dataLength = UNKNOWN_SIZE;
 
-    private BytesReader(BytesReader reader) {
-        this.currentScope = reader.currentScope;
-        this.previousScope = reader.previousScope;
-        this.scopeStack = new ArrayDeque<>(reader.scopeStack);
-        this.bufferedSource = reader.bufferedSource;
-        this.stringCache = new ArrayList<>(reader.stringCache);
-        this.dataLength = reader.dataLength;
+    private BytesReader() {
+
     }
 
     public BytesReader(BufferedSource bufferedSource) {
@@ -91,6 +88,8 @@ public class BytesReader implements ProtocolResponseReader {
     public long beginResponse() throws IOException {
         if (currentScope == SCOPE_NONE) {
             pushScope(SCOPE_RESPONSE);
+            stringCache = new String[DEFAULT_STRING_CACHE_SIZE];
+            lastStringId = 0;
             return pullNumber(4);
         }
 
@@ -116,7 +115,7 @@ public class BytesReader implements ProtocolResponseReader {
             }
         }
         popScope();
-        stringCache.clear();
+        stringCache = null;
 
         if (dataLength == UNKNOWN_SIZE) {
             dataLength = 0;
@@ -193,25 +192,33 @@ public class BytesReader implements ProtocolResponseReader {
         if (type >= TYPE_STRING_START && type <= TYPE_STRING_END) {
             // String
             long stringLength = pullNumber(type + 1);
-            String value = bufferedSource.readString(stringLength, PROTOCOL_CHARSET);
-            stringCache.add(value);
+            String value = bufferedSource.readUtf8(stringLength);
+            cacheString(value);
             return value;
         } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
             // String, existing value
             int cachedStringId = (int) pullNumber(type - 3);
-            return stringCache.get(cachedStringId);
+            return stringCache[cachedStringId];
         } else if (type >= TYPE_STRING_COMPRESSED_START && type <= TYPE_STRING_COMPRESSED_END) {
             // String, with compression optimization
             int stringLength = type - 100;
-            String value = bufferedSource.readString(stringLength, PROTOCOL_CHARSET);
-            stringCache.add(value);
+            String value = bufferedSource.readUtf8(stringLength);
+            cacheString(value);
             return value;
         } else if (type >= TYPE_STRING_COMPRESSED_REUSED_BEGIN && type <= TYPE_STRING_COMPRESSED_REUSED_END) {
             // String, existing value, with compression optimization
-            return stringCache.get(type - 150);
+            return stringCache[type - 150];
         } else {
             throw typeMismatchError(TYPE_AGGREGATE_STRING, type);
         }
+    }
+
+    private void cacheString(String string) {
+        if (stringCache.length == lastStringId + 1){
+            stringCache = Arrays.copyOf(stringCache, stringCache.length * 2);
+        }
+
+        stringCache[lastStringId++] = string;
     }
 
     @Override
@@ -241,12 +248,18 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public ProtocolResponseReader newPeekingReader() {
-        BytesReader reader = new BytesReader(this);
+        BytesReader reader = new PeekingByteReader();
+        reader.currentScope = this.currentScope;
+        reader.previousScope = this.previousScope;
+        reader.scopeStack = new ArrayDeque<>(this.scopeStack);
+        reader.bufferedSource = Okio.buffer(new PeekingSource(this.bufferedSource, 0L));
+        reader.stringCache = this.stringCache;
+        reader.dataLength = this.dataLength;
+        reader.lastStringId = this.lastStringId;
         /*
         * Swap the BufferedSource for an implementation that reads ahead the byte stream
         * without consuming it.
         * */
-        reader.bufferedSource = Okio.buffer(new PeekingSource(reader.bufferedSource, 0L));
         return reader;
     }
 
@@ -438,6 +451,18 @@ public class BytesReader implements ProtocolResponseReader {
                 return "Object";
             default:
                 return "Unknown";
+        }
+    }
+
+    private static class PeekingByteReader extends BytesReader {
+
+        private PeekingByteReader() {
+            super();
+        }
+
+        @Override
+        public ProtocolResponseReader newPeekingReader() {
+            throw new IllegalStateException("Cannot call newPeekingReader(), this reader is already non-consuming.");
         }
     }
 }
