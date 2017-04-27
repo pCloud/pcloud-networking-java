@@ -241,7 +241,7 @@ class RealMultiCall implements MultiCall {
                 r.intercept(request, writer);
             }
 
-            request.body().writeТо(writer);
+            request.body().writeTo(writer);
 
             // Add the key at the end to avoid overwriting.
             writer.writeName("id").writeValue(requestKey);
