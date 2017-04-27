@@ -20,7 +20,9 @@ import com.pcloud.protocol.streaming.BytesReader;
 import com.pcloud.protocol.streaming.BytesWriter;
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolRequestWriter;
+import okio.BufferedSource;
 import okio.Okio;
+import okio.Source;
 
 import java.io.IOException;
 import java.util.List;
@@ -201,8 +203,11 @@ class RealCall implements Call {
     }
 
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
-        final BytesReader reader = new SelfEndingBytesReader(connection.source());
-        final long contentLength = reader.beginResponse();
+        final long responseLength = IOUtils.peekNumberLe(connection.source(), 4);
+        BufferedSource parametersSource = Okio.buffer(new ResponseParametersSource(connection.source(), responseLength + 4L));
+
+        final BytesReader reader = new SelfEndingBytesReader(parametersSource);
+        reader.beginResponse();
         return new ResponseBody() {
 
             private ResponseData data;
@@ -215,7 +220,7 @@ class RealCall implements Call {
 
             @Override
             public long contentLength() {
-                return contentLength;
+                return responseLength;
             }
 
             @Override
@@ -244,7 +249,7 @@ class RealCall implements Call {
                     dataContentLength = reader.dataContentLength();
                     dataSource = this.dataSource;
                 }
-                if (dataContentLength == 0 || dataSource != null && dataSource.bytesRemaining() == 0) {
+                if (dataContentLength == 0L || dataSource != null && dataSource.bytesRemaining() == 0L) {
                     // All possible data has been read, safe to reuse the connection.
                     connectionProvider.recycleConnection(connection);
                 } else {
@@ -253,6 +258,18 @@ class RealCall implements Call {
                 }
             }
         };
+    }
+
+    private static class ResponseParametersSource extends FixedLengthSource {
+
+        protected ResponseParametersSource(Source source, long responseSize) {
+            super(source, responseSize);
+        }
+
+        @Override
+        protected void exhausted(boolean reuseSource) {
+
+        }
     }
 
     private static class RecyclingFixedLengthSource extends FixedLengthSource {
