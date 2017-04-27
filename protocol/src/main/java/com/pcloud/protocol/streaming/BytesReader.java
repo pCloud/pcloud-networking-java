@@ -388,7 +388,7 @@ public class BytesReader implements ProtocolResponseReader {
         } else if (type == TYPE_BEGIN_ARRAY) {
             // Array
             return BEGIN_ARRAY;
-        } else if (type >= TYPE_BOOLEAN_TRUE && type <= TYPE_BOOLEAN_FALSE) {
+        } else if (type >= TYPE_BOOLEAN_FALSE && type <= TYPE_BOOLEAN_TRUE) {
             // Boolean
             return TypeToken.BOOLEAN;
         } else if (type == TYPE_END_ARRAY_OBJECT) {
