@@ -36,7 +36,7 @@ public class ValueReader {
      *
      * @param reader a reader which should read from its source to extract the data
      * @return an {@linkplain Object} which is actually one of the {@linkplain TypeToken} types, a {@linkplain Map} or an array of {@linkplain Object}
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     public Object read(ProtocolReader reader) throws IOException {
         TypeToken token = reader.peek();
@@ -57,12 +57,12 @@ public class ValueReader {
     }
 
     /**
-     * Read the data from a readers source and extract it to a {@linkplain Map<String, ?>}
+     * Read the data from a readers source and extract it to a {@linkplain Map}
      * <p>
      *
      * @param reader the {@linkplain ProtocolReader} from which the data can be extracted
      * @return {@linkplain Map} which contains all the data as key - value pairs
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     public Map<String, ?> readObject(ProtocolReader reader) throws IOException {
         reader.beginObject();
@@ -80,7 +80,7 @@ public class ValueReader {
      *
      * @param reader {@linkplain ProtocolReader} from the source of which data will be extracted
      * @return An {@linkplain Object} array with all the data
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     public Object[] readArray(ProtocolReader reader) throws IOException {
         return readList(reader).toArray();
@@ -92,7 +92,7 @@ public class ValueReader {
      *
      * @param reader {@linkplain ProtocolReader} from the source of which data will be extracted
      * @return a {@linkplain List} containing all the data from the readers source
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     public List<?> readList(ProtocolReader reader) throws IOException {
         reader.beginArray();

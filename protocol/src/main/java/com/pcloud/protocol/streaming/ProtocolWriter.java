@@ -37,7 +37,7 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      *
      * @param name the key for this data pair
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeName(String name) throws IOException;
 
@@ -48,7 +48,7 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      *
      * @param value an object to be written in the data sink
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(Object value) throws IOException;
 
@@ -59,7 +59,7 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      *
      * @param value a String to be written in the data sink
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(String value) throws IOException;
 
@@ -69,8 +69,8 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
      *
      * @param value a double to be written in the data sink
-     * @return
-     * @throws IOException
+     * @return a reference to this object
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(double value) throws IOException;
 
@@ -80,8 +80,8 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
      *
      * @param value a float to be written in the data sink
-     * @return
-     * @throws IOException
+     * @return a reference to this object
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(float value) throws IOException;
 
@@ -91,8 +91,8 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
      *
      * @param value a long to be written in the data sink
-     * @return
-     * @throws IOException
+     * @return a reference to this object
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(long value) throws IOException;
 
@@ -102,8 +102,8 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      * Every call to this or the other overloads should be preceded by a call to {@linkplain #writeName(String)}
      *
      * @param value a boolean to be written in the data sink
-     * @return
-     * @throws IOException
+     * @return a reference to this object
+     * @throws IOException on failed IO operations
      */
     ProtocolWriter writeValue(boolean value) throws IOException;
 

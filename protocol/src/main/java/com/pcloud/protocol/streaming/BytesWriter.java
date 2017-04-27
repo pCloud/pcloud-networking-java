@@ -38,7 +38,6 @@ import static com.pcloud.IOUtils.closeQuietly;
  * An implementation of a {@linkplain ProtocolRequestWriter} which is able to write bytes into a {@linkplain BufferedSink}
  * <p>
  * Generally used to write a network request
- * <p>
  *
  * @see ProtocolWriter
  * @see ProtocolRequestWriter
@@ -304,9 +303,8 @@ public class BytesWriter implements ProtocolRequestWriter {
 
     /**
      * Flush the {@linkplain BufferedSink}
-     * <p>
      *
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     @Override
     public void flush() throws IOException {

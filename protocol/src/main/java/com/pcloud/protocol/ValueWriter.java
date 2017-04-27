@@ -32,7 +32,7 @@ public class ValueWriter {
      *
      * @param writer a {@linkplain ProtocolWriter} to write the data
      * @param values a {@linkplain Map} to take the data and act as a data sink
-     * @throws IOException
+     * @throws IOException on failed IO operations
      * @throws IllegalArgumentException on null arguments
      */
     public void writeAll(ProtocolWriter writer, Map<String, ?> values) throws IOException {

@@ -24,7 +24,6 @@ import java.io.IOException;
  * A contract for an object which can write data into a data sink
  * <p>
  * Generally used to construct network requests
- * <p>
  *
  * @see BytesWriter
  */
@@ -35,7 +34,7 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
      * <p>
      *
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolRequestWriter beginRequest() throws IOException;
 
@@ -45,7 +44,7 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
      *
      * @param source the source to be written
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolRequestWriter writeData(DataSource source) throws IOException;
 
@@ -55,7 +54,7 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
      *
      * @param name A string for the name of the method this request will hit
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolRequestWriter writeMethodName(String name) throws IOException;
 
@@ -85,7 +84,7 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
      * <p>
      *
      * @return a reference to this object
-     * @throws IOException
+     * @throws IOException on failed IO operations
      */
     ProtocolRequestWriter endRequest() throws IOException;
 }
