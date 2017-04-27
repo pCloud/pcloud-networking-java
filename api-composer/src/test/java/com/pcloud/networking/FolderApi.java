@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.pcloud.example;
+package com.pcloud.networking;
 
-import com.pcloud.networking.ParameterValue;
+import java.io.IOException;
 
-public class DiffRequest {
+public interface FolderApi {
 
-    @ParameterValue("block")
-    private long blockTimeoutSeconds;
-    @ParameterValue("diffid")
-    private long lastDiffid;
-    @ParameterValue("limit")
-    private int chunkSize;
+    @Method("createfolder")
+    FolderResponse createFolder(@Parameter("name") String name, @Parameter("folderid") long folderId) throws IOException;
 
-    public DiffRequest(long blockTimeoutSeconds, long lastDiffid, int chunkSize) {
-        this.blockTimeoutSeconds = blockTimeoutSeconds;
-        this.lastDiffid = lastDiffid;
-        this.chunkSize = chunkSize;
-    }
+    @Method("listfolder")
+    FolderResponse listFolder(@Parameter("folderid") long folderId) throws IOException;
+
+
 }
