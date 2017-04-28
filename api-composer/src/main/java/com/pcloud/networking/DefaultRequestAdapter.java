@@ -39,7 +39,7 @@ class DefaultRequestAdapter implements RequestAdapter{
 
         requestBuilder.body(new com.pcloud.RequestBody() {
             @Override
-            public void writeТо(ProtocolWriter writer) throws IOException {
+            public void writeTo(ProtocolWriter writer) throws IOException {
                 for (int index = 0; index < args.length; index++) {
                     argumentAdapters[index].adapt(writer, args[index]);
                 }

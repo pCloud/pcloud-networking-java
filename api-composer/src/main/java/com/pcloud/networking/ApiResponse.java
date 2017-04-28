@@ -16,7 +16,15 @@
 
 package com.pcloud.networking;
 
+/**
+ * A base implementation of a network response.
+ * <p>
+ * Contains the result code and the error message if any.
+ */
 public class ApiResponse {
+    /**
+     * The default result code for a successful request
+     */
     public static final int RESULT_SUCCESS = 0;
 
     @ParameterValue("result")
@@ -30,19 +38,40 @@ public class ApiResponse {
         // Keep to allow instantiation during serialization.
     }
 
+    /**
+     * Creates the {@linkplain ApiResponse}.
+     *
+     * @param resultCode the result code of the response
+     * @param message    the error message if present
+     */
     public ApiResponse(long resultCode, String message) {
         this.resultCode = resultCode;
         this.message = message;
     }
 
+    /**
+     * Returns the error message for this {@linkplain ApiResponse}
+     *
+     * @return The error message for this {@linkplain ApiResponse}
+     */
     public String message() {
         return message;
     }
 
+    /**
+     * Returns the result code for this {@linkplain ApiResponse}
+     *
+     * @return The result code for this {@linkplain ApiResponse}
+     */
     public long resultCode() {
         return resultCode;
     }
 
+    /**
+     * Returns true if the request was successful, false otherwise
+     *
+     * @return true if the request was successful, false otherwise
+     */
     public boolean isSuccessful() {
         return resultCode == RESULT_SUCCESS;
     }
