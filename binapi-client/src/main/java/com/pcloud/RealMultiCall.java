@@ -38,7 +38,10 @@ class RealMultiCall implements MultiCall {
     private List<RequestInterceptor> interceptors;
     private ConnectionProvider connectionProvider;
 
-    RealMultiCall(List<Request> requests, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
+    RealMultiCall(List<Request> requests,
+                  ExecutorService callExecutor,
+                  List<RequestInterceptor> interceptors,
+                  ConnectionProvider connectionProvider) {
         this.requests = requests;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
@@ -241,7 +244,7 @@ class RealMultiCall implements MultiCall {
                 r.intercept(request, writer);
             }
 
-            request.body().writeТо(writer);
+            request.body().writeTo(writer);
 
             // Add the key at the end to avoid overwriting.
             writer.writeName("id").writeValue(requestKey);

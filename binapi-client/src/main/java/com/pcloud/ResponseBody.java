@@ -23,21 +23,49 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * An interface for the response body of a network call
+ *
+ * @see Response
+ * @see ResponseData
+ * @see ProtocolReader
+ */
 @SuppressWarnings({"WeakerAccess", "unused"})
-public abstract class ResponseBody implements Closeable{
-
+public abstract class ResponseBody implements Closeable {
+    /**
+     * Returns the {@linkplain ProtocolReader} which is able to read this {@linkplain ResponseBody}
+     *
+     * @return A reference to the {@linkplain ProtocolReader} which is able to read the {@linkplain RequestBody}
+     */
     public abstract ProtocolReader reader();
 
-    public final Map<String,?> toValues() throws IOException {
+    /**
+     * Reads the data from the {@linkplain RequestBody} and constructs a {@linkplain Map} with all the data
+     *
+     * @return A {@linkplain Map} with all the data from this {@linkplain ResponseBody}
+     * @throws IOException on failed IO operations
+     */
+    public final Map<String, ?> toValues() throws IOException {
         return new ValueReader().readObject(reader());
     }
 
+    /**
+     * Returns the length of the content in this {@linkplain ResponseBody}
+     *
+     * @return The length of the content in this {@linkplain ResponseBody}
+     */
     public abstract long contentLength();
 
+    /**
+     * Returns the {@linkplain ResponseData} for this {@linkplain ResponseBody}
+     *
+     * @return A reference to the {@linkplain ResponseData} for this {@linkplain ResponseBody}
+     * @throws IOException on failed IO operations
+     */
     public abstract ResponseData data() throws IOException;
 
     @Override
     public String toString() {
-        return String.format("[Response]: %d bytes",contentLength());
+        return String.format("[Response]: %d bytes", contentLength());
     }
 }
