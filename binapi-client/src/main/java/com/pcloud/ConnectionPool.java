@@ -21,6 +21,12 @@ import java.util.concurrent.*;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+/**
+ * An implementation to provide a pool structure for connections.
+ * <p>
+ * {@linkplain Connection} objects are time and resource consuming to create and should be reused as much as possible.
+ * This implementation keeps and provides instances of {@linkplain Connection} to be reused.
+ */
 @SuppressWarnings("WeakerAccess")
 public class ConnectionPool {
 
@@ -50,6 +56,7 @@ public class ConnectionPool {
                 long waitNanos = cleanup(System.nanoTime());
                 if (waitNanos == -1) return;
                 if (waitNanos > 0) {
+                    //round the number
                     long waitMillis = waitNanos / 1000000L;
                     waitNanos -= (waitMillis * 1000000L);
                     synchronized (ConnectionPool.this) {
@@ -66,14 +73,29 @@ public class ConnectionPool {
     private final LinkedList<Connection> connections = new LinkedList<>();
     private boolean cleanupRunning;
 
+    /**
+     * Create a {@linkplain ConnectionPool} with default parameters.
+     * <p>
+     * By default the pool will be created with 5 maximum idle connections and it will keep
+     * idle connections alive for 5 minutes before disposing of them.
+     */
     @SuppressWarnings("unused")
     public ConnectionPool() {
         this(5, 5, TimeUnit.MINUTES);
     }
 
+    /**
+     * Create an instance of {@linkplain ConnectionPool} with your own parameters
+     *
+     * @param maxIdleConnections The maximum number of idle connections the pool should keep.
+     *                           When the pool has this number of connections any more idle connections will be discarded.
+     * @param keepAliveDuration  The amount of time the pool should keep the connections alive if they are idling.
+     * @param timeUnit           The unit of time in which you provided the time duration parameter.
+     * @throws IllegalArgumentException on less than 0 for number arguments and on null for the {@linkplain TimeUnit} argument
+     */
     public ConnectionPool(int maxIdleConnections, long keepAliveDuration, TimeUnit timeUnit) {
         if (maxIdleConnections < 0) {
-            throw new IllegalArgumentException("maxIdleConnections < 0: "+maxIdleConnections);
+            throw new IllegalArgumentException("maxIdleConnections < 0: " + maxIdleConnections);
         }
 
         if (keepAliveDuration <= 0) {
@@ -89,10 +111,20 @@ public class ConnectionPool {
         this.keepAliveDurationNs = timeUnit.toNanos(keepAliveDuration);
     }
 
+    /**
+     * Returns the maximum amount of idle connections the pool can keep
+     *
+     * @return The maximum amount of idle connections the pool can keep
+     */
     public int maxIdleConnections() {
         return maxIdleConnections;
     }
 
+    /**
+     * Returns the number of connections in the pool
+     *
+     * @return The number of connections in the pool
+     */
     @SuppressWarnings("unused")
     public synchronized int connectionCount() {
         return connections.size();
@@ -124,7 +156,7 @@ public class ConnectionPool {
             cleanupRunning = true;
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
         }
-        ((RealConnection)connection).setIdle(System.nanoTime());
+        ((RealConnection) connection).setIdle(System.nanoTime());
         connections.addFirst(connection);
     }
 

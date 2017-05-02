@@ -19,26 +19,65 @@ package com.pcloud;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
+/**
+ * Implementation to wrap the details of an endpoint - a host address, a port and a {@linkplain SocketAddress}.
+ *
+ */
 @SuppressWarnings("WeakerAccess")
 public final class Endpoint {
+    /**
+     * The default {@linkplain Endpoint} for the binApi client.
+     */
     public static final Endpoint DEFAULT = new Endpoint("binapi.pcloud.com", 443);
+
+    private static final int MINIMUM_PORT_NUMBER = 0;
+    private static final int MAXIMUM_PORT_NUMBER = 65535;
 
     private final String host;
     private final int port;
 
+    /**
+     * Creates the {@linkplain Endpoint} instance.
+     *
+     * @param host The host URL
+     * @param port The port on which we will connect
+     * @throws IllegalArgumentException on a null host parameter and on a port less than 0 or greater than 65535
+     */
     public Endpoint(String host, int port) {
+        if (host == null) {
+            throw new IllegalArgumentException("The host argument cannot be null!");
+        }
+        if (port < MINIMUM_PORT_NUMBER || port > MAXIMUM_PORT_NUMBER) {
+            throw new IllegalArgumentException("The port argument can range from "
+                    + MINIMUM_PORT_NUMBER + " to " + MAXIMUM_PORT_NUMBER + " inclusively");
+        }
         this.host = host;
         this.port = port;
     }
 
+    /**
+     * Returns the host URL which cannot be null.
+     *
+     * @return The host URL
+     */
     public String host() {
         return host;
     }
 
+    /**
+     * Returns the port which can range between 0 and 65535
+     *
+     * @return The port on which we are connecting
+     */
     public int port() {
         return port;
     }
 
+    /**
+     * Returns the {@linkplain SocketAddress} for this post and port
+     *
+     * @return The {@linkplain SocketAddress} for this host and port
+     */
     public SocketAddress socketAddress() {
         return new InetSocketAddress(host, port);
     }

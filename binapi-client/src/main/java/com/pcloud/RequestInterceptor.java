@@ -20,7 +20,20 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 
 import java.io.IOException;
 
+/**
+ * A contract for an interceptor which is able to intercept an network request and write some data to it
+ *
+ * @see Request
+ * @see ProtocolWriter
+ */
 public interface RequestInterceptor {
 
+    /**
+     * Intercepts the {@linkplain Request} to write some data to it
+     *
+     * @param request The {@linkplain Request} to be intercepted
+     * @param writer  The {@linkplain ProtocolWriter} to write the data with
+     * @throws IOException on failed IO operations
+     */
     void intercept(Request request, ProtocolWriter writer) throws IOException;
 }

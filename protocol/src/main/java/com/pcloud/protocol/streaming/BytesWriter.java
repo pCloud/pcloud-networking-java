@@ -19,16 +19,10 @@ package com.pcloud.protocol.streaming;
 import com.pcloud.protocol.DataSource;
 import okio.Buffer;
 import okio.BufferedSink;
-import okio.ByteString;
 import okio.Utf8;
-import sun.rmi.runtime.Log;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
 
 import static com.pcloud.IOUtils.closeQuietly;
 

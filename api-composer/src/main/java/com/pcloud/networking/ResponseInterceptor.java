@@ -16,6 +16,18 @@
 
 package com.pcloud.networking;
 
+
+/**
+ * A contract for an object able to intercept an {@linkplain ApiResponse} and interact with it before it is delivered
+ *
+ * @see ApiResponse
+ */
 public interface ResponseInterceptor {
+
+    /**
+     * Intercepts the {@linkplain ApiResponse} to interact with it before it is delivered
+     *
+     * @param response The {@linkplain ApiResponse} to be intercepted
+     */
     void intercept(ApiResponse response);
 }
