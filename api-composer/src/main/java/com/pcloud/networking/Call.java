@@ -55,8 +55,31 @@ public interface Call<T> extends Cloneable {
      */
     void enqueue(Callback<T> callback);
 
+    /**
+     * Sends a request on another thread but blocks the calling thread
+     * until the operation is complete or an exception is thrown.
+     *
+     * @return The result of the network request
+     * @throws IOException          on failed IO operations
+     * @throws InterruptedException If the waiting thread is interrupted
+     */
     T enqueueAndWait() throws IOException, InterruptedException;
 
+    /**
+     * Sends a request on another thread but blocks the calling thread for
+     * at most the amount of time specified in the arguments.
+     * <p>
+     * Note you are not guaranteed to receive the result after the specified time is up.
+     * After the time is up you will receive the result of the request if available
+     * or a {@linkplain TimeoutException} if the request is not yet completed.
+     *
+     * @param timeout  The maximum amount of time before an attempt to gather the result of the request.
+     * @param timeUnit The units in which you specified the time argument.
+     * @return The result of the request if available
+     * @throws IOException          on failed IO operations
+     * @throws InterruptedException if the waiting thread is interrupted
+     * @throws TimeoutException     if the time is up and the request is not yet completed
+     */
     T enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException;
 
     /**

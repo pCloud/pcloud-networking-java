@@ -20,6 +20,13 @@ import com.pcloud.ResponseData;
 
 import java.io.Closeable;
 
+/**
+ * An implementation to house the {@linkplain ResponseData} for the response of a network call
+ *
+ * @see ApiResponse
+ * @see ResponseData
+ */
+
 public class DataApiResponse extends ApiResponse implements Closeable {
 
     private ResponseData responseData;
@@ -27,6 +34,12 @@ public class DataApiResponse extends ApiResponse implements Closeable {
     protected DataApiResponse() {
     }
 
+    /**
+     * Creates the {@linkplain DataApiResponse}
+     *
+     * @param resultCode The result code of the request
+     * @param message    The error message if present
+     */
     public DataApiResponse(long resultCode, String message) {
         super(resultCode, message);
     }
@@ -47,6 +60,11 @@ public class DataApiResponse extends ApiResponse implements Closeable {
         }
     }
 
+    /**
+     * Returns the {@linkplain ResponseData} of this response
+     *
+     * @return The {@linkplain ResponseData} of this response
+     */
     public ResponseData responseData() {
         return responseData;
     }
