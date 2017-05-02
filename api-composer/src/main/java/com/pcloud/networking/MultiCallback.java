@@ -19,7 +19,7 @@ package com.pcloud.networking;
 import java.io.IOException;
 import java.util.List;
 
-public interface MultiCallback<T,R> {
+public interface MultiCallback<T, R> {
 
     void onFailure(MultiCall<T, R> call, IOException e, List<R> completedResponses);
 

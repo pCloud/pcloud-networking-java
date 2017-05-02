@@ -20,7 +20,7 @@ import com.pcloud.ResponseData;
 
 import java.io.Closeable;
 
-public class DataApiResponse extends ApiResponse implements Closeable{
+public class DataApiResponse extends ApiResponse implements Closeable {
 
     private ResponseData responseData;
 
@@ -35,9 +35,10 @@ public class DataApiResponse extends ApiResponse implements Closeable{
      * Injects a {@linkplain ResponseData} object to this instance.
      * <p>
      * <b>NOTE:</b> Should be called only once per instance.
+     *
      * @param data data object to be injected, can be null.
      */
-    final void setResponseData(ResponseData data){
+    final void setResponseData(ResponseData data) {
         synchronized (this) {
             if (this.responseData != null) {
                 throw new AssertionError("ResponseData already set to instance.");

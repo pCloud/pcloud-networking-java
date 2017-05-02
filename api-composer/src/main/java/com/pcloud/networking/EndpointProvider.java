@@ -17,26 +17,24 @@
 package com.pcloud.networking;
 
 import com.pcloud.Endpoint;
-import com.pcloud.Request;
 
 import java.io.IOException;
 
 public interface EndpointProvider {
 
-    EndpointProvider DEFAULT = new
-            EndpointProvider() {
-                @Override
-                public Endpoint endpoint() {
-                    return Endpoint.DEFAULT;
-                }
+    EndpointProvider DEFAULT = new EndpointProvider() {
+        @Override
+        public Endpoint endpoint() {
+            return Endpoint.DEFAULT;
+        }
 
-                @Override
-                public void enpointConnectionError(Endpoint endpoint, IOException error) {
+        @Override
+        public void endpointConnectionError(Endpoint endpoint, IOException error) {
 
-                }
-            };
+        }
+    };
 
     Endpoint endpoint();
 
-    void enpointConnectionError(Endpoint endpoint, IOException error);
+    void endpointConnectionError(Endpoint endpoint, IOException error);
 }

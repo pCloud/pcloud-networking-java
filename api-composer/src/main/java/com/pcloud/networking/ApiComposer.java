@@ -23,7 +23,12 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
@@ -80,9 +85,9 @@ public class ApiComposer {
     public <T> T compose(Class<T> apiType) {
         validateApiInterface(apiType);
 
-        if (loadEagerly){
+        if (loadEagerly) {
             Method[] methods = apiType.getDeclaredMethods();
-            for (Method method : methods){
+            for (Method method : methods) {
                 loadApiMethod(method);
             }
         }
@@ -121,8 +126,8 @@ public class ApiComposer {
         ApiMethod<?> apiMethod = null;
         Type[] argumentTypes = javaMethod.getGenericParameterTypes();
         Annotation[][] argumentAnnotations = javaMethod.getParameterAnnotations();
-        for (ApiMethod.Factory factory : factories){
-            if((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null){
+        for (ApiMethod.Factory factory : factories) {
+            if ((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null) {
                 break;
             }
         }

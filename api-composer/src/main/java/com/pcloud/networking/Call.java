@@ -29,8 +29,10 @@ import java.util.concurrent.TimeoutException;
  * <li>Allows for synchronous execution on the same thread by calling the {@link #execute()} method.</li>
  * <li>Can be executed only once, state can be checked via the {@link #isExecuted()} property.</li>
  * <li>Once created, a {@link Call} instance can be cloned via the {@link #clone()} method and executed again.</li>
- * <li>Executed calls can be cancelled via the {@link #cancel()} method. It is safe to call {@link #cancel()} multiple times.</li>
- * <li>Running calls that are being cancelled will result in an {@link IOException} being thrown or reported via {@link Callback#onFailure(Call, Throwable)}.</li>
+ * <li>Executed calls can be cancelled via the {@link #cancel()} method.
+ * It is safe to call {@link #cancel()} multiple times.</li>
+ * <li>Running calls that are being cancelled will result in an {@link IOException}
+ * being thrown or reported via {@link Callback#onFailure(Call, IOException)}.</li>
  * </ul>
  *
  * @param <T> the type of the returned result

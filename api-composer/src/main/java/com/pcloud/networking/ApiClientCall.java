@@ -71,7 +71,8 @@ class ApiClientCall<T> implements Call<T> {
     }
 
     @Override
-    public T enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+    public T enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException {
         return adapt(rawCall.enqueueAndWait(timeout, timeUnit));
     }
 
@@ -109,7 +110,10 @@ class ApiClientCall<T> implements Call<T> {
                     interceptor.intercept((ApiResponse) result);
                 } catch (Exception e) {
                     closeQuietly(response);
-                    throw new RuntimeException(String.format("Error while calling ResponseInterceptor of type '%s'", interceptor.getClass()), e);
+                    throw new RuntimeException(
+                            String.format("Error while calling ResponseInterceptor of type '%s'",
+                                    interceptor.getClass()), e
+                    );
                 }
             }
         }

@@ -19,7 +19,6 @@ package com.pcloud.networking;
 import com.pcloud.Request;
 import com.pcloud.protocol.DataSource;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.TypeToken;
 import okio.ByteString;
 
 import java.io.File;
@@ -28,7 +27,7 @@ import java.lang.reflect.Type;
 
 class ArgumentAdapters {
 
-    private static abstract class BodyWritingArgumentAdapter<T> implements ArgumentAdapter<T> {
+    private abstract static class BodyWritingArgumentAdapter<T> implements ArgumentAdapter<T> {
 
         @Override
         public void adapt(Request.Builder builder, T argValue) throws IOException {
@@ -36,7 +35,7 @@ class ArgumentAdapters {
         }
     }
 
-    private static abstract class BuilderArgumentAdapter<T> implements ArgumentAdapter<T> {
+    private abstract static class BuilderArgumentAdapter<T> implements ArgumentAdapter<T> {
 
         public void adapt(ProtocolWriter writer, T argValue) throws IOException {
             //Empty
@@ -53,7 +52,7 @@ class ArgumentAdapters {
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
 
-                if(argValue == null) {
+                if (argValue == null) {
                     throw new IllegalArgumentException("The parameter cannot be null.");
                 }
                 writer.writeName(name);
@@ -67,7 +66,7 @@ class ArgumentAdapters {
         return new BodyWritingArgumentAdapter<T>() {
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
-                if(argValue == null) {
+                if (argValue == null) {
                     throw new IllegalArgumentException("The RequestBody parameter cannot be null.");
                 }
                 adapter.serialize(writer, argValue);

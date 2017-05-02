@@ -26,7 +26,10 @@ import java.lang.reflect.Type;
 public interface RequestAdapter {
 
     interface Factory {
-        RequestAdapter create(ApiComposer composer, java.lang.reflect.Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
+        RequestAdapter create(ApiComposer composer,
+                              java.lang.reflect.Method method,
+                              Type[] argumentTypes,
+                              Annotation[][] argumentAnnotations);
     }
 
     void adapt(Request.Builder builder, Object... args) throws IOException;
