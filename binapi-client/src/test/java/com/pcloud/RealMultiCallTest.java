@@ -16,8 +16,6 @@
 
 package com.pcloud;
 
-import okio.Buffer;
-import okio.BufferedSource;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -35,13 +33,9 @@ import java.util.List;
 import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.verify;
 
-/**
- * Created by Dimitard on 19.4.2017 г..
- */
 public class RealMultiCallTest {
 
     private static final int MOCK_TIMEOUT_TIME = 500;
@@ -72,7 +66,6 @@ public class RealMultiCallTest {
     public void testExecuteMarksTheMultiCallAsExecuted() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
         mockConnection(connection);
-
         RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
 
         multiCall.execute();
@@ -207,7 +200,7 @@ public class RealMultiCallTest {
 
         ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 
-        verify(callback).onComplete(eq(call), any(MultiResponse.class));
+        verify(callback).onComplete(eq(call), notNull(MultiResponse.class));
         verify(connectionProvider).recycleConnection(connection);
         verify(callback, times(call.requests().size())).onResponse(eq(call), captor.capture(), any(Response.class));
 
@@ -242,9 +235,9 @@ public class RealMultiCallTest {
 
         call.enqueue(callback);
 
-        verify(callback).onResponse(eq(call), eq(0), any(Response.class));
-        verify(callback, never()).onComplete(eq(call), any(MultiResponse.class));
-        verify(callback).onFailure(eq(call), any(IOException.class), any(List.class));
+        verify(callback).onResponse(eq(call), eq(0), notNull(Response.class));
+        verify(callback, never()).onComplete(eq(call), notNull(MultiResponse.class));
+        verify(callback).onFailure(eq(call), notNull(IOException.class), notNull(List.class));
         verify(connectionProvider, never()).recycleConnection(connection);
         verify(connection).close();
     }

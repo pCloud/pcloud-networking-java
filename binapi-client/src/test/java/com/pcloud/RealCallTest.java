@@ -17,28 +17,22 @@
 package com.pcloud;
 
 import com.pcloud.protocol.streaming.BytesReader;
-import com.pcloud.protocol.streaming.ProtocolWriter;
 import org.assertj.core.api.ThrowableAssert;
-import org.junit.*;
-import org.mockito.internal.matchers.Any;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
-import java.net.ProtocolException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.*;
 
-import static org.assertj.core.api.Assertions.in;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
-/**
- * Created by Dimitard on 13.4.2017 г..
- */
 public class RealCallTest {
 
     private static final String MOCK_HOST = "mockbinapi@pcloud.com";
@@ -77,7 +71,6 @@ public class RealCallTest {
         RealCall call = getMockRealCall(request, executor);
 
         call.execute();
-
         assertTrue(call.isExecuted());
     }
 
@@ -104,7 +97,6 @@ public class RealCallTest {
         mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));
 
         final RealCall call = getMockRealCall(request, executor);
-
         call.cancel();
 
         assertThatThrownBy(new ThrowableAssert.ThrowingCallable() {
@@ -142,10 +134,10 @@ public class RealCallTest {
         final RealCall call = getMockRealCall(request, realExecutor);
 
         Response response = call.enqueueAndWait();
+        verify(connectionProvider).obtainConnection(endpoint);
         readResponse((BytesReader)response.responseBody().reader());
         response.responseBody().close();
 
-        verify(connectionProvider).obtainConnection(endpoint);
         verify(connectionProvider).recycleConnection(connection);
     }
 
@@ -196,8 +188,8 @@ public class RealCallTest {
 
         call.enqueue(callback);
 
-        verify(callback).onResponse(eq(call), any(Response.class));
-        verify(callback, never()).onFailure(eq(call), any(IOException.class));
+        verify(callback).onResponse(eq(call), notNull(Response.class));
+        verify(callback, never()).onFailure(eq(call), notNull(IOException.class));
     }
 
     @Test
@@ -209,7 +201,6 @@ public class RealCallTest {
         mockConnection(connection);
 
         final RealCall call = getMockRealCall(request, executor);
-
 
         Callback callback = mock(Callback.class);
         when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
@@ -224,8 +215,8 @@ public class RealCallTest {
 
         call.enqueue(callback);
 
-        verify(callback).onFailure(eq(call), any(IOException.class));
-        verify(callback, never()).onResponse(eq(call), any(Response.class));
+        verify(callback).onFailure(eq(call), notNull(IOException.class));
+        verify(callback, never()).onResponse(eq(call), notNull(Response.class));
     }
 
     @Test
@@ -234,7 +225,6 @@ public class RealCallTest {
         Connection connection = createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE);
 
         mockConnection(connection);
-
         final RealCall call = getMockRealCall(request, executor);
 
         Response response = call.execute();
@@ -274,8 +264,6 @@ public class RealCallTest {
         mockConnection(connection);
 
         final RealCall call = getMockRealCall(request, executor);
-
-
         call.execute();
 
         verify(connectionProvider).obtainConnection(endpoint);
@@ -295,7 +283,7 @@ public class RealCallTest {
 
         try {
             call.execute();
-        } catch (Exception e) {
+        } catch (IOException e) {
             verify(connectionProvider).obtainConnection(endpoint);
             verify(connection).close();
         }
@@ -315,13 +303,13 @@ public class RealCallTest {
 
         try {
             call.execute();
-        } catch (Exception e) {
+        } catch (IOException e) {
             verify(connectionProvider).obtainConnection(endpoint);
             verify(connection).close();
         }
     }
 
-    public void readResponse(BytesReader reader) throws IOException {
+    private void readResponse(BytesReader reader) throws IOException {
         reader.beginObject();
         while(reader.hasNext()) {
             reader.skipValue();
