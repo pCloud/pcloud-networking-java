@@ -18,6 +18,9 @@ package com.pcloud.internal;
 
 import java.util.regex.Pattern;
 
+/**
+ * A utility class that checks to see if {@code host} is a host name or an IP address
+ */
 public class Utils {
 
     private static final Pattern VERIFY_AS_IP_ADDRESS = Pattern.compile(
@@ -26,7 +29,12 @@ public class Utils {
     private Utils() {
     }
 
-    /** Returns true if {@code host} is not a host name and might be an IP address. */
+    /**
+     * Checks to see if the {@code host} is host name or an IP address
+     *
+     * @param host The host name to be checked
+     * @return true if {@code host} is not a host name and might be an IP address.
+     */
     public static boolean verifyAsIpAddress(String host) {
         return VERIFY_AS_IP_ADDRESS.matcher(host).matches();
     }

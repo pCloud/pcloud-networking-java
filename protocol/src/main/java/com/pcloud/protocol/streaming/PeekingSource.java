@@ -46,7 +46,7 @@ class PeekingSource extends ForwardingSource {
             sourceExhausted = source.request(offset + byteCount - bytesLeftInBuffer);
         }
 
-        long bytesRead = Math.min(byteCount, sourceBuffer.size());
+        long bytesRead = Math.min(byteCount, sourceBuffer.size() - offset);
         sourceBuffer.copyTo(sink, offset, bytesRead);
         offset += bytesRead;
         return bytesRead;

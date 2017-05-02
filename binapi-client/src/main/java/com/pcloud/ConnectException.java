@@ -18,8 +18,16 @@ package com.pcloud;
 
 import java.io.IOException;
 
+/**
+ * Thrown when a {@linkplain Connection} can not be established to the server.
+ */
 @SuppressWarnings("WeakerAccess")
 public class ConnectException extends IOException {
+    /**
+     * Creates a new instance of {@linkplain ConnectException}
+     *
+     * @param cause The cause of this exception
+     */
     public ConnectException(Throwable cause) {
         super(cause);
     }
