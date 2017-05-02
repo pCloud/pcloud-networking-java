@@ -18,7 +18,7 @@ package com.pcloud.networking;
 
 
 /**
- * A contact for an object able to intercept an {@linkplain ApiResponse} and interact with it before it is delivered
+ * A contract for an object able to intercept an {@linkplain ApiResponse} and interact with it before it is delivered
  *
  * @see ApiResponse
  */
