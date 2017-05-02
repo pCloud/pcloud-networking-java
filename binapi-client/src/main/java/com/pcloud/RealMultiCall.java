@@ -18,6 +18,7 @@ package com.pcloud;
 
 import com.pcloud.protocol.streaming.*;
 import okio.Buffer;
+import okio.BufferedSource;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -47,7 +48,7 @@ class RealMultiCall implements MultiCall {
 
     @Override
     public List<Request> requests() {
-        return null;
+        return requests;
     }
 
     @Override
@@ -138,7 +139,7 @@ class RealMultiCall implements MultiCall {
                 initializeResponseMap(responseMap, expectedCount);
 
                 Endpoint endpoint = requests.get(0).endpoint();
-                RealConnection connection = null;
+                Connection connection = null;
                 boolean success = false;
                 boolean callingCallback = false;
                 try {
@@ -146,7 +147,7 @@ class RealMultiCall implements MultiCall {
                         throw new IOException("Cancelled.");
                     }
 
-                    connection = (RealConnection) connectionProvider.obtainConnection(endpoint);
+                    connection = connectionProvider.obtainConnection(endpoint);
                     RealMultiCall.this.connection = connection;
 
                     //Write the requests.
