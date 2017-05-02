@@ -24,27 +24,31 @@ import java.io.IOException;
 
 class PeekingSource extends ForwardingSource {
 
-    private Buffer source;
+    private Buffer sourceBuffer;
+    private BufferedSource source;
     private long offset;
+    private boolean sourceExhausted;
 
     PeekingSource(BufferedSource delegate, long offset) {
         super(delegate);
         this.offset = offset;
-        this.source = delegate.buffer();
+        this.source = delegate;
+        this.sourceBuffer = source.buffer();
     }
 
     @Override
     public long read(Buffer sink, long byteCount) throws IOException {
-        // Require 'byteCount' bytes ahead of current offset.
-        long bytesRead = source.request(offset + byteCount) ?
-                byteCount : source.size() - offset;
-        if (bytesRead > 0) {
-            source.copyTo(sink, offset, bytesRead);
-            offset += bytesRead;
-            return bytesRead;
-        } else {
-            return -1;
+        long bytesLeftInBuffer = sourceBuffer.size();
+        if (bytesLeftInBuffer < byteCount) {
+            if (bytesLeftInBuffer == 0 && sourceExhausted) {
+                return -1;
+            }
+            sourceExhausted = source.request(offset + byteCount - bytesLeftInBuffer);
         }
-    }
 
+        long bytesRead = Math.min(byteCount, sourceBuffer.size() - offset);
+        sourceBuffer.copyTo(sink, offset, bytesRead);
+        offset += bytesRead;
+        return bytesRead;
+    }
 }

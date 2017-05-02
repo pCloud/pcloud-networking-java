@@ -1,7 +1,22 @@
 group 'com.pcloud'
 version '1.0-SNAPSHOT'
 
-
 repositories {
     mavenCentral()
+}
+
+allprojects {
+    apply plugin: 'java'
+    apply plugin: 'checkstyle'
+    checkstyle {
+        configFile file("${rootDir}/checkstyle.xml")
+        showViolations = true
+        ignoreFailures = false
+    }
+
+    tasks.withType(Checkstyle) {
+        reports {
+            html.destination rootProject.file("build/reports/checkstyle.html")
+        }
+    }
 }
