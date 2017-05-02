@@ -53,6 +53,9 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<MultiCall<T, R>> {
     @Override
     public MultiCall<T, R> invoke(ApiComposer apiComposer, Object[] args) throws IOException {
         List<T> requests = argumentsRequestContainerAdapter.convert(args[0]);
+        if(requests == null){
+            throw new IllegalArgumentException("The requests container cannot be null!");
+        }
         List<Request> rawRequests = new ArrayList<>(requests.size());
         final Request.Builder builder = Request.create()
                 .endpoint(apiComposer.endpointProvider().endpoint())
@@ -118,6 +121,9 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<MultiCall<T, R>> {
                 containerAdapter = new RequestContainerAdapter<T[], T>() {
                     @Override
                     public List<T> convert(T[] requestsContainer) {
+                        if(requestsContainer == null){
+                            throw new IllegalArgumentException("The requests container cannot be null!");
+                        }
                         return Arrays.asList(requestsContainer);
                     }
                 };

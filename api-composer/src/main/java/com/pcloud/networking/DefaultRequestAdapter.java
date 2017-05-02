@@ -29,6 +29,7 @@ class DefaultRequestAdapter implements RequestAdapter{
         this.argumentAdapters = argumentAdapters;
     }
 
+    @SuppressWarnings("unchecked")// ArgumentAdapters are already of the required type.
     @Override
     public void adapt(final Request.Builder requestBuilder, final Object... args)  throws IOException{
 

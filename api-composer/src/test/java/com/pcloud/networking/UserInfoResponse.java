@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package com.pcloud.example;
-
-import com.pcloud.networking.ApiResponse;
-import com.pcloud.networking.ParameterValue;
+package com.pcloud.networking;
 
 public class UserInfoResponse extends ApiResponse {
 
