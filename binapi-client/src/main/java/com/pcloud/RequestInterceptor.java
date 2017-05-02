@@ -21,7 +21,7 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import java.io.IOException;
 
 /**
- * A contact for an interceptor which is able to intercept an network request and write some data to it
+ * A contract for an interceptor which is able to intercept an network request and write some data to it
  *
  * @see Request
  * @see ProtocolWriter
