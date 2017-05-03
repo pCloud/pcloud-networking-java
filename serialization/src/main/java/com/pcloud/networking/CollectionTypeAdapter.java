@@ -23,7 +23,7 @@ import com.pcloud.protocol.streaming.UnserializableTypeException;
 import java.io.IOException;
 import java.util.Collection;
 
-abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T>{
+abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T> {
 
     private TypeAdapter<E> elementAdapter;
 

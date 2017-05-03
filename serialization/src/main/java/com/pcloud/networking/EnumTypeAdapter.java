@@ -32,14 +32,14 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
     EnumTypeAdapter(Class<T> enumType) {
         this.enumType = enumType;
         try {
-            T[]constants = enumType.getEnumConstants();
+            T[] constants = enumType.getEnumConstants();
             this.nameToConstantMap = new HashMap<>(constants.length);
             this.constantToNameMap = new HashMap<>(constants.length);
             for (int i = 0; i < constants.length; i++) {
                 T constant = constants[i];
                 ParameterValue annotation = enumType.getField(constant.name()).getAnnotation(ParameterValue.class);
                 String name = annotation != null && !annotation.value().equals(ParameterValue.DEFAULT_NAME) ?
-                        annotation.value() : constant.name();
+                                      annotation.value() : constant.name();
                 nameToConstantMap.put(name, constant);
                 constantToNameMap.put(constant, name);
             }
@@ -49,15 +49,20 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
     }
 
 
-
     @Override
     public T deserialize(ProtocolReader reader) throws IOException {
         String name = reader.readString();
         T enumConstant = nameToConstantMap.get(name);
-        if (enumConstant != null){
+        if (enumConstant != null) {
             return enumConstant;
         } else {
-            throw new SerializationException("Cannot deserialize '"+enumType.getName()+"':\nExpected one of " + nameToConstantMap.keySet() + " but was '" + name + "'.");
+            throw new SerializationException("Cannot deserialize '" +
+                                                     enumType.getName() +
+                                                     "':\nExpected one of " +
+                                                     nameToConstantMap.keySet() +
+                                                     " but was '" +
+                                                     name +
+                                                     "'.");
         }
     }
 
@@ -67,7 +72,8 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
         writer.writeValue(name);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "TypeAdapter[" + enumType.getName() + "]";
     }
 }

@@ -18,13 +18,12 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.SerializationException;
 import com.pcloud.protocol.streaming.UnserializableTypeException;
 
 import java.io.IOException;
 import java.util.Map;
 
-abstract class MapTypeAdapter<K,V> extends TypeAdapter<Map<K,V>>{
+abstract class MapTypeAdapter<K, V> extends TypeAdapter<Map<K, V>> {
 
     private TypeAdapter<K> keyAdapter;
     private TypeAdapter<V> valueAdapter;
@@ -35,8 +34,8 @@ abstract class MapTypeAdapter<K,V> extends TypeAdapter<Map<K,V>>{
     }
 
     @Override
-    public Map<K,V> deserialize(ProtocolReader reader) throws IOException {
-        Map<K,V> container = instantiateCollection();
+    public Map<K, V> deserialize(ProtocolReader reader) throws IOException {
+        Map<K, V> container = instantiateCollection();
         reader.beginObject();
         while (reader.hasNext()) {
             container.put(keyAdapter.deserialize(reader), valueAdapter.deserialize(reader));
@@ -46,9 +45,9 @@ abstract class MapTypeAdapter<K,V> extends TypeAdapter<Map<K,V>>{
     }
 
     @Override
-    public void serialize(ProtocolWriter writer, Map<K,V> value) throws IOException {
+    public void serialize(ProtocolWriter writer, Map<K, V> value) throws IOException {
         throw new UnserializableTypeException(value.getClass());
     }
 
-    protected abstract Map<K,V> instantiateCollection();
+    protected abstract Map<K, V> instantiateCollection();
 }
