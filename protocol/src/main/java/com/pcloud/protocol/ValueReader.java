@@ -41,14 +41,14 @@ public class ValueReader {
             case BEGIN_OBJECT:
                 return readObject(reader);
             default:
-                throw new IOException("Unexpected token '"+ token.toString()+"'.");
+                throw new IOException("Unexpected token '" + token.toString() + "'.");
         }
     }
 
     public Map<String, ?> readObject(ProtocolReader reader) throws IOException {
         reader.beginObject();
-        Map<String,? super Object> values = new HashMap<>();
-        while (reader.hasNext()){
+        Map<String, ? super Object> values = new HashMap<>();
+        while (reader.hasNext()) {
             values.put(reader.readString(), read(reader));
         }
         reader.endObject();
