@@ -24,7 +24,7 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-/** Controls wheter a field should serialized to/desrialized from binary protocol values.
+/** Controls whether a field should be serialized to/deserialised from binary protocol values.
  * <p>
  * The {@linkplain #value()} property allows control over the name to be used during transformation*/
 @Target({FIELD, METHOD})
