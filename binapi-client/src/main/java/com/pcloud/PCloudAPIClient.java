@@ -36,6 +36,18 @@ import java.util.concurrent.ThreadFactory;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+/**
+ * An implementation of a client used to make network calls
+ * <p>
+ * Used to produce {@linkplain Call} and {@linkplain MultiCall} objects to make network requests to the server
+ *
+ * @see MultiCall
+ * @see Call
+ * @see Request
+ * @see Response
+ * @see MultiResponse
+ * @see RequestInterceptor
+ */
 public class PCloudAPIClient {
 
     private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
@@ -93,6 +105,14 @@ public class PCloudAPIClient {
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
 
+
+    /**
+     * Produces a new instance of a {@linkplain Call} object to make a network call
+     *
+     * @param request A {@linkplain Request} for this call
+     * @return A new instance of a {@linkplain Call} object with the specified {@linkplain Request}
+     * @throws IllegalArgumentException on a null {@linkplain Request} argument
+     */
     public Call newCall(Request request) {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null.");
@@ -103,6 +123,19 @@ public class PCloudAPIClient {
                                    new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
+    /**
+     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls
+     * <p>
+     * Note that all requests you wish to execute with a {@linkplain MultiCall}
+     * need to be opted for the same endpoint.
+     *
+     * @param requests A {@linkplain Collection} of {@linkplain Request} objects for this call
+     * @return A new instance of a {@linkplain MultiCall} object with the specified requests
+     * @throws IllegalArgumentException on a null {@linkplain Collection},
+     *                                  on an empty {@linkplain Collection},
+     *                                  on a {@linkplain Collection} containing null elements or
+     *                                  if the {@linkplain Collection} contains {@linkplain Request} objects opted for different endpoints
+     */
     public MultiCall newCall(Collection<Request> requests) {
         if (requests == null) {
             throw new IllegalArgumentException("Requests collection cannot be null.");
@@ -130,47 +163,102 @@ public class PCloudAPIClient {
                                         new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
+    /**
+     * Returns the maximum amount of time a connection should take to establish itself in milliseconds as an int
+     *
+     * @return The maximum amount of time a connection should take to establish itself in milliseconds as an int
+     */
     public int connectTimeout() {
         return connectTimeoutMs;
     }
 
+    /**
+     * Returns the write timeout in milliseconds
+     *
+     * @return The write timeout in milliseconds
+     */
     public int writeTimeout() {
         return writeTimeoutMs;
     }
 
+    /**
+     * Returns the read timeout in milliseconds
+     *
+     * @return The read timeout in milliseconds
+     */
     public int readTimeout() {
         return readTimeoutMs;
     }
 
+    /**
+     * Returns the {@linkplain SocketFactory} for of this client
+     *
+     * @return The {@linkplain SocketFactory} for this client
+     */
     public SocketFactory socketFactory() {
         return socketFactory;
     }
 
+    /**
+     * Returns the {@linkplain SSLSocketFactory} for this client
+     *
+     * @return The {@linkplain SSLSocketFactory} for this client
+     */
     public SSLSocketFactory sslSocketFactory() {
         return sslSocketFactory;
     }
 
+    /**
+     * Returns the {@linkplain HostnameVerifier} for this client
+     *
+     * @return The {@linkplain HostnameVerifier} for this client
+     */
     public HostnameVerifier hostnameVerifier() {
         return hostnameVerifier;
     }
 
+    /**
+     * Returns the {@linkplain ConnectionPool} for this client
+     *
+     * @return The {@linkplain ConnectionPool} for this client
+     */
     public ConnectionPool connectionPool() {
         return connectionPool;
     }
 
+
+    /**
+     * Returns the {@linkplain ExecutorService} for this client
+     *
+     * @return The {@linkplain ExecutorService} for this client
+     */
     public ExecutorService callExecutor() {
         return callExecutor;
     }
 
+    /**
+     * Returns a {@linkplain List} of {@linkplain RequestInterceptor} for this client
+     *
+     * @return A {@linkplain List} of {@linkplain RequestInterceptor} for this client
+     */
     public List<RequestInterceptor> interceptors() {
         return interceptors;
     }
 
+    /**
+     * Shuts down the client clearing up resources such as idle connections
+     */
     public void shutdown() {
         callExecutor.shutdownNow();
         connectionPool.evictAll();
     }
 
+
+    /**
+     * Returns a new {@linkplain Builder} to construct the {@linkplain PCloudAPIClient}
+     *
+     * @return A new {@linkplain Builder} to construct the {@linkplain PCloudAPIClient}
+     */
     public Builder newBuilder() {
         return new Builder(this);
     }
@@ -182,6 +270,9 @@ public class PCloudAPIClient {
                        .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
     }
 
+    /**
+     * Builds instances of the {@linkplain PCloudAPIClient} and allows different properties to be set as needed
+     */
     public static class Builder {
 
         private int connectTimeoutMs;
@@ -211,6 +302,13 @@ public class PCloudAPIClient {
             this.interceptors = new LinkedList<>();
         }
 
+        /**
+         * Adds a new {@linkplain RequestInterceptor}
+         *
+         * @param interceptor A new {@linkplain RequestInterceptor} to be added to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain RequestInterceptor} argument
+         */
         public Builder addInterceptor(RequestInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("RequestInterceptor cannot be null.");
@@ -219,6 +317,14 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * The same as {@linkplain #addInterceptor(RequestInterceptor)}
+         * but allows adding an entire {@linkplain List} of {@linkplain RequestInterceptor}
+         *
+         * @param interceptors A {@linkplain List} of {@linkplain RequestInterceptor} to be added to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain Collection} or one containing null elements
+         */
         public Builder addInterceptors(Collection<RequestInterceptor> interceptors) {
             if (interceptors == null) {
                 throw new IllegalArgumentException("RequestInterceptor collection cannot be null.");
@@ -229,6 +335,13 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Adds a {@linkplain RequestInterceptor} to the front of the {@linkplain List} of interceptors
+         *
+         * @param interceptor A {@linkplain RequestInterceptor} to be added to the front of the {@linkplain List}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain RequestInterceptor}
+         */
         public Builder addInterceptorAtFront(RequestInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("RequestInterceptor cannot be null.");
@@ -237,21 +350,58 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Sets the connection timeout duration
+         *
+         * @param timeout  The maximum amount of time a connection should take to establish itself
+         * @param timeUnit The unit in which you provided the duration argument
+         * @return A reference to the {@linkplain Builder}
+         * @throws IllegalArgumentException on a null {@linkplain TimeUnit},
+         *                                  0 or a negative value for the duration argument
+         *                                  or a duration argument greater than {@linkplain Integer#MAX_VALUE}
+         */
         public Builder setConnectTimeoutMs(int timeout, TimeUnit timeUnit) {
             this.connectTimeoutMs = convertTimeValue(timeout, timeUnit);
             return this;
         }
 
+        /**
+         * Sets the write timeout duration
+         *
+         * @param timeout  The duration for the write timeout
+         * @param timeUnit The unit in which you specified the duration argument
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain TimeUnit},
+         *                                  0 or a negative value for the duration argument
+         *                                  or a duration argument greater than {@linkplain Integer#MAX_VALUE}
+         */
         public Builder setWriteTimeoutMs(int timeout, TimeUnit timeUnit) {
             this.writeTimeoutMs = convertTimeValue(timeout, timeUnit);
             return this;
         }
 
+        /**
+         * Sets the read timeout duration
+         *
+         * @param timeout  The duration for the read timeout
+         * @param timeUnit The unit in which specified the duration argument
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain TimeUnit},
+         *                                  0 or a negative value for the duration argument
+         *                                  or a duration argument greater than {@linkplain Integer#MAX_VALUE}
+         */
         public Builder setReadTimeout(int timeout, TimeUnit timeUnit) {
             this.readTimeoutMs = convertTimeValue(timeout, timeUnit);
             return this;
         }
 
+        /**
+         * Sets a {@linkplain ConnectionPool} for the client
+         *
+         * @param connectionPool A {@linkplain ConnectionPool} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain ConnectionPool} argument
+         */
         public Builder connectionPool(ConnectionPool connectionPool) {
             if (connectionPool == null) {
                 throw new IllegalArgumentException("ConnectionPool cannot be null.");
@@ -260,6 +410,13 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Sets the {@linkplain SocketFactory} for the client
+         *
+         * @param socketFactory The {@linkplain SocketFactory} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain SocketFactory} argument
+         */
         public Builder setSocketFactory(SocketFactory socketFactory) {
             if (socketFactory == null) {
                 throw new IllegalArgumentException("SocketFactory cannot be null.");
@@ -268,6 +425,13 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Sets the {@linkplain SSLSocketFactory} for the client
+         *
+         * @param sslSocketFactory The {@linkplain SSLSocketFactory} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain SSLSocketFactory} argument
+         */
         public Builder setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
             if (sslSocketFactory == null) {
                 throw new IllegalArgumentException("SSLSocketFactory cannot be null.");
@@ -276,6 +440,13 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Sets the {@linkplain HostnameVerifier} for the client
+         *
+         * @param hostnameVerifier The {@linkplain HostnameVerifier} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain HostnameVerifier} argument
+         */
         public Builder setHostnameVerifier(HostnameVerifier hostnameVerifier) {
             if (hostnameVerifier == null) {
                 throw new IllegalArgumentException("HostnameVerifier cannot be null.");
@@ -284,11 +455,24 @@ public class PCloudAPIClient {
             return this;
         }
 
+        /**
+         * Sets a {@linkplain ExecutorService} for the client
+         * <p>
+         * If no executor is provided or this method is called with a null argument a default {@linkplain ExecutorService} will be set
+         *
+         * @param executorService The {@linkplain ExecutorService} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         */
         public Builder callExecutor(ExecutorService executorService) {
             this.callExecutor = executorService;
             return this;
         }
 
+        /**
+         * Creates the {@linkplain PCloudAPIClient} with all the parameters set with the {@linkplain Builder}
+         *
+         * @return A new instance of the {@linkplain PCloudAPIClient} with the parameters set via the {@linkplain Builder}
+         */
         public PCloudAPIClient create() {
             return new PCloudAPIClient(this);
         }
