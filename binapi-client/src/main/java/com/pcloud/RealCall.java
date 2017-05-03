@@ -26,11 +26,18 @@ import okio.Source;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
 class RealCall implements Call {
+
+    private static final int RESPONSE_LENGTH = 4;
 
     private Request request;
     private volatile boolean cancelled;
@@ -42,7 +49,10 @@ class RealCall implements Call {
     private ConnectionProvider connectionProvider;
     private List<RequestInterceptor> interceptors;
 
-    RealCall(Request request, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
+    RealCall(Request request,
+             ExecutorService callExecutor,
+             List<RequestInterceptor> interceptors,
+             ConnectionProvider connectionProvider) {
         this.request = request;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
@@ -74,14 +84,17 @@ class RealCall implements Call {
         } catch (CancellationException e) {
             throw new IOException(e);
         } finally {
-            if (!success){
+            if (!success) {
                 closeQuietly(response);
             }
         }
     }
 
     @Override
-    public Response enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+    public Response enqueueAndWait(long timeout,
+                                   TimeUnit timeUnit) throws IOException,
+                                                                     InterruptedException,
+                                                                     TimeoutException {
         checkAndMarkExecuted();
         Response response = null;
         boolean success = false;
@@ -97,7 +110,7 @@ class RealCall implements Call {
         } catch (ExecutionException e) {
             throw new IOException(e.getCause());
         } finally {
-            if (!success){
+            if (!success) {
                 closeQuietly(response);
             }
         }
@@ -179,7 +192,7 @@ class RealCall implements Call {
                 writer.writeData(request.dataSource());
             }
 
-            for (RequestInterceptor r: interceptors) {
+            for (RequestInterceptor r : interceptors) {
                 r.intercept(request, writer);
             }
 
@@ -189,9 +202,9 @@ class RealCall implements Call {
             writer.flush();
 
             Response response = Response.create()
-                    .request(request)
-                    .responseBody(createResponseBody(connection))
-                    .build();
+                                        .request(request)
+                                        .responseBody(createResponseBody(connection))
+                                        .build();
             success = true;
             return response;
         } finally {
@@ -203,8 +216,9 @@ class RealCall implements Call {
     }
 
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
-        final long responseLength = IOUtils.peekNumberLe(connection.source(), 4);
-        BufferedSource parametersSource = Okio.buffer(new ResponseParametersSource(connection.source(), responseLength + 4L));
+        final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
+        BufferedSource parametersSource =
+                Okio.buffer(new ResponseParametersSource(connection.source(), responseLength + RESPONSE_LENGTH));
 
         final BytesReader reader = new SelfEndingBytesReader(parametersSource);
         reader.beginResponse();
@@ -228,7 +242,8 @@ class RealCall implements Call {
                 {
                     long dataLength = reader.dataContentLength();
                     if (dataLength == -1) {
-                        throw new IOException("Cannot access data content before the response body has been completely read.");
+                        throw new IOException("Cannot access data content before " +
+                                                      "the response body has been completely read.");
                     } else if (dataLength > 0) {
                         synchronized (reader) {
                             if (data == null) {

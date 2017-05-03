@@ -16,17 +16,32 @@
 
 package com.pcloud;
 
-import com.pcloud.protocol.streaming.*;
+import com.pcloud.protocol.streaming.BytesReader;
+import com.pcloud.protocol.streaming.BytesWriter;
+import com.pcloud.protocol.streaming.ProtocolReader;
+import com.pcloud.protocol.streaming.ProtocolRequestWriter;
+import com.pcloud.protocol.streaming.ProtocolResponseReader;
 import okio.Buffer;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
 class RealMultiCall implements MultiCall {
+
+    private static final int RESPONSE_LENGTH = 4;
 
     private List<Request> requests;
     private boolean executed;
@@ -38,7 +53,10 @@ class RealMultiCall implements MultiCall {
     private List<RequestInterceptor> interceptors;
     private ConnectionProvider connectionProvider;
 
-    RealMultiCall(List<Request> requests, ExecutorService callExecutor, List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
+    RealMultiCall(List<Request> requests,
+                  ExecutorService callExecutor,
+                  List<RequestInterceptor> interceptors,
+                  ConnectionProvider connectionProvider) {
         this.requests = requests;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
@@ -113,7 +131,8 @@ class RealMultiCall implements MultiCall {
     }
 
     @Override
-    public MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+    public MultiResponse enqueueAndWait(long timeout,
+                                        TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
         try {
             return callExecutor.submit(new Callable<MultiResponse>() {
@@ -260,9 +279,9 @@ class RealMultiCall implements MultiCall {
 
     private int readNextResponse(final Connection connection, Map<Integer, Response> responseMap) throws IOException {
 
-        final long responseLength = IOUtils.peekNumberLe(connection.source(), 4);
+        final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
         final Buffer responseBuffer = new Buffer();
-        connection.source().read(responseBuffer, responseLength + 4);
+        connection.source().read(responseBuffer, responseLength + RESPONSE_LENGTH);
 
         final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
 
@@ -319,9 +338,9 @@ class RealMultiCall implements MultiCall {
 
         reader.beginResponse();
         Response response = Response.create()
-                .request(requests.get(id))
-                .responseBody(responseBody)
-                .build();
+                                    .request(requests.get(id))
+                                    .responseBody(responseBody)
+                                    .build();
         if (responseMap.put(id, response) != null) {
             throw new IOException("Server responded with multiple responses with id '" + id + "'.");
         }

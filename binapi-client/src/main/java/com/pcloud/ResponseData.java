@@ -27,7 +27,7 @@ import java.io.InputStream;
 import static com.pcloud.IOUtils.closeQuietly;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-public class ResponseData implements Closeable{
+public class ResponseData implements Closeable {
 
     private final BufferedSource source;
     private final long contentLength;

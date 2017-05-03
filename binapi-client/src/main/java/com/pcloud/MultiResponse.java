@@ -29,15 +29,15 @@ public class MultiResponse implements Closeable {
         this.responses = Collections.unmodifiableList(responses);
     }
 
-    public Request request(int index){
+    public Request request(int index) {
         return responses.get(index).request();
     }
 
-    public Response response(int key){
+    public Response response(int key) {
         return responses.get(key);
     }
 
-    public List<Response> responses(){
+    public List<Response> responses() {
         return responses;
     }
 

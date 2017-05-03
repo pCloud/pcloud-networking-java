@@ -31,7 +31,8 @@ public interface MultiCall extends Cloneable {
 
     MultiResponse enqueueAndWait() throws IOException, InterruptedException;
 
-    MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException;
+    MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException;
 
     void enqueue(MultiCallback callback);
 

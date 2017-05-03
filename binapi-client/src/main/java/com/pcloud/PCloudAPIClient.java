@@ -21,13 +21,27 @@ import com.pcloud.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.util.*;
-import java.util.concurrent.*;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Collections;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadFactory;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class PCloudAPIClient {
+
+    private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 15;
+    private static final int DEFAULT_READ_TIMEOUT_MS = 30;
+    private static final int DEFAULT_WRITE_TIMEOUT_MS = 30;
 
     private int connectTimeoutMs;
     private int writeTimeoutMs;
@@ -49,29 +63,47 @@ public class PCloudAPIClient {
         this.readTimeoutMs = builder.readTimeoutMs;
 
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
-        this.sslSocketFactory = builder.sslSocketFactory != null ? builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
-        this.hostnameVerifier = builder.hostnameVerifier != null ? builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
+        this.sslSocketFactory =
+                builder.sslSocketFactory != null ?
+                        builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
+        this.hostnameVerifier =
+                builder.hostnameVerifier != null ?
+                        builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
-        this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier, connectTimeoutMs, readTimeoutMs, MILLISECONDS);
+        this.connectionFactory =
+                new ConnectionFactory(socketFactory,
+                                             sslSocketFactory,
+                                             hostnameVerifier,
+                                             connectTimeoutMs,
+                                             readTimeoutMs,
+                                             MILLISECONDS);
         this.callExecutor = builder.callExecutor != null ? builder.callExecutor :
-                new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
-                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "PCloud API Client");
-                    }
-                });
+                                    new ThreadPoolExecutor(0,
+                                                                  Integer.MAX_VALUE,
+                                                                  DEFAULT_KEEP_ALIVE_TIME_MS,
+                                                                  TimeUnit.SECONDS,
+                                                                  new SynchronousQueue<Runnable>(),
+                                                                  //for some reason the formatting below
+                                                                  //is an okay indentation for checkstyle...
+                                                                  new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "PCloud API Client");
+                } });
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
 
-    public Call newCall(Request request){
+    public Call newCall(Request request) {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null.");
         }
-        return new RealCall(request, callExecutor, interceptors, new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealCall(request,
+                                   callExecutor,
+                                   interceptors,
+                                   new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
-    public MultiCall newCall(Collection<Request> requests){
+    public MultiCall newCall(Collection<Request> requests) {
         if (requests == null) {
             throw new IllegalArgumentException("Requests collection cannot be null.");
         }
@@ -81,18 +113,21 @@ public class PCloudAPIClient {
         }
 
         Endpoint endpoint = null;
-        for (Request request: requests) {
+        for (Request request : requests) {
             if (request == null) {
                 throw new IllegalArgumentException("Collection cannot contain null requests.");
             }
 
-            if (endpoint != null && !endpoint.equals(request.endpoint())){
+            if (endpoint != null && !endpoint.equals(request.endpoint())) {
                 throw new IllegalArgumentException("Requests from the collection must be opted for the same endpoint.");
             }
             endpoint = request.endpoint();
         }
 
-        return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors, new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealMultiCall(new ArrayList<>(requests),
+                                        callExecutor,
+                                        interceptors,
+                                        new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     public int connectTimeout() {
@@ -123,7 +158,9 @@ public class PCloudAPIClient {
         return connectionPool;
     }
 
-    public ExecutorService callExecutor() {return callExecutor;};
+    public ExecutorService callExecutor() {
+        return callExecutor;
+    }
 
     public List<RequestInterceptor> interceptors() {
         return interceptors;
@@ -134,15 +171,15 @@ public class PCloudAPIClient {
         connectionPool.evictAll();
     }
 
-    public Builder newBuilder(){
+    public Builder newBuilder() {
         return new Builder(this);
     }
 
     public static Builder newClient() {
         return new Builder()
-                .setConnectTimeoutMs(15, SECONDS)
-                .setWriteTimeoutMs(30, SECONDS)
-                .setReadTimeout(30, SECONDS);
+                       .setConnectTimeoutMs(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
+                       .setWriteTimeoutMs(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
+                       .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
     }
 
     public static class Builder {
@@ -174,7 +211,7 @@ public class PCloudAPIClient {
             this.interceptors = new LinkedList<>();
         }
 
-        public Builder addInterceptor(RequestInterceptor interceptor){
+        public Builder addInterceptor(RequestInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("RequestInterceptor cannot be null.");
             }
@@ -182,17 +219,17 @@ public class PCloudAPIClient {
             return this;
         }
 
-        public Builder addInterceptors(Collection<RequestInterceptor> interceptors){
+        public Builder addInterceptors(Collection<RequestInterceptor> interceptors) {
             if (interceptors == null) {
                 throw new IllegalArgumentException("RequestInterceptor collection cannot be null.");
             }
-            for (RequestInterceptor r :interceptors){
+            for (RequestInterceptor r : interceptors) {
                 addInterceptor(r);
             }
             return this;
         }
 
-        public Builder addInterceptorAtFront(RequestInterceptor interceptor){
+        public Builder addInterceptorAtFront(RequestInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("RequestInterceptor cannot be null.");
             }

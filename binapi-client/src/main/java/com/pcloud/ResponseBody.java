@@ -24,11 +24,11 @@ import java.io.IOException;
 import java.util.Map;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
-public abstract class ResponseBody implements Closeable{
+public abstract class ResponseBody implements Closeable {
 
     public abstract ProtocolReader reader();
 
-    public final Map<String,?> toValues() throws IOException {
+    public final Map<String, ?> toValues() throws IOException {
         return new ValueReader().readObject(reader());
     }
 
@@ -38,6 +38,6 @@ public abstract class ResponseBody implements Closeable{
 
     @Override
     public String toString() {
-        return String.format("[Response]: %d bytes",contentLength());
+        return String.format("[Response]: %d bytes", contentLength());
     }
 }

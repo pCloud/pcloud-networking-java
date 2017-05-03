@@ -48,7 +48,9 @@ public class Request {
         return dataSource;
     }
 
-    public Endpoint endpoint() {return endpoint;}
+    public Endpoint endpoint() {
+        return endpoint;
+    }
 
     public Builder newRequest() {
         return new Builder(this);
@@ -56,7 +58,7 @@ public class Request {
 
     @Override
     public String toString() {
-        return String.format("Method:\'%s\', hasData=%s\n%s", methodName, dataSource!= null, body.toString());
+        return String.format("Method:\'%s\', hasData=%s\n%s", methodName, dataSource != null, body.toString());
     }
 
     @SuppressWarnings({"WeakerAccess", "unused"})
@@ -66,7 +68,8 @@ public class Request {
         private DataSource dataSource;
         private Endpoint endpoint = Endpoint.DEFAULT;
 
-        private Builder(){}
+        private Builder() {
+        }
 
         private Builder(Request request) {
             methodName = request.methodName;

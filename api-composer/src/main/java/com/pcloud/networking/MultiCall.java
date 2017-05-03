@@ -30,8 +30,8 @@ import java.util.concurrent.TimeoutException;
  * the same thread blocking until its done or an exception is thrown
  * <li> {@linkplain #enqueue(MultiCallback)} will asynchronously enqueue on another thread
  * calling a {@linkplain MultiCallback} to report progress, success or failure
- * <li> {@linkplain #enqueueAndWait()} will enqueue on another thread but will block the
- * calling thread until its done or an exception is thrown
+ * <li> {@linkplain #enqueueAndWait()} will enqueue on another thread but will
+ * block the calling thread until its done or an exception is thrown
  * <li> Can be used only once. You can check if this call has been executed via {@linkplain #isExecuted()}
  * <li> To reuse you can call {@linkplain #clone()} and execute the clone object
  * <li> It is safe to call {@linkplain #cancel()} multiple times

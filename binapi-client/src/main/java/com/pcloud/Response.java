@@ -27,7 +27,7 @@ public class Response implements Closeable {
         private ResponseBody responseBody;
         private Request request;
 
-        private Builder(){
+        private Builder() {
 
         }
 
