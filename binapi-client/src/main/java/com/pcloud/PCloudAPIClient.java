@@ -75,13 +75,17 @@ public class PCloudAPIClient {
         this.readTimeoutMs = builder.readTimeoutMs;
 
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
+
         this.sslSocketFactory =
                 builder.sslSocketFactory != null ?
                         builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
+
         this.hostnameVerifier =
                 builder.hostnameVerifier != null ?
                         builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
+
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
+
         this.connectionFactory =
                 new ConnectionFactory(socketFactory,
                                              sslSocketFactory,
@@ -89,19 +93,21 @@ public class PCloudAPIClient {
                                              connectTimeoutMs,
                                              readTimeoutMs,
                                              MILLISECONDS);
+
+        ThreadFactory threadFactory = new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                return new Thread(r, "PCloud API Client");
+            }
+        };
         this.callExecutor = builder.callExecutor != null ? builder.callExecutor :
                                     new ThreadPoolExecutor(0,
                                                                   Integer.MAX_VALUE,
                                                                   DEFAULT_KEEP_ALIVE_TIME_MS,
                                                                   TimeUnit.SECONDS,
                                                                   new SynchronousQueue<Runnable>(),
-                                                                  //for some reason the formatting below
-                                                                  //is an okay indentation for checkstyle...
-                                                                  new ThreadFactory() {
-                @Override
-                public Thread newThread(Runnable r) {
-                    return new Thread(r, "PCloud API Client");
-                } });
+                                                                  threadFactory);
+
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
 

@@ -184,7 +184,7 @@ public class ConnectionPool {
     public void evictAll() {
         List<Connection> evictedConnections = new ArrayList<>();
         synchronized (this) {
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 Connection connection = i.next();
                 evictedConnections.add(connection);
                 i.remove();
@@ -204,7 +204,7 @@ public class ConnectionPool {
         // Find either a connection to evict, or the time that the next eviction is due.
         synchronized (this) {
             idleConnectionCount = connections.size();
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 RealConnection connection = (RealConnection) i.next();
 
                 // If the connection is ready to be evicted, we're done.

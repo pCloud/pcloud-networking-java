@@ -79,7 +79,8 @@ public interface MultiCall extends Cloneable {
      * @throws InterruptedException On interruption of the waiting thread
      * @throws TimeoutException     If all the calls have not been executed prior to the maximum time specified running out
      */
-    MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException;
+    MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException;
 
     /**
      * Executes the call on another thread and does not block the calling thread

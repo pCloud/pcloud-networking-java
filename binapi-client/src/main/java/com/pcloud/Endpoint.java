@@ -21,7 +21,6 @@ import java.net.SocketAddress;
 
 /**
  * Implementation to wrap the details of an endpoint - a host address, a port and a {@linkplain SocketAddress}.
- *
  */
 @SuppressWarnings("WeakerAccess")
 public final class Endpoint {
@@ -48,8 +47,11 @@ public final class Endpoint {
             throw new IllegalArgumentException("The host argument cannot be null!");
         }
         if (port < MINIMUM_PORT_NUMBER || port > MAXIMUM_PORT_NUMBER) {
-            throw new IllegalArgumentException("The port argument can range from "
-                    + MINIMUM_PORT_NUMBER + " to " + MAXIMUM_PORT_NUMBER + " inclusively");
+            throw new IllegalArgumentException("The port argument can range from " +
+                                                       MINIMUM_PORT_NUMBER +
+                                                       " to " +
+                                                       MAXIMUM_PORT_NUMBER +
+                                                       " inclusively");
         }
         this.host = host;
         this.port = port;
