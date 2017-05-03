@@ -24,13 +24,14 @@ import java.io.IOException;
 import java.util.Date;
 
 public class TimestampDateTypeAdapter extends TypeAdapter<Date> {
+    private static final long DATE_MULTIPLIER = 1000L;
     @Override
     public Date deserialize(ProtocolReader reader) throws IOException {
-        return new Date(reader.readNumber() * 1000L);
+        return new Date(reader.readNumber() * DATE_MULTIPLIER);
     }
 
     @Override
     public void serialize(ProtocolWriter writer, Date value) throws IOException {
-        writer.writeValue(value.getTime() / 1000L);
+        writer.writeValue(value.getTime() / DATE_MULTIPLIER);
     }
 }
