@@ -1,8 +1,16 @@
-group 'com.pcloud'
-version '1.0-SNAPSHOT'
 
 repositories {
     mavenCentral()
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+    }
 }
 
 allprojects {
@@ -20,3 +28,5 @@ allprojects {
         }
     }
 }
+
+apply from: rootProject.file('publishing.gradle')
