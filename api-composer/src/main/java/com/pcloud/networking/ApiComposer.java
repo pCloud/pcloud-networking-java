@@ -46,17 +46,20 @@ public class ApiComposer {
     }
 
     private static final List<ApiMethod.Factory> BUILT_IN_FACTORIES = Arrays.asList(
-            DirectApiMethod.FACTORY,
+            MultiCallWrappedApiMethod.FACTORY,
             CallWrappedApiMethod.FACTORY,
-            MultiCallWrappedApiMethod.FACTORY);
+            DirectApiMethod.FACTORY
+            );
 
     private EndpointProvider endpointProvider;
     private PCloudAPIClient apiClient;
     private Transformer transformer;
     private List<ResponseInterceptor> interceptors;
+    private List<CallAdapter.Factory> callAdapterFactories;
 
     private boolean loadEagerly;
     private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
+    private Map<Method, CallAdapter<?,?>> callAdapterCache = new ConcurrentHashMap<>();
     private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_FACTORIES);
 
     private ApiComposer(Builder builder) {
@@ -68,6 +71,7 @@ public class ApiComposer {
         this.apiClient = builder.apiClient;
         this.transformer = builder.transformer != null ? builder.transformer : Transformer.create().build();
         this.interceptors = new ArrayList<>(builder.interceptors);
+        this.callAdapterFactories = new ArrayList<>(builder.callAdapterFactories);
         this.loadEagerly = builder.loadEagerly;
     }
 
@@ -144,6 +148,31 @@ public class ApiComposer {
                 });
     }
 
+
+    public CallAdapter<?, ?> loadCallAdapter(Method method) {
+        CallAdapter<?, ?> callAdapter = callAdapterCache.get(method);
+        if (callAdapter == null) {
+            callAdapter = createCallAdapter(method);
+            if (callAdapter == null) {
+                return null;
+            }
+
+            callAdapterCache.put(method, callAdapter);
+        }
+
+        return callAdapter;
+    }
+
+    private CallAdapter<?,?> createCallAdapter(Method method) {
+        CallAdapter<?,?> callAdapter = null;
+        for (CallAdapter.Factory adapterFactory: callAdapterFactories){
+            if((callAdapter = adapterFactory.get(this, method)) != null) {
+                break;
+            }
+        }
+        return callAdapter;
+    }
+
     private ApiMethod<?> loadApiMethod(Method javaMethod) {
         ApiMethod<?> apiMethod = apiMethodsCache.get(javaMethod);
         if (apiMethod == null) {
@@ -199,6 +228,7 @@ public class ApiComposer {
         private PCloudAPIClient apiClient;
         private Transformer transformer;
         private List<ResponseInterceptor> interceptors = new LinkedList<>();
+        private List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>();
         private boolean loadEagerly;
 
         private Builder() {
@@ -209,6 +239,7 @@ public class ApiComposer {
             this.apiClient = composer.apiClient;
             this.transformer = composer.transformer;
             this.interceptors = new ArrayList<>(composer.interceptors);
+            this.callAdapterFactories = new ArrayList<>(composer.callAdapterFactories);
         }
 
         /**
@@ -322,6 +353,41 @@ public class ApiComposer {
             }
             for (ResponseInterceptor r : interceptors) {
                 addInterceptor(r);
+            }
+            return this;
+        }
+
+        /**
+         * Sets a single {@linkplain CallAdapter.Factory} for this {@linkplain ApiComposer}
+         *
+         * @param adapterFactory The {@linkplain CallAdapter.Factory} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain CallAdapter.Factory} argument
+         */
+        public Builder addAdapterFactory(CallAdapter.Factory adapterFactory) {
+            if (adapterFactory == null) {
+                throw new IllegalArgumentException("CallAdapter.Factory argument cannot be null.");
+            }
+            this.callAdapterFactories.add(adapterFactory);
+            return this;
+        }
+
+        /**
+         * Adds a {@linkplain Collection} of {@linkplain CallAdapter.Factory} objects for the {@linkplain Builder}
+         * <p>
+         * Does the same thing as {@linkplain #addAdapterFactory(CallAdapter.Factory)} for each
+         * {@linkplain CallAdapter.Factory} in the {@linkplain Collection}
+         *
+         * @param adapterFactories A {@linkplain Collection} of {@linkplain CallAdapter.Factory}
+         *                     objects to be added to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         */
+        public Builder addCallAdapterFactories(Collection<CallAdapter.Factory> adapterFactories) {
+            if (adapterFactories == null) {
+                throw new IllegalArgumentException("CallAdapter.Factory collection argument cannot be null.");
+            }
+            for (CallAdapter.Factory factory : adapterFactories) {
+                addAdapterFactory(factory);
             }
             return this;
         }
