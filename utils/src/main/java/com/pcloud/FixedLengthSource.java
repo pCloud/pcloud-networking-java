@@ -29,7 +29,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public abstract class FixedLengthSource implements Source {
 
-    int DISCARD_STREAM_TIMEOUT_MILLIS = 200;
+    private static final int DISCARD_STREAM_TIMEOUT_MILLIS = 200;
 
     private long bytesRemaining;
     private boolean closed;
@@ -70,7 +70,7 @@ public abstract class FixedLengthSource implements Source {
     public synchronized void close() throws IOException {
         if (!closed) {
             if (bytesRemaining != 0 &&
-                    !skipAll(this, DISCARD_STREAM_TIMEOUT_MILLIS, MILLISECONDS)) {
+                        !skipAll(this, DISCARD_STREAM_TIMEOUT_MILLIS, MILLISECONDS)) {
                 scrap(false);
             }
 
@@ -78,7 +78,7 @@ public abstract class FixedLengthSource implements Source {
         }
     }
 
-    public long bytesRemaining(){
+    public long bytesRemaining() {
         return bytesRemaining;
     }
 

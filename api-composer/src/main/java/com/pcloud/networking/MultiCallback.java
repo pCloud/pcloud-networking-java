@@ -27,6 +27,7 @@ import java.util.List;
  * @see MultiCall
  */
 public interface MultiCallback<T, R> {
+
     /**
      * Fires once only if an exception is thrown during the execution of one of the requests
      *
@@ -39,8 +40,10 @@ public interface MultiCallback<T, R> {
     /**
      * Called each time when a response has been received for one of the requests
      *
-     * @param call     A reference for the {@linkplain MultiCall} for which one of the requests has been completed successfully
-     * @param key      The number of the response which corresponds to the number of the request in numerical order
+     * @param call     A reference for the {@linkplain MultiCall} for which one
+     *                 of the requests has been completed successfully
+     * @param key      The number of the response which corresponds to
+     *                 the number of the request in numerical order
      * @param response The response that was received
      */
     void onResponse(MultiCall<T, R> call, int key, R response);

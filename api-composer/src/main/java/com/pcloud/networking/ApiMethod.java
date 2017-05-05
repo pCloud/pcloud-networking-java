@@ -32,7 +32,9 @@ abstract class ApiMethod<T> {
     @SuppressWarnings({"WeakerAccess", "unused"})
     abstract static class Factory {
 
-        abstract com.pcloud.networking.ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
+        abstract com.pcloud.networking.ApiMethod<?> create(ApiComposer composer,
+                                                           Method method, Type[] argumentTypes,
+                                                           Annotation[][] argumentAnnotations);
 
         protected static String parseMethodNameAnnotation(Method javaMethod) {
             com.pcloud.networking.Method methodName = javaMethod.getAnnotation(com.pcloud.networking.Method.class);
@@ -58,7 +60,9 @@ abstract class ApiMethod<T> {
         }
 
         @SuppressWarnings("unchecked")
-        protected static <T> ResponseAdapter<T> getResponseAdapter(ApiComposer composer, Method method, Class<T> returnType) {
+        protected static <T> ResponseAdapter<T> getResponseAdapter(ApiComposer composer,
+                                                                   Method method,
+                                                                   Class<T> returnType) {
             if (ApiResponse.class.isAssignableFrom(returnType)) {
                 TypeAdapter<T> typeAdapter = getTypeAdapter(composer, method, returnType);
                 if (DataApiResponse.class.isAssignableFrom(returnType)) {
@@ -75,7 +79,9 @@ abstract class ApiMethod<T> {
             }
         }
 
-        protected static RequestAdapter getRequestAdapter(ApiComposer composer, Method method, Type[] parameterTypes, Annotation[][] annotations) {
+        protected static RequestAdapter getRequestAdapter(ApiComposer composer, Method method,
+                                                          Type[] parameterTypes,
+                                                          Annotation[][] annotations) {
             int argumentCount = parameterTypes.length;
             boolean hasDataParameter = false;
             ArgumentAdapter[] argumentAdapters = new ArgumentAdapter[argumentCount];
@@ -97,8 +103,9 @@ abstract class ApiMethod<T> {
                         }
 
                         if (!parameterAnnotatedTypeIsSerializable(parameterType)) {
-                            throw new IllegalArgumentException("Cannot create adapt method argument of type '"
-                                    + parameterType + "'," +
+                            throw new IllegalArgumentException("Cannot create adapt method argument of type '" +
+                                    parameterType +
+                                    "'," +
                                     " @Parameter-annotated arguments must be of type long, int, short, byte, boolean " +
                                     "or boxed equivalents, String or an enum.");
                         }
@@ -130,26 +137,32 @@ abstract class ApiMethod<T> {
         protected static <T> TypeAdapter<T> getTypeAdapter(ApiComposer composer, Method method, Type parameterType) {
             TypeAdapter<T> typeAdapter = composer.transformer().getTypeAdapter(parameterType);
             if (typeAdapter == null) {
-                throw apiMethodError(method, "Cannot find a suitable TypeAdapter for argument of type '%s'.", parameterType);
+                throw apiMethodError(method,
+                        "Cannot find a suitable TypeAdapter for argument of type '%s'.",
+                        parameterType
+                );
             }
             return typeAdapter;
         }
 
-        protected static void checkMethodThrowsExceptions(Method method, Type... exceptionTypes){
+        protected static void checkMethodThrowsExceptions(Method method, Type... exceptionTypes) {
             List<Class<?>> declaredExceptions = Arrays.asList(method.getExceptionTypes());
             List<Type> expectedExceptions = Arrays.asList(exceptionTypes);
-            if (!declaredExceptions.containsAll(expectedExceptions)){
+            if (!declaredExceptions.containsAll(expectedExceptions)) {
                 throw apiMethodError(method, "Method should declare that it throws %s.", expectedExceptions);
             }
         }
 
-        protected static RuntimeException apiMethodError(Method method, Throwable cause, String message, Object... args) {
+        protected static RuntimeException apiMethodError(Method method,
+                                                         Throwable cause,
+                                                         String message,
+                                                         Object... args) {
             message = String.format(message, args);
-            return new IllegalArgumentException(message
-                    + "\n    for method "
-                    + method.getDeclaringClass().getSimpleName()
-                    + "."
-                    + method.getName(), cause);
+            return new IllegalArgumentException(message +
+                    "\n for method " +
+                    method.getDeclaringClass().getSimpleName() +
+                    "." +
+                    method.getName(), cause);
         }
 
         protected static RuntimeException apiMethodError(Method method, String message, Object... args) {

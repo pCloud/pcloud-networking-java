@@ -32,6 +32,7 @@ import java.util.Map;
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public abstract class ResponseBody implements Closeable {
+
     /**
      * Returns the {@linkplain ProtocolReader} which is able to read this {@linkplain ResponseBody}
      *

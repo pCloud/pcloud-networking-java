@@ -28,17 +28,16 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isInterface() || rawType.isEnum()) return null;
         if (isPlatformType(rawType) && !Types.isAllowedPlatformType(rawType)) {
-            throw new IllegalArgumentException("Platform type '" + type
-                    + "' requires explicit TypeAdapter to be registered");
+            throw new IllegalArgumentException("Platform type '" +
+                                                       type +
+                                                       "' requires explicit TypeAdapter to be registered");
         }
 
         if (rawType.getEnclosingClass() != null && !Modifier.isStatic(rawType.getModifiers())) {
             if (rawType.getSimpleName().isEmpty()) {
-                throw new IllegalArgumentException(
-                        "Cannot serialize anonymous class " + rawType.getName());
+                throw new IllegalArgumentException("Cannot serialize anonymous class " + rawType.getName());
             } else {
-                throw new IllegalArgumentException(
-                        "Cannot serialize non-static nested class " + rawType.getName());
+                throw new IllegalArgumentException("Cannot serialize non-static nested class " + rawType.getName());
             }
         }
         if (Modifier.isAbstract(rawType.getModifiers())) {
@@ -56,7 +55,8 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     /**
      * Creates a field binding for each of declared field of {@code type}.
      */
-    private void createFieldBindings(Transformer transformer, Type type, Map<String, ClassTypeAdapter.Binding<?>> fieldBindings) {
+    private void createFieldBindings(Transformer transformer, Type type,
+                                     Map<String, ClassTypeAdapter.Binding<?>> fieldBindings) {
         Class<?> rawType = Types.getRawType(type);
         boolean platformType = isPlatformType(rawType);
         for (Field field : rawType.getDeclaredFields()) {
@@ -76,12 +76,16 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
-            ClassTypeAdapter.Binding<Object> fieldBinding = new ClassTypeAdapter.Binding<>(name, field, adapter, fieldTypeIsSerializable(fieldType));
+            ClassTypeAdapter.Binding<Object> fieldBinding =
+                    new ClassTypeAdapter.Binding<>(name, field, adapter, fieldTypeIsSerializable(fieldType));
             ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
-                throw new IllegalArgumentException("Conflicting fields:\n"
-                        + "    " + existing.field + "\n"
-                        + "    " + fieldBinding.field);
+                throw new IllegalArgumentException("Conflicting fields:\n" +
+                                                           "    " +
+                                                           existing.field +
+                                                           "\n" +
+                                                           "    " +
+                                                           fieldBinding.field);
             }
         }
     }
@@ -92,12 +96,12 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
      */
     private boolean isPlatformType(Class<?> rawType) {
         String name = rawType.getName();
-        return name.startsWith("android.")
-                || name.startsWith("java.")
-                || name.startsWith("javax.")
-                || name.startsWith("kotlin.")
-                || name.startsWith("scala.")
-                || name.startsWith("groovy.");
+        return name.startsWith("android.") ||
+                       name.startsWith("java.") ||
+                       name.startsWith("javax.") ||
+                       name.startsWith("kotlin.") ||
+                       name.startsWith("scala.") ||
+                       name.startsWith("groovy.");
     }
 
     /**
@@ -111,12 +115,12 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
 
     static boolean fieldTypeIsSerializable(Type type) {
         return type == Long.class || type == long.class ||
-                type == Integer.class || type == int.class ||
-                type == Short.class || type == short.class ||
-                type == Byte.class || type == byte.class ||
-                type == Double.class || type == double.class ||
-                type == Float.class || type == float.class ||
-                type == String.class || Types.getRawType(type).isEnum() ||
-                type == Boolean.class || type == boolean.class;
+               type == Integer.class || type == int.class ||
+               type == Short.class || type == short.class ||
+               type == Byte.class || type == byte.class ||
+               type == Double.class || type == double.class ||
+               type == Float.class || type == float.class ||
+               type == String.class || Types.getRawType(type).isEnum() ||
+               type == Boolean.class || type == boolean.class;
     }
 }

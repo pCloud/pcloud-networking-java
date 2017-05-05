@@ -155,6 +155,7 @@ abstract class ClassFactory<T> {
                 }
             };
         } catch (Exception ignored) {
+            //Empty
         }
 
         throw new IllegalArgumentException("cannot construct instances of " + rawType.getName());

@@ -19,12 +19,10 @@ package com.pcloud.networking;
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
 import com.pcloud.protocol.streaming.SerializationException;
-import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Type;
 import java.util.Map;
 
 class ClassTypeAdapter<T> extends TypeAdapter<T> {
@@ -104,9 +102,15 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
                 T fieldValue = adapter.deserialize(reader);
                 field.set(value, fieldValue);
             } catch (SerializationException e) {
-                throw new SerializationException("Cannot deserialize field '"
-                        + field.getDeclaringClass().getName() + "." + field.getName() + "'" +
-                        " of type '" + field.getType().getName() + "'.", e);
+                throw new SerializationException("Cannot deserialize field '" +
+                                                         field.getDeclaringClass().getName() +
+                                                         "." +
+                                                         field.getName() +
+                                                         "'" +
+                                                         " of type '" +
+                                                         field.getType().getName() +
+                                                         "'.",
+                                                        e);
             }
         }
 

@@ -37,12 +37,12 @@ class DataApiResponseAdapter<T> implements ResponseAdapter<T> {
         boolean success = false;
         try {
             DataApiResponse result = typeAdapter.deserialize(response.responseBody().reader());
-            ResponseData data = result.isSuccessful()? response.responseBody().data() : null;
+            ResponseData data = result.isSuccessful() ? response.responseBody().data() : null;
             result.setResponseData(data);
             success = true;
             return (T) result;
         } finally {
-            if (!success){
+            if (!success) {
                 closeQuietly(response);
             }
         }
