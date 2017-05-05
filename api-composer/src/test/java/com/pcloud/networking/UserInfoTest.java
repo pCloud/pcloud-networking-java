@@ -80,7 +80,7 @@ public class UserInfoTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void getUserInfo3_ShouldFailOnNullParameters() throws Exception {
+    public void getUserInfo3_ShouldFail_WhenRequestIsNull() throws Exception {
 
         exception.expect(IllegalArgumentException.class);
         com.pcloud.networking.Call<UserInfoResponse> call = userApi.getUserInfo3(null);

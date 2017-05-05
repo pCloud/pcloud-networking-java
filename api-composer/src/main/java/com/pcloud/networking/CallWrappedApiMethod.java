@@ -24,56 +24,54 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
+class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
 
     static final ApiMethod.Factory FACTORY = new Factory();
 
     private String apiMethodName;
     private RequestAdapter requestAdapter;
     private ResponseAdapter<T> returnTypeAdapter;
+    private CallAdapter callAdapter;
 
-    private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> returnTypeAdapter) {
+    private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> returnTypeAdapter, CallAdapter callAdapter) {
         this.apiMethodName = apiMethodName;
         this.requestAdapter = requestAdapter;
         this.returnTypeAdapter = returnTypeAdapter;
+        this.callAdapter = callAdapter;
     }
 
     @Override
-    public Call<T> invoke(ApiComposer apiComposer, Object[] args) throws IOException {
+    @SuppressWarnings("unchecked")
+    public R invoke(ApiComposer apiComposer, Object[] args) throws IOException {
         Request.Builder builder = Request.create()
                 .endpoint(apiComposer.endpointProvider().endpoint())
                 .methodName(apiMethodName);
         requestAdapter.adapt(builder, args);
         com.pcloud.Call rawCall = apiComposer.apiClient().newCall(builder.build());
-        return new ApiClientCall<>(apiComposer, rawCall, returnTypeAdapter);
+
+        return (R) callAdapter.adapt(new ApiClientCall(apiComposer, rawCall, returnTypeAdapter));
     }
 
     private static class Factory extends ApiMethod.Factory {
 
         @Override
         public ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations) {
-            Type returnType = method.getGenericReturnType();
-            Type rawType = Types.getRawType(method.getReturnType());
-            if (rawType != Call.class) {
-                return null;
-            }
-
-            if (!(returnType instanceof ParameterizedType)) {
-                throw new IllegalStateException("Call return type must be parameterized"
-                        + " like Call<Foo> or Call<? extends Foo>");
-            }
-
-            Type innerType = Types.getParameterUpperBound(0, (ParameterizedType) returnType);
-            Class<?> innerReturnType = Types.getRawType(innerType);
-            if (!isAllowedResponseType(innerReturnType)) {
-                return null;
-            }
-
             String apiMethodName = parseMethodNameAnnotation(method);
             RequestAdapter requestAdapter = getRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
-            ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, innerReturnType);
 
-            return new CallWrappedApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter);
+            CallAdapter<?, ?> callAdapter = composer.loadCallAdapter(method);
+            if(callAdapter == null) {
+                return null;
+            }
+            Type adapterResponseType = callAdapter.responseType();
+
+            if (!isAllowedResponseType(adapterResponseType)) {
+                return null;
+            }
+
+            ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, adapterResponseType);
+
+            return new CallWrappedApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter, callAdapter);
         }
     }
 

@@ -49,18 +49,23 @@ public class ApiComposer {
             MultiCallWrappedApiMethod.FACTORY,
             CallWrappedApiMethod.FACTORY,
             DirectApiMethod.FACTORY
-            );
+    );
+
+    private static final List<CallAdapter.Factory> BUILD_IN_CALL_ADAPTER_FACTORIES = Arrays.asList(
+            CallWrappedCallAdapter.FACTORY,
+            DirectCallAdapter.FACTORY
+    );
 
     private EndpointProvider endpointProvider;
     private PCloudAPIClient apiClient;
     private Transformer transformer;
     private List<ResponseInterceptor> interceptors;
-    private List<CallAdapter.Factory> callAdapterFactories;
 
     private boolean loadEagerly;
     private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
-    private Map<Method, CallAdapter<?,?>> callAdapterCache = new ConcurrentHashMap<>();
+    private Map<Method, CallAdapter<?, ?>> callAdapterCache = new ConcurrentHashMap<>();
     private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_FACTORIES);
+    private List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(BUILD_IN_CALL_ADAPTER_FACTORIES);
 
     private ApiComposer(Builder builder) {
         if (builder.apiClient == null) {
@@ -71,7 +76,7 @@ public class ApiComposer {
         this.apiClient = builder.apiClient;
         this.transformer = builder.transformer != null ? builder.transformer : Transformer.create().build();
         this.interceptors = new ArrayList<>(builder.interceptors);
-        this.callAdapterFactories = new ArrayList<>(builder.callAdapterFactories);
+        this.callAdapterFactories.addAll(builder.callAdapterFactories);
         this.loadEagerly = builder.loadEagerly;
     }
 
@@ -163,10 +168,10 @@ public class ApiComposer {
         return callAdapter;
     }
 
-    private CallAdapter<?,?> createCallAdapter(Method method) {
-        CallAdapter<?,?> callAdapter = null;
-        for (CallAdapter.Factory adapterFactory: callAdapterFactories){
-            if((callAdapter = adapterFactory.get(this, method)) != null) {
+    private CallAdapter<?, ?> createCallAdapter(Method method) {
+        CallAdapter<?, ?> callAdapter = null;
+        for (CallAdapter.Factory adapterFactory : callAdapterFactories) {
+            if ((callAdapter = adapterFactory.get(this, method)) != null) {
                 break;
             }
         }
@@ -216,6 +221,7 @@ public class ApiComposer {
      * @return A new instance of a {@linkplain Builder} to build a new {@linkplain ApiComposer}
      */
     public Builder newBuilder() {
+        this.callAdapterFactories.removeAll(BUILD_IN_CALL_ADAPTER_FACTORIES);
         return new Builder(this);
     }
 

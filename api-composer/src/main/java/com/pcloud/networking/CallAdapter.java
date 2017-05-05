@@ -39,5 +39,9 @@ public interface CallAdapter<T, R> {
          * cannot be handled by this factory.
          */
         public abstract CallAdapter<?, ?> get(ApiComposer apiComposer, Method method);
+
+        protected Type getParameterUpperBound(int index, Type type) {
+            return Types.getParameterUpperBound(index, type);
+        }
     }
 }
