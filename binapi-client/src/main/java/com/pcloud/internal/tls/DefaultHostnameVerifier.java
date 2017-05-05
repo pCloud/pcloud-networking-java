@@ -18,15 +18,7 @@
 package com.pcloud.internal.tls;
 
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
-import javax.security.auth.x500.X500Principal;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateParsingException;
-import java.security.cert.X509Certificate;
-import java.util.*;
-
-import static com.pcloud.internal.Utils.verifyAsIpAddress;
 
 /**
  * A HostnameVerifier consistent with <a href="http://www.ietf.org/rfc/rfc2818.txt">RFC 2818</a>.
@@ -46,7 +38,7 @@ public final class DefaultHostnameVerifier implements HostnameVerifier {
     }
 
     @Override
-    public final boolean verify(String s, SSLSession sslSession) {
+    public boolean verify(String s, SSLSession sslSession) {
         return platformHostnameVerifier.verify(s, sslSession);
     }
 }

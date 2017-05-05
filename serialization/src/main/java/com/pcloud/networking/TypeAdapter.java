@@ -18,30 +18,33 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.Map;
-
 /**
  * An interface for converting between objects and their binary protocol representations.
  * <p>
  * Another feature is the ability to convert between objects and their representation in the form of key-value pairs.
+ *
  * @param <T> The type that this adapter can convert
  */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public abstract class TypeAdapter<T> {
 
+    /**
+     * Deserializes binary data from a {@linkplain ProtocolReader} to a concrete java data type
+     *
+     * @param reader A {@linkplain ProtocolReader} to read the data
+     * @return A concrete java implementation of the data type this adapter works with
+     * @throws IOException on failed IO operations
+     */
     public abstract T deserialize(ProtocolReader reader) throws IOException;
 
+    /**
+     * Serializes data from an object and writes it to a {@linkplain ProtocolWriter}
+     *
+     * @param writer A {@linkplain ProtocolWriter} to write the data
+     * @param value  A concrete java implementation of the data type to be serialized
+     * @throws IOException on failed IO operations
+     */
     public abstract void serialize(ProtocolWriter writer, T value) throws IOException;
-
-    public Map<String, ?> toProtocolValue(T value) {
-        throw new UnsupportedOperationException();
-    }
-
-    public T fromProtocolValue(Map<String, ?> value){
-        throw new UnsupportedOperationException();
-    }
 }

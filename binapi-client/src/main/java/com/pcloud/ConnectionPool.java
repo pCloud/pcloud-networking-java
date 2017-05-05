@@ -16,13 +16,33 @@
 
 package com.pcloud;
 
-import java.util.*;
-import java.util.concurrent.*;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.concurrent.Executor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+/**
+ * An implementation to provide a pool structure for connections.
+ * <p>
+ * {@linkplain Connection} objects are time and resource consuming to create and should be reused as much as possible.
+ * This implementation keeps and provides instances of {@linkplain Connection} to be reused.
+ */
 @SuppressWarnings("WeakerAccess")
 public class ConnectionPool {
+
+    private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
+    private static final long NANOS_TO_MILLIS_COEF = 1000000L;
+    private static final int MAX_IDLE_CONN_COUNT = 5;
+    private static final long MAX_KEEP_ALIVE_DURATION = 5;
 
     static {
         ThreadFactory threadFactory = new ThreadFactory() {
@@ -34,9 +54,13 @@ public class ConnectionPool {
             }
         };
 
-        CLEANUP_THREAD_EXECUTOR = new ThreadPoolExecutor(0 /* corePoolSize */,
-                Integer.MAX_VALUE /* maximumPoolSize */, 60L /* keepAliveTime */, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(), threadFactory);
+        CLEANUP_THREAD_EXECUTOR =
+                new ThreadPoolExecutor(0 /* corePoolSize */,
+                                              Integer.MAX_VALUE /* maximumPoolSize */,
+                                              DEFAULT_KEEP_ALIVE_TIME_MS /* keepAliveTime */,
+                                              TimeUnit.SECONDS,
+                                              new SynchronousQueue<Runnable>(),
+                                              threadFactory);
     }
 
     private static final Executor CLEANUP_THREAD_EXECUTOR;
@@ -50,12 +74,13 @@ public class ConnectionPool {
                 long waitNanos = cleanup(System.nanoTime());
                 if (waitNanos == -1) return;
                 if (waitNanos > 0) {
-                    long waitMillis = waitNanos / 1000000L;
-                    waitNanos -= (waitMillis * 1000000L);
+                    long waitMillis = waitNanos / NANOS_TO_MILLIS_COEF;
+                    waitNanos -= (waitMillis * NANOS_TO_MILLIS_COEF);
                     synchronized (ConnectionPool.this) {
                         try {
                             ConnectionPool.this.wait(waitMillis, (int) waitNanos);
                         } catch (InterruptedException ignored) {
+                            ignored.printStackTrace();
                         }
                     }
                 }
@@ -66,14 +91,29 @@ public class ConnectionPool {
     private final LinkedList<Connection> connections = new LinkedList<>();
     private boolean cleanupRunning;
 
+    /**
+     * Create a {@linkplain ConnectionPool} with default parameters.
+     * <p>
+     * By default the pool will be created with 5 maximum idle connections and it will keep
+     * idle connections alive for 5 minutes before disposing of them.
+     */
     @SuppressWarnings("unused")
     public ConnectionPool() {
-        this(5, 5, TimeUnit.MINUTES);
+        this(MAX_IDLE_CONN_COUNT, MAX_KEEP_ALIVE_DURATION, TimeUnit.MINUTES);
     }
 
+    /**
+     * Create an instance of {@linkplain ConnectionPool} with your own parameters
+     *
+     * @param maxIdleConnections The maximum number of idle connections the pool should keep.
+     *                           When the pool has this number of connections any more idle connections will be discarded.
+     * @param keepAliveDuration  The amount of time the pool should keep the connections alive if they are idling.
+     * @param timeUnit           The unit of time in which you provided the time duration parameter.
+     * @throws IllegalArgumentException on less than 0 for number arguments and on null for the {@linkplain TimeUnit} argument
+     */
     public ConnectionPool(int maxIdleConnections, long keepAliveDuration, TimeUnit timeUnit) {
         if (maxIdleConnections < 0) {
-            throw new IllegalArgumentException("maxIdleConnections < 0: "+maxIdleConnections);
+            throw new IllegalArgumentException("maxIdleConnections < 0: " + maxIdleConnections);
         }
 
         if (keepAliveDuration <= 0) {
@@ -89,10 +129,20 @@ public class ConnectionPool {
         this.keepAliveDurationNs = timeUnit.toNanos(keepAliveDuration);
     }
 
+    /**
+     * Returns the maximum amount of idle connections the pool can keep
+     *
+     * @return The maximum amount of idle connections the pool can keep
+     */
     public int maxIdleConnections() {
         return maxIdleConnections;
     }
 
+    /**
+     * Returns the number of connections in the pool
+     *
+     * @return The number of connections in the pool
+     */
     @SuppressWarnings("unused")
     public synchronized int connectionCount() {
         return connections.size();
@@ -124,7 +174,7 @@ public class ConnectionPool {
             cleanupRunning = true;
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
         }
-        ((RealConnection)connection).setIdle(System.nanoTime());
+        ((RealConnection) connection).setIdle(System.nanoTime());
         connections.addFirst(connection);
     }
 
@@ -134,7 +184,7 @@ public class ConnectionPool {
     public void evictAll() {
         List<Connection> evictedConnections = new ArrayList<>();
         synchronized (this) {
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 Connection connection = i.next();
                 evictedConnections.add(connection);
                 i.remove();
@@ -154,7 +204,7 @@ public class ConnectionPool {
         // Find either a connection to evict, or the time that the next eviction is due.
         synchronized (this) {
             idleConnectionCount = connections.size();
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 RealConnection connection = (RealConnection) i.next();
 
                 // If the connection is ready to be evicted, we're done.
@@ -165,8 +215,8 @@ public class ConnectionPool {
                 }
             }
 
-            if (longestIdleDurationNs >= this.keepAliveDurationNs
-                    || idleConnectionCount > this.maxIdleConnections) {
+            if (longestIdleDurationNs >= this.keepAliveDurationNs ||
+                        idleConnectionCount > this.maxIdleConnections) {
                 // We've found a connection to evict. Remove it from the list, then close it below (outside
                 // of the synchronized block).
                 connections.remove(longestIdleConnection);

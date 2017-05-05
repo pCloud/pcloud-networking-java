@@ -30,7 +30,9 @@ class DirectApiMethod<T> extends ApiMethod<T> {
     private static class Factory extends ApiMethod.Factory {
 
         @Override
-        public ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations) {
+        public ApiMethod<?> create(ApiComposer composer,
+                                   Method method, Type[] argumentTypes,
+                                   Annotation[][] argumentAnnotations) {
             Class<?> returnType = Types.getRawType(method.getReturnType());
             if (!isAllowedResponseType(returnType)) {
                 return null;

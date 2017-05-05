@@ -18,10 +18,31 @@ package com.pcloud;
 
 import java.io.IOException;
 
+/**
+ * A contract for a callback
+ * <p>
+ * The callback is to be fired upon completion of a {@linkplain Call} or upon an exception.
+ * Generally used for network calls.
+ *
+ * @see Call
+ */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public interface Callback {
 
+    /**
+     * Fired when the {@linkplain Call} fails due to an {@linkplain IOException}
+     *
+     * @param call The {@linkplain Call} during which an {@linkplain IOException} was thrown
+     * @param e    The {@linkplain IOException} that was thrown during execution of the {@linkplain Call}
+     */
     void onFailure(Call call, IOException e);
 
+    /**
+     * Fired when a {@linkplain Response} is received after a successful execution of a {@linkplain Call}
+     *
+     * @param call     The {@linkplain Call} that was executed
+     * @param response The {@linkplain Response} of the {@linkplain Call}
+     * @throws IOException on failed IO operations
+     */
     void onResponse(Call call, Response response) throws IOException;
 }

@@ -21,7 +21,7 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 
 import java.io.IOException;
 
-class DefaultRequestAdapter implements RequestAdapter{
+class DefaultRequestAdapter implements RequestAdapter {
 
     private ArgumentAdapter[] argumentAdapters;
 
@@ -31,7 +31,7 @@ class DefaultRequestAdapter implements RequestAdapter{
 
     @SuppressWarnings("unchecked")// ArgumentAdapters are already of the required type.
     @Override
-    public void adapt(final Request.Builder requestBuilder, final Object... args)  throws IOException{
+    public void adapt(final Request.Builder requestBuilder, final Object... args) throws IOException {
 
         for (int index = 0; index < args.length; index++) {
             argumentAdapters[index].adapt(requestBuilder, args[index]);
@@ -39,7 +39,7 @@ class DefaultRequestAdapter implements RequestAdapter{
 
         requestBuilder.body(new com.pcloud.RequestBody() {
             @Override
-            public void writeТо(ProtocolWriter writer) throws IOException {
+            public void writeTo(ProtocolWriter writer) throws IOException {
                 for (int index = 0; index < args.length; index++) {
                     argumentAdapters[index].adapt(writer, args[index]);
                 }

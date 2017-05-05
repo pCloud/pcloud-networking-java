@@ -20,13 +20,26 @@ import com.pcloud.ResponseData;
 
 import java.io.Closeable;
 
-public class DataApiResponse extends ApiResponse implements Closeable{
+/**
+ * An implementation to house the {@linkplain ResponseData} for the response of a network call
+ *
+ * @see ApiResponse
+ * @see ResponseData
+ */
+
+public class DataApiResponse extends ApiResponse implements Closeable {
 
     private ResponseData responseData;
 
     protected DataApiResponse() {
     }
 
+    /**
+     * Creates the {@linkplain DataApiResponse}
+     *
+     * @param resultCode The result code of the request
+     * @param message    The error message if present
+     */
     public DataApiResponse(long resultCode, String message) {
         super(resultCode, message);
     }
@@ -35,9 +48,10 @@ public class DataApiResponse extends ApiResponse implements Closeable{
      * Injects a {@linkplain ResponseData} object to this instance.
      * <p>
      * <b>NOTE:</b> Should be called only once per instance.
+     *
      * @param data data object to be injected, can be null.
      */
-    final void setResponseData(ResponseData data){
+    final void setResponseData(ResponseData data) {
         synchronized (this) {
             if (this.responseData != null) {
                 throw new AssertionError("ResponseData already set to instance.");
@@ -46,6 +60,11 @@ public class DataApiResponse extends ApiResponse implements Closeable{
         }
     }
 
+    /**
+     * Returns the {@linkplain ResponseData} of this response
+     *
+     * @return The {@linkplain ResponseData} of this response
+     */
     public ResponseData responseData() {
         return responseData;
     }

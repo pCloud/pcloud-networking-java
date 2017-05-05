@@ -17,26 +17,47 @@
 package com.pcloud.networking;
 
 import com.pcloud.Endpoint;
-import com.pcloud.Request;
 
 import java.io.IOException;
 
+/**
+ * A contract for a provider object able to provide an {@linkplain Endpoint}
+ *
+ * @see Endpoint
+ */
 public interface EndpointProvider {
 
-    EndpointProvider DEFAULT = new
-            EndpointProvider() {
-                @Override
-                public Endpoint endpoint() {
-                    return Endpoint.DEFAULT;
-                }
+    /**
+     * Provides a default {@linkplain Endpoint}
+     *
+     * @see Endpoint#DEFAULT
+     */
+    EndpointProvider DEFAULT = new EndpointProvider() {
+        @Override
+        public Endpoint endpoint() {
+            return Endpoint.DEFAULT;
+        }
 
-                @Override
-                public void enpointConnectionError(Endpoint endpoint, IOException error) {
+        @Override
+        public void endpointConnectionError(Endpoint endpoint, IOException error) {
+        }
+    };
 
-                }
-            };
-
+    /**
+     * Provides a custom {@linkplain Endpoint}
+     *
+     * @return The {@linkplain Endpoint} you'd like this provider to provide
+     */
     Endpoint endpoint();
 
-    void enpointConnectionError(Endpoint endpoint, IOException error);
+    /**
+     * Called when an exception is thrown on the current {@linkplain Endpoint}
+     * <p>
+     * You should switch to the {@linkplain #DEFAULT} here
+     *
+     * @param endpoint The {@linkplain Endpoint} that has an exception
+     * @param error    The exception that was thrown on the {@linkplain Endpoint}
+     */
+
+    void endpointConnectionError(Endpoint endpoint, IOException error);
 }

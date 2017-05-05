@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+
+<module name="Checker">
+    <module name="NewlineAtEndOfFile">
+        <property name="lineSeparator" value="lf"/>
+    </module>
+    <module name="FileLength"/>
+    <module name="FileTabCharacter"/>
+
+    <!-- Trailing spaces -->
+    <module name="RegexpSingleline">
+        <property name="format" value="\s+$"/>
+        <property name="message" value="Line has trailing spaces."/>
+    </module>
+    <!-- Use //CHECKSTYLE:OFF to turn off and //CHECKSTYLE:ON to turn the tool back on -->
+    <module name="SuppressionCommentFilter"/>
+    <module name="TreeWalker">
+        <module name="FileContentsHolder"/>
+        <!-- Checks for Javadoc comments.                     -->
+        <!-- See http://checkstyle.sf.net/config_javadoc.html -->
+        <!--<module name="JavadocMethod">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocType">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocVariable"/>-->
+        <!--<module name="JavadocStyle"/>-->
+
+
+        <!-- Checks for Naming Conventions.                  -->
+        <!-- See http://checkstyle.sf.net/config_naming.html -->
+        <module name="ConstantName"/>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName"/>
+        <module name="MethodName"/>
+        <!--<module name="PackageName"/>-->
+        <module name="ParameterName"/>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+
+
+        <!-- Checks for imports                              -->
+        <!-- See http://checkstyle.sf.net/config_import.html -->
+        <module name="AvoidStarImport">
+            <property name="excludes" value="org.junit,org.mockito,org.robolectric"/>
+            <property name="allowClassImports" value="false"/>
+            <property name="allowStaticMemberImports" value="true"/>
+        </module>
+        <module name="IllegalImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports">
+            <property name="processJavadoc" value="true"/>
+        </module>
+
+
+        <!-- Checks for Size Violations.                    -->
+        <!-- See http://checkstyle.sf.net/config_sizes.html -->
+        <module name="LineLength">
+            <property name="max" value="120"/>
+            <!-- this alien black magic ignores the length restriction for javadoc comments with the following conditions -
+                one or more whitespaces at the start of the line, one * symbol followed by 1 whitespace and then
+                one or more whitespace or non whitespace characters-->
+            <property name="ignorePattern" value="^\s+[*]\s[\S|\s]+$"/>
+        </module>
+        <module name="MethodLength">
+            <property name="max" value="100"/>
+            <property name="countEmpty" value="false"/>
+        </module>
+        <!--module name="ParameterNumber"/-->
+
+
+        <!-- Checks for whitespace                               -->
+        <!-- See http://checkstyle.sf.net/config_whitespace.html -->
+        <module name="GenericWhitespace"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="MethodParamPad"/>
+        <module name="NoWhitespaceAfter">
+            <property name="tokens" value="BNOT, DEC, DOT, INC, LNOT, UNARY_MINUS, UNARY_PLUS"/>
+        </module>
+        <module name="NoWhitespaceBefore"/>
+        <module name="OperatorWrap">
+            <property name="option" value="eol"/>
+        </module>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+
+
+        <!-- Modifier Checks                                    -->
+        <!-- See http://checkstyle.sf.net/config_modifiers.html -->
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+
+
+        <!-- Checks for blocks. You know, those {}'s         -->
+        <!-- See http://checkstyle.sf.net/config_blocks.html -->
+        <!--module name="AvoidNestedBlocks"/-->
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+            <property name="tokens" value="LITERAL_CATCH"/>
+        </module>
+        <module name="LeftCurly"/>
+        <!--module name="NeedBraces"/-->
+        <module name="RightCurly"/>
+
+
+        <!-- Checks for common coding problems               -->
+        <!-- See http://checkstyle.sf.net/config_coding.html -->
+        <!--module name="AvoidInlineConditionals"/-->
+        <module name="CovariantEquals"/>
+        <module name="EmptyStatement"/>
+        <!--<module name="EqualsAvoidNull"/>-->
+        <module name="EqualsHashCode"/>
+        <!-- the check honors commets such as
+         "fallthru", "fall through", "fallthrough", "falls through" and "fallsthrough"-->
+        <module name="FallThrough"/>
+        <module name="MissingSwitchDefault"/>
+        <!--<module name="HiddenField"/>-->
+        <module name="IllegalInstantiation"/>
+        <!--module name="InnerAssignment"/-->
+        <module name="MagicNumber">
+            <property name="ignoreHashCodeMethod" value="true"/>
+        </module>
+        <module name="MissingSwitchDefault"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+
+        <!-- Checks for class design                         -->
+        <!-- See http://checkstyle.sf.net/config_design.html -->
+        <!--module name="DesignForExtension"/-->
+        <!--module name="FinalClass"/-->
+        <!--module name="HideUtilityClassConstructor"/-->
+        <module name="InterfaceIsType"/>
+        <!--module name="VisibilityModifier"/-->
+
+
+        <!-- Miscellaneous other checks.                   -->
+        <!-- See http://checkstyle.sf.net/config_misc.html -->
+        <module name="ArrayTypeStyle"/>
+        <!--module name="FinalParameters"/-->
+        <!--module name="TodoComment"/-->
+        <module name="UpperEll"/>
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="caseIndent" value="4"/>
+        </module>
+    </module>
+</module>

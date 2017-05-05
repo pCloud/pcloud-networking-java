@@ -23,13 +23,29 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
 
+/**
+ * Composes implementations for interfaces in which you have provided methods that describe your network calls
+ *
+ * @see EndpointProvider
+ * @see PCloudAPIClient
+ * @see ResponseInterceptor
+ */
 public class ApiComposer {
-
+    /**
+     * Creates and returns a {@linkplain Builder} to build the {@linkplain ApiComposer} with
+     *
+     * @return A new instance of a {@linkplain Builder} to build the {@linkplain ApiComposer} with
+     */
     public static Builder create() {
         return new Builder();
     }
@@ -60,29 +76,63 @@ public class ApiComposer {
         this.loadEagerly = builder.loadEagerly;
     }
 
+    /**
+     * Returns the {@linkplain Transformer} you provided in the {@linkplain Builder}
+     *
+     * @return The {@linkplain Transformer} you provided in the {@linkplain Builder}
+     */
     public Transformer transformer() {
         return transformer;
     }
 
+    /**
+     * Returns the {@linkplain EndpointProvider} you provided in the {@linkplain Builder}
+     *
+     * @return The {@linkplain EndpointProvider} you provided in the {@linkplain Builder}
+     */
     public EndpointProvider endpointProvider() {
         return endpointProvider;
     }
 
+    /**
+     * Returns the {@linkplain PCloudAPIClient} you provided in the {@linkplain Builder}
+     *
+     * @return The {@linkplain PCloudAPIClient} you provided in the {@linkplain Builder}
+     */
     public PCloudAPIClient apiClient() {
         return apiClient;
     }
 
+    /**
+     * Returns a {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
+     *
+     * @return A {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
+     */
     public List<ResponseInterceptor> interceptors() {
         return interceptors;
     }
 
+    /**
+     * Composes an instance of the java interface which houses the network call methods
+     * <p>
+     * Note that you should provide an interface which does not extend anything or else this wont work!
+     *
+     * @param apiType The class of the java interface in which you have
+     *                written the methods to represent the network calls
+     * @param <T>     The generic type of the returned instance
+     * @return An instance of a class of the same generic type as the class you provided as an argument
+     * implementing the interface in which you have written methods to represent your network calls
+     * @throws RuntimeException if {@linkplain #loadEagerly} is set to true and if the instantiation fails
+     */
     @SuppressWarnings("unchecked")
     public <T> T compose(Class<T> apiType) {
         validateApiInterface(apiType);
 
-        if (loadEagerly){
+        if (loadEagerly) {
             Method[] methods = apiType.getDeclaredMethods();
-            for (Method method : methods){
+            for (Method method : methods) {
                 loadApiMethod(method);
             }
         }
@@ -121,8 +171,8 @@ public class ApiComposer {
         ApiMethod<?> apiMethod = null;
         Type[] argumentTypes = javaMethod.getGenericParameterTypes();
         Annotation[][] argumentAnnotations = javaMethod.getParameterAnnotations();
-        for (ApiMethod.Factory factory : factories){
-            if((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null){
+        for (ApiMethod.Factory factory : factories) {
+            if ((apiMethod = factory.create(this, javaMethod, argumentTypes, argumentAnnotations)) != null) {
                 break;
             }
         }
@@ -139,10 +189,18 @@ public class ApiComposer {
         }
     }
 
+    /**
+     * Returns a new instance of a {@linkplain Builder} to build a new {@linkplain ApiComposer}
+     *
+     * @return A new instance of a {@linkplain Builder} to build a new {@linkplain ApiComposer}
+     */
     public Builder newBuilder() {
         return new Builder(this);
     }
 
+    /**
+     * A builder to build instances of {@linkplain ApiComposer}
+     */
     public static class Builder {
 
         private EndpointProvider endpointProvider;
@@ -161,6 +219,13 @@ public class ApiComposer {
             this.interceptors = new ArrayList<>(composer.interceptors);
         }
 
+        /**
+         * Sets the {@linkplain EndpointProvider} for the {@linkplain ApiComposer}
+         *
+         * @param endpointProvider The {@linkplain EndpointProvider} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain EndpointProvider} argument
+         */
         public Builder endpointProvider(EndpointProvider endpointProvider) {
             if (endpointProvider == null) {
                 throw new IllegalArgumentException("EndpointProvider argument cannot be null.");
@@ -169,6 +234,13 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Sets the {@linkplain PCloudAPIClient} for the {@linkplain ApiComposer}
+         *
+         * @param apiClient The {@linkplain PCloudAPIClient} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain PCloudAPIClient} argument
+         */
         public Builder apiClient(PCloudAPIClient apiClient) {
             if (apiClient == null) {
                 throw new IllegalArgumentException("PCloudAPIClient argument cannot be null.");
@@ -177,6 +249,13 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Sets the {@linkplain Transformer} for this {@linkplain ApiComposer}
+         *
+         * @param transformer The {@linkplain Transformer} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain Transformer} argument
+         */
         public Builder transformer(Transformer transformer) {
             if (transformer == null) {
                 throw new IllegalArgumentException("Transformer argument cannot be null.");
@@ -185,6 +264,13 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Sets a single {@linkplain ResponseInterceptor} for this {@linkplain ApiComposer}
+         *
+         * @param interceptor The {@linkplain ResponseInterceptor} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain ResponseInterceptor} argument
+         */
         public Builder addInterceptor(ResponseInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("ResponseInterceptor argument cannot be null.");
@@ -193,6 +279,13 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Removes a single {@linkplain ResponseInterceptor} from the {@linkplain Builder}
+         *
+         * @param interceptor The {@linkplain ResponseInterceptor} to be removed from the {@linkplain Builder}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain ResponseInterceptor} argument
+         */
         public Builder removeInterceptor(ResponseInterceptor interceptor) {
             if (interceptor == null) {
                 throw new IllegalArgumentException("ResponseInterceptor argument cannot be null.");
@@ -201,6 +294,17 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Removes a {@linkplain Collection} of {@linkplain ResponseInterceptor} from the {@linkplain Builder}
+         * <p>
+         * Does the same thing as {@linkplain #removeInterceptor(ResponseInterceptor)}
+         * for each {@linkplain ResponseInterceptor} in the {@linkplain Collection}
+         *
+         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor}
+         *                     objects to be removed from the {@linkplain Builder}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain Collection} argument
+         */
         public Builder removeInterceptors(Collection<ResponseInterceptor> interceptors) {
             if (interceptors == null) {
                 throw new IllegalArgumentException("ResponseInterceptor collection argument cannot be null.");
@@ -211,6 +315,16 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Adds a {@linkplain Collection} of {@linkplain ResponseInterceptor} objects for the {@linkplain Builder}
+         * <p>
+         * Does the same thing as {@linkplain #addInterceptor(ResponseInterceptor)} for each
+         * {@linkplain ResponseInterceptor} in the {@linkplain Collection}
+         *
+         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor}
+         *                     objects to be added to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         */
         public Builder addInterceptors(Collection<ResponseInterceptor> interceptors) {
             if (interceptors == null) {
                 throw new IllegalArgumentException("ResponseInterceptor collection argument cannot be null.");
@@ -221,11 +335,30 @@ public class ApiComposer {
             return this;
         }
 
+        /**
+         * Determines if the interface implementation will be lazy or eager. By default the implementation will be lazy.
+         * <p>
+         * If set to true the {@linkplain ApiComposer} created from this builder will initialize
+         * the interface implementations immediately after the {@linkplain ApiComposer#compose(Class)} is called.
+         * <p>
+         * If set to false the {@linkplain ApiComposer#compose(Class)} will only
+         * check the conditions for implementing the interface
+         * but will actually implement it when the request is called.
+         *
+         * @param loadEagerly the condition for whether the interface implementation should be lazy or eager
+         * @return A reference to the {@linkplain Builder} object
+         */
         public Builder loadEagerly(boolean loadEagerly) {
             this.loadEagerly = loadEagerly;
             return this;
         }
 
+        /**
+         * Creates and returns a new instance of the {@linkplain ApiComposer}
+         * with the parameters set via the {@linkplain Builder}
+         *
+         * @return A new instance of the {@linkplain ApiComposer} with the parameters set via the {@linkplain Builder}
+         */
         public ApiComposer create() {
             return new ApiComposer(this);
         }

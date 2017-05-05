@@ -19,7 +19,6 @@ package com.pcloud.protocol.streaming;
 import java.io.Closeable;
 import java.io.Flushable;
 import java.io.IOException;
-import java.lang.reflect.Type;
 
 /**
  * A contract for a writer object which can write data into a data sink

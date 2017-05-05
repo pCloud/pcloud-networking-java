@@ -18,7 +18,18 @@ package com.pcloud.networking;
 
 import java.lang.reflect.Type;
 
+/**
+ * A contract for a factory able to create {@linkplain TypeAdapter} objects
+ */
 @SuppressWarnings({"WeakerAccess", "unused"})
 public interface TypeAdapterFactory {
+
+    /**
+     * Creates an instance of a {@linkplain TypeAdapter} object
+     *
+     * @param type        The data type that the {@linkplain TypeAdapter} will work with
+     * @param transformer The {@linkplain Transformer} to create the {@linkplain TypeAdapter}
+     * @return A {@linkplain TypeAdapter} that works with the {@linkplain Type} argument
+     */
     TypeAdapter<?> create(Type type, Transformer transformer);
 }

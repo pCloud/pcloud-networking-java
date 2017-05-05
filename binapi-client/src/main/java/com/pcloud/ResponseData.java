@@ -26,8 +26,14 @@ import java.io.InputStream;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
+/**
+ * An implementation to represent the data for a network call {@linkplain ResponseBody}
+ *
+ * @see Response
+ * @see ResponseBody
+ */
 @SuppressWarnings({"WeakerAccess", "unused"})
-public class ResponseData implements Closeable{
+public class ResponseData implements Closeable {
 
     private final BufferedSource source;
     private final long contentLength;
@@ -37,14 +43,30 @@ public class ResponseData implements Closeable{
         this.contentLength = contentLength;
     }
 
+    /**
+     * Returns an {@linkplain InputStream} to read the data from the source
+     *
+     * @return An {@linkplain InputStream} to read the data from the source
+     */
     public InputStream byteStream() {
         return source().inputStream();
     }
 
+    /**
+     * A {@linkplain BufferedSource} which is the source of the data
+     *
+     * @return A reference to the source of the data
+     */
     public BufferedSource source() {
         return source;
     }
 
+    /**
+     * Reads and returns the content of the data as a {@linkplain ByteString} object
+     *
+     * @return The content of the source as a {@linkplain ByteString}
+     * @throws IOException on failed IO operations
+     */
     public ByteString byteString() throws IOException {
         try {
             return source.readByteString(contentLength);
@@ -53,6 +75,12 @@ public class ResponseData implements Closeable{
         }
     }
 
+    /**
+     * Returns the data from the source as a byte array
+     *
+     * @return The data from the source as a byte array
+     * @throws IOException on failed IO operations
+     */
     public byte[] bytes() throws IOException {
         try {
             return source.readByteArray(contentLength);
@@ -66,10 +94,21 @@ public class ResponseData implements Closeable{
         closeQuietly(source);
     }
 
+    /**
+     * Returns the length of the content in the source
+     *
+     * @return The length of the content in the source
+     */
     public long contentLength() {
         return contentLength;
     }
 
+    /**
+     * Writes all the data from the source into a {@linkplain BufferedSink}
+     *
+     * @param sink The sink for the data to be written to
+     * @throws IOException on failed IO operations
+     */
     public void writeTo(BufferedSink sink) throws IOException {
         try {
             sink.writeAll(source);

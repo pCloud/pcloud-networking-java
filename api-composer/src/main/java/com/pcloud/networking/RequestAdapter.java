@@ -22,12 +22,26 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 
-
-public interface RequestAdapter {
-
+/**
+ * A contract for an object able to adapt arguments to a request using a {@linkplain Request.Builder}
+ */
+interface RequestAdapter {
+    /**
+     * A factory for {@linkplain RequestAdapter} construction
+     */
     interface Factory {
-        RequestAdapter create(ApiComposer composer, java.lang.reflect.Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
+        RequestAdapter create(ApiComposer composer,
+                              java.lang.reflect.Method method,
+                              Type[] argumentTypes,
+                              Annotation[][] argumentAnnotations);
     }
 
+    /**
+     * Takes the arguments for the request and invokes the builder to construct a request with these arguments
+     *
+     * @param builder The builder to be invoked to construct the request
+     * @param args    The request arguments for the builder to work with
+     * @throws IOException on failed IO operations
+     */
     void adapt(Request.Builder builder, Object... args) throws IOException;
 }

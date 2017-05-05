@@ -21,6 +21,16 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * An implementation of a container for multiple responses.
+ * <p>
+ * Stores and provides all the {@linkplain Request} and {@linkplain Response} objects
+ * for the {@linkplain MultiCall} that returned this response.
+ *
+ * @see MultiCall
+ * @see Request
+ * @see Response
+ */
 public class MultiResponse implements Closeable {
 
     private List<Response> responses;
@@ -29,18 +39,44 @@ public class MultiResponse implements Closeable {
         this.responses = Collections.unmodifiableList(responses);
     }
 
-    public Request request(int index){
+
+    /**
+     * Returns the {@linkplain Request} for a given index
+     *
+     * @param index the index of the {@linkplain Request} you'd like to get
+     * @return A reference to the {@linkplain Request} at a given index
+     */
+    public Request request(int index) {
         return responses.get(index).request();
     }
 
-    public Response response(int key){
+
+    /**
+     * Returns a {@linkplain Response} for the position of the {@linkplain Response}
+     * in numerical order corresponding to the position of the {@linkplain Request} in numerical order
+     *
+     * @param key The number of the {@linkplain Response}
+     *            which corresponds to the numerical order in which the requests were made
+     * @return The {@linkplain Response} which corresponds to the {@linkplain Request} with the same number in numerical order
+     */
+    public Response response(int key) {
         return responses.get(key);
     }
 
-    public List<Response> responses(){
+    /**
+     * Returns a {@linkplain List} of all the {@linkplain Response} objects within the {@linkplain MultiResponse}
+     *
+     * @return A {@linkplain List} of all the {@linkplain Response} objects in this {@linkplain MultiResponse}
+     */
+    public List<Response> responses() {
         return responses;
     }
 
+    /**
+     * Closes all the responses in this {@linkplain MultiResponse}
+     *
+     * @throws IOException on failed IO operations
+     */
     @Override
     public void close() throws IOException {
         for (Response r : responses) {

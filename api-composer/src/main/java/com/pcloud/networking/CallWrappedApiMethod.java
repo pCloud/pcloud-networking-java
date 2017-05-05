@@ -32,7 +32,9 @@ class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
     private RequestAdapter requestAdapter;
     private ResponseAdapter<T> returnTypeAdapter;
 
-    private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> returnTypeAdapter) {
+    private CallWrappedApiMethod(String apiMethodName,
+                                 RequestAdapter requestAdapter,
+                                 ResponseAdapter<T> returnTypeAdapter) {
         this.apiMethodName = apiMethodName;
         this.requestAdapter = requestAdapter;
         this.returnTypeAdapter = returnTypeAdapter;
@@ -51,7 +53,9 @@ class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
     private static class Factory extends ApiMethod.Factory {
 
         @Override
-        public ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations) {
+        public ApiMethod<?> create(ApiComposer composer,
+                                   Method method, Type[] argumentTypes,
+                                   Annotation[][] argumentAnnotations) {
             Type returnType = method.getGenericReturnType();
             Type rawType = Types.getRawType(method.getReturnType());
             if (rawType != Call.class) {
@@ -59,8 +63,8 @@ class CallWrappedApiMethod<T> extends ApiMethod<Call<T>> {
             }
 
             if (!(returnType instanceof ParameterizedType)) {
-                throw new IllegalStateException("Call return type must be parameterized"
-                        + " like Call<Foo> or Call<? extends Foo>");
+                throw new IllegalStateException("Call return type must be parameterized" +
+                        " like Call<Foo> or Call<? extends Foo>");
             }
 
             Type innerType = Types.getParameterUpperBound(0, (ParameterizedType) returnType);
