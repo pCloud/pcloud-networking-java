@@ -32,7 +32,7 @@ public class ValueWriter {
             throw new IllegalArgumentException("Values argument cannot be null.");
         }
 
-        for (Map.Entry<String, ?> entry : values.entrySet()){
+        for (Map.Entry<String, ?> entry : values.entrySet()) {
             String name = entry.getKey();
             Object value = entry.getValue();
             if (value != null) {

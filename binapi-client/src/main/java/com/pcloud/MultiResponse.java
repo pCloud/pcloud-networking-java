@@ -39,6 +39,7 @@ public class MultiResponse implements Closeable {
         this.responses = Collections.unmodifiableList(responses);
     }
 
+
     /**
      * Returns the {@linkplain Request} for a given index
      *
@@ -48,6 +49,7 @@ public class MultiResponse implements Closeable {
     public Request request(int index) {
         return responses.get(index).request();
     }
+
 
     /**
      * Returns a {@linkplain Response} for the position of the {@linkplain Response}

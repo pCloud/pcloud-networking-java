@@ -22,7 +22,6 @@ import com.pcloud.protocol.streaming.UnserializableTypeException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.net.ProtocolException;
 import java.util.ArrayList;
 import java.util.List;
 

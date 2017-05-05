@@ -26,7 +26,9 @@ class ConnectionProvider {
     private ConnectionFactory connectionFactory;
     private boolean eagerlyCheckConnectivity;
 
-    public ConnectionProvider(ConnectionPool connectionPool, ConnectionFactory connectionFactory, boolean eagerlyCheckConnectivity) {
+    public ConnectionProvider(ConnectionPool connectionPool,
+                              ConnectionFactory connectionFactory,
+                              boolean eagerlyCheckConnectivity) {
         this.connectionPool = connectionPool;
         this.connectionFactory = connectionFactory;
         this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
@@ -35,7 +37,7 @@ class ConnectionProvider {
     Connection obtainConnection(Endpoint endpoint) throws IOException {
         Connection connection;
         while ((connection = connectionPool.get(endpoint)) != null) {
-            if (((RealConnection)connection).isHealthy(eagerlyCheckConnectivity)) {
+            if (((RealConnection) connection).isHealthy(eagerlyCheckConnectivity)) {
                 return connection;
             } else {
                 closeQuietly(connection);

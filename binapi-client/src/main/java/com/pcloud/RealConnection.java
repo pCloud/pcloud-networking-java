@@ -54,7 +54,9 @@ class RealConnection implements Connection {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    void connect(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws com.pcloud.ConnectException{
+    void connect(Endpoint endpoint, int connectTimeout,
+                 int readTimeout, TimeUnit timeUnit) throws ConnectException {
+
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
         }
@@ -68,7 +70,7 @@ class RealConnection implements Connection {
             success = true;
         } catch (IOException e) {
             throw new ConnectException(e);
-        }finally {
+        } finally {
             if (!success) {
                 close();
             }
@@ -105,6 +107,7 @@ class RealConnection implements Connection {
                     socket.setSoTimeout(readTimeout);
                 }
             } catch (SocketTimeoutException ignored) {
+                ignored.printStackTrace();
                 // Read timed out; socket is good.
             } catch (IOException e) {
                 return false; // Couldn't read; socket is closed.
@@ -140,7 +143,8 @@ class RealConnection implements Connection {
         endpoint = null;
     }
 
-    private Socket createSocket(Endpoint endpoint, int connectTimeout, int readTimeout, TimeUnit timeUnit) throws IOException {
+    private Socket createSocket(Endpoint endpoint, int connectTimeout,
+                                int readTimeout, TimeUnit timeUnit) throws IOException {
         Socket socket = null;
         boolean connectionSucceeded = false;
         try {
@@ -160,7 +164,8 @@ class RealConnection implements Connection {
         }
     }
 
-    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint, int readTimeout, TimeUnit timeUnit) throws IOException {
+    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint,
+                                    int readTimeout, TimeUnit timeUnit) throws IOException {
         SSLSocket socket = null;
         boolean connectionSucceeded = false;
         try {

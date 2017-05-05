@@ -16,8 +16,17 @@
 
 package com.pcloud;
 
-import java.util.*;
-import java.util.concurrent.*;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.concurrent.Executor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
@@ -30,6 +39,11 @@ import static com.pcloud.IOUtils.closeQuietly;
 @SuppressWarnings("WeakerAccess")
 public class ConnectionPool {
 
+    private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
+    private static final long NANOS_TO_MILLIS_COEF = 1000000L;
+    private static final int MAX_IDLE_CONN_COUNT = 5;
+    private static final long MAX_KEEP_ALIVE_DURATION = 5;
+
     static {
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
@@ -40,9 +54,13 @@ public class ConnectionPool {
             }
         };
 
-        CLEANUP_THREAD_EXECUTOR = new ThreadPoolExecutor(0 /* corePoolSize */,
-                Integer.MAX_VALUE /* maximumPoolSize */, 60L /* keepAliveTime */, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(), threadFactory);
+        CLEANUP_THREAD_EXECUTOR =
+                new ThreadPoolExecutor(0 /* corePoolSize */,
+                                              Integer.MAX_VALUE /* maximumPoolSize */,
+                                              DEFAULT_KEEP_ALIVE_TIME_MS /* keepAliveTime */,
+                                              TimeUnit.SECONDS,
+                                              new SynchronousQueue<Runnable>(),
+                                              threadFactory);
     }
 
     private static final Executor CLEANUP_THREAD_EXECUTOR;
@@ -56,13 +74,13 @@ public class ConnectionPool {
                 long waitNanos = cleanup(System.nanoTime());
                 if (waitNanos == -1) return;
                 if (waitNanos > 0) {
-                    //round the number
-                    long waitMillis = waitNanos / 1000000L;
-                    waitNanos -= (waitMillis * 1000000L);
+                    long waitMillis = waitNanos / NANOS_TO_MILLIS_COEF;
+                    waitNanos -= (waitMillis * NANOS_TO_MILLIS_COEF);
                     synchronized (ConnectionPool.this) {
                         try {
                             ConnectionPool.this.wait(waitMillis, (int) waitNanos);
                         } catch (InterruptedException ignored) {
+                            ignored.printStackTrace();
                         }
                     }
                 }
@@ -81,7 +99,7 @@ public class ConnectionPool {
      */
     @SuppressWarnings("unused")
     public ConnectionPool() {
-        this(5, 5, TimeUnit.MINUTES);
+        this(MAX_IDLE_CONN_COUNT, MAX_KEEP_ALIVE_DURATION, TimeUnit.MINUTES);
     }
 
     /**
@@ -166,7 +184,7 @@ public class ConnectionPool {
     public void evictAll() {
         List<Connection> evictedConnections = new ArrayList<>();
         synchronized (this) {
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 Connection connection = i.next();
                 evictedConnections.add(connection);
                 i.remove();
@@ -186,7 +204,7 @@ public class ConnectionPool {
         // Find either a connection to evict, or the time that the next eviction is due.
         synchronized (this) {
             idleConnectionCount = connections.size();
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext(); ) {
+            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
                 RealConnection connection = (RealConnection) i.next();
 
                 // If the connection is ready to be evicted, we're done.
@@ -197,8 +215,8 @@ public class ConnectionPool {
                 }
             }
 
-            if (longestIdleDurationNs >= this.keepAliveDurationNs
-                    || idleConnectionCount > this.maxIdleConnections) {
+            if (longestIdleDurationNs >= this.keepAliveDurationNs ||
+                        idleConnectionCount > this.maxIdleConnections) {
                 // We've found a connection to evict. Remove it from the list, then close it below (outside
                 // of the synchronized block).
                 connections.remove(longestIdleConnection);

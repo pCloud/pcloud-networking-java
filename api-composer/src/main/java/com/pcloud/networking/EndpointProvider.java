@@ -17,7 +17,6 @@
 package com.pcloud.networking;
 
 import com.pcloud.Endpoint;
-import com.pcloud.Request;
 
 import java.io.IOException;
 
@@ -27,23 +26,22 @@ import java.io.IOException;
  * @see Endpoint
  */
 public interface EndpointProvider {
+
     /**
      * Provides a default {@linkplain Endpoint}
      *
      * @see Endpoint#DEFAULT
      */
-    EndpointProvider DEFAULT = new
-            EndpointProvider() {
-                @Override
-                public Endpoint endpoint() {
-                    return Endpoint.DEFAULT;
-                }
+    EndpointProvider DEFAULT = new EndpointProvider() {
+        @Override
+        public Endpoint endpoint() {
+            return Endpoint.DEFAULT;
+        }
 
-                @Override
-                public void endpointConnectionError(Endpoint endpoint, IOException error) {
-
-                }
-            };
+        @Override
+        public void endpointConnectionError(Endpoint endpoint, IOException error) {
+        }
+    };
 
     /**
      * Provides a custom {@linkplain Endpoint}
@@ -60,5 +58,6 @@ public interface EndpointProvider {
      * @param endpoint The {@linkplain Endpoint} that has an exception
      * @param error    The exception that was thrown on the {@linkplain Endpoint}
      */
+
     void endpointConnectionError(Endpoint endpoint, IOException error);
 }
