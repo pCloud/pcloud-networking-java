@@ -57,15 +57,15 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int TYPE_AGGREGATE_NUMBER = -4;
     private static final int TYPE_AGGREGATE_END_ARRAY = -5;
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
-    private static final int DEFAULT_STRING_CACHE_SIZE = 50;
 
     private static final long PEEK_READ_LIMIT_BYTES = 256L;
-
-    private static final int RESPONSE_LENGTH_BYTES = 4;
+    private static final int DEFAULT_STRING_CACHE_SIZE = 50;
     private static final int SCOPE_STACK_INITIAL_CAPACITY = 5;
+
+    private static final int RESPONSE_LENGTH_BYTESIZE = 4;
+    private static final int DATA_BYTESIZE = 8;
     private static final int HEX_255 = 0xff;
-    private static final int DATA_LENGTH = 8;
-    private static final int NUMBER_BYTES_SKIP = 6;
+    private static final int NUMBER_SKIP = 6;
     private static final int READ_STRING_EXISTING_VALUE = 3;
     private static final int READ_STRING_COMPRESSED = 100;
     private static final int READ_STRING_COMPRESSED_EXISTING_VALUE = 150;
@@ -83,7 +83,6 @@ public class BytesReader implements ProtocolResponseReader {
     private volatile long dataLength = UNKNOWN_SIZE;
 
     private BytesReader() {
-
     }
 
     public BytesReader(BufferedSource bufferedSource) {
@@ -104,7 +103,7 @@ public class BytesReader implements ProtocolResponseReader {
             pushScope(SCOPE_RESPONSE);
             stringCache = new String[DEFAULT_STRING_CACHE_SIZE];
             lastStringId = 0;
-            return pullNumber(RESPONSE_LENGTH_BYTES);
+            return pullNumber(RESPONSE_LENGTH_BYTESIZE);
         }
 
         throw new SerializationException("Trying to start reading a response, which has already been started.");
@@ -291,7 +290,7 @@ public class BytesReader implements ProtocolResponseReader {
         if (type >= TYPE_NUMBER_START && type <= TYPE_NUMBER_END) {
             // Skip 1-8 bytes depending on number size + 1 byte for the type.
             // skip ([type] - 7) + 1 bytes
-            bufferedSource.skip(type - NUMBER_BYTES_SKIP);
+            bufferedSource.skip(type - NUMBER_SKIP);
         } else if (type >= TYPE_NUMBER_COMPRESSED_START && type <= TYPE_NUMBER_COMPRESSED_END) {
             bufferedSource.skip(1);
         } else if (type >= TYPE_STRING_REUSED_START && type <= TYPE_STRING_REUSED_END) {
@@ -320,7 +319,7 @@ public class BytesReader implements ProtocolResponseReader {
             endArray();
         } else if (type == TYPE_DATA) {
             // Read the 8-byte length of the attached data
-            dataLength = pullNumber(DATA_LENGTH);
+            dataLength = pullNumber(DATA_BYTESIZE);
         } else if (type == TYPE_END_ARRAY_OBJECT) {
             int scope = currentScope();
             switch (scope) {
@@ -364,7 +363,7 @@ public class BytesReader implements ProtocolResponseReader {
         bufferedSource.require(1);
         int type = bufferedSource.buffer().getByte(0) & HEX_255;
         if (type == TYPE_DATA) {
-            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_LENGTH);
+            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_BYTESIZE);
             return TYPE_NUMBER_END;
         }
         return type;
@@ -376,7 +375,7 @@ public class BytesReader implements ProtocolResponseReader {
         }
         int type = bufferedSource.readByte() & HEX_255;
         if (type == TYPE_DATA) {
-            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_LENGTH);
+            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_BYTESIZE);
             return TYPE_NUMBER_END;
         }
         return type;
