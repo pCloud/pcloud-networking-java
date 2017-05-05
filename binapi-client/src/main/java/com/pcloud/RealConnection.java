@@ -54,11 +54,8 @@ class RealConnection implements Connection {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    void connect(Endpoint endpoint,
-                 int connectTimeout,
-                 int readTimeout,
-                 TimeUnit timeUnit)
-            throws com.pcloud.ConnectException {
+    void connect(Endpoint endpoint, int connectTimeout,
+                 int readTimeout, TimeUnit timeUnit) throws ConnectException {
 
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
@@ -146,10 +143,8 @@ class RealConnection implements Connection {
         endpoint = null;
     }
 
-    private Socket createSocket(Endpoint endpoint,
-                                int connectTimeout,
-                                int readTimeout,
-                                TimeUnit timeUnit) throws IOException {
+    private Socket createSocket(Endpoint endpoint, int connectTimeout,
+                                int readTimeout, TimeUnit timeUnit) throws IOException {
         Socket socket = null;
         boolean connectionSucceeded = false;
         try {
@@ -169,10 +164,8 @@ class RealConnection implements Connection {
         }
     }
 
-    private SSLSocket upgradeSocket(Socket rawSocket,
-                                    Endpoint endpoint,
-                                    int readTimeout,
-                                    TimeUnit timeUnit) throws IOException {
+    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint,
+                                    int readTimeout, TimeUnit timeUnit) throws IOException {
         SSLSocket socket = null;
         boolean connectionSucceeded = false;
         try {

@@ -49,10 +49,8 @@ class RealCall implements Call {
     private ConnectionProvider connectionProvider;
     private List<RequestInterceptor> interceptors;
 
-    RealCall(Request request,
-             ExecutorService callExecutor,
-             List<RequestInterceptor> interceptors,
-             ConnectionProvider connectionProvider) {
+    RealCall(Request request, ExecutorService callExecutor,
+             List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
         this.request = request;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
@@ -91,10 +89,8 @@ class RealCall implements Call {
     }
 
     @Override
-    public Response enqueueAndWait(long timeout,
-                                   TimeUnit timeUnit) throws IOException,
-                                                                     InterruptedException,
-                                                                     TimeoutException {
+    public Response enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
         Response response = null;
         boolean success = false;
@@ -217,6 +213,7 @@ class RealCall implements Call {
 
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
+
         BufferedSource parametersSource =
                 Okio.buffer(new ResponseParametersSource(connection.source(), responseLength + RESPONSE_LENGTH));
 

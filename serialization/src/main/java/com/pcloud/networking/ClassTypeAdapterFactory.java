@@ -55,10 +55,8 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     /**
      * Creates a field binding for each of declared field of {@code type}.
      */
-    private void createFieldBindings(Transformer transformer,
-                                     Type type,
-                                     Map<String,
-                                                ClassTypeAdapter.Binding<?>> fieldBindings) {
+    private void createFieldBindings(Transformer transformer, Type type,
+                                     Map<String, ClassTypeAdapter.Binding<?>> fieldBindings) {
         Class<?> rawType = Types.getRawType(type);
         boolean platformType = isPlatformType(rawType);
         for (Field field : rawType.getDeclaredFields()) {
@@ -117,12 +115,12 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
 
     static boolean fieldTypeIsSerializable(Type type) {
         return type == Long.class || type == long.class ||
-                       type == Integer.class || type == int.class ||
-                       type == Short.class || type == short.class ||
-                       type == Byte.class || type == byte.class ||
-                       type == Double.class || type == double.class ||
-                       type == Float.class || type == float.class ||
-                       type == String.class || Types.getRawType(type).isEnum() ||
-                       type == Boolean.class || type == boolean.class;
+               type == Integer.class || type == int.class ||
+               type == Short.class || type == short.class ||
+               type == Byte.class || type == byte.class ||
+               type == Double.class || type == double.class ||
+               type == Float.class || type == float.class ||
+               type == String.class || Types.getRawType(type).isEnum() ||
+               type == Boolean.class || type == boolean.class;
     }
 }

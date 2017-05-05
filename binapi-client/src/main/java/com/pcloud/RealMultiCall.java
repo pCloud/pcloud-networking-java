@@ -53,10 +53,8 @@ class RealMultiCall implements MultiCall {
     private List<RequestInterceptor> interceptors;
     private ConnectionProvider connectionProvider;
 
-    RealMultiCall(List<Request> requests,
-                  ExecutorService callExecutor,
-                  List<RequestInterceptor> interceptors,
-                  ConnectionProvider connectionProvider) {
+    RealMultiCall(List<Request> requests, ExecutorService callExecutor,
+                  List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
         this.requests = requests;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
@@ -131,8 +129,8 @@ class RealMultiCall implements MultiCall {
     }
 
     @Override
-    public MultiResponse enqueueAndWait(long timeout,
-                                        TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+    public MultiResponse enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
         try {
             return callExecutor.submit(new Callable<MultiResponse>() {

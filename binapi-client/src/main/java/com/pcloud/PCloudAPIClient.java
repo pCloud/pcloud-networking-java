@@ -76,23 +76,16 @@ public class PCloudAPIClient {
 
         this.socketFactory = builder.socketFactory != null ? builder.socketFactory : SocketFactory.getDefault();
 
-        this.sslSocketFactory =
-                builder.sslSocketFactory != null ?
+        this.sslSocketFactory = builder.sslSocketFactory != null ?
                         builder.sslSocketFactory : (SSLSocketFactory) SSLSocketFactory.getDefault();
 
-        this.hostnameVerifier =
-                builder.hostnameVerifier != null ?
+        this.hostnameVerifier = builder.hostnameVerifier != null ?
                         builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
 
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
 
-        this.connectionFactory =
-                new ConnectionFactory(socketFactory,
-                                             sslSocketFactory,
-                                             hostnameVerifier,
-                                             connectTimeoutMs,
-                                             readTimeoutMs,
-                                             MILLISECONDS);
+        this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier,
+                                             connectTimeoutMs, readTimeoutMs, MILLISECONDS);
 
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
@@ -100,13 +93,13 @@ public class PCloudAPIClient {
                 return new Thread(r, "PCloud API Client");
             }
         };
-        this.callExecutor = builder.callExecutor != null ? builder.callExecutor :
-                                    new ThreadPoolExecutor(0,
-                                                                  Integer.MAX_VALUE,
-                                                                  DEFAULT_KEEP_ALIVE_TIME_MS,
-                                                                  TimeUnit.SECONDS,
-                                                                  new SynchronousQueue<Runnable>(),
-                                                                  threadFactory);
+        this.callExecutor = builder.callExecutor != null ?
+                builder.callExecutor : new ThreadPoolExecutor(0,
+                                              Integer.MAX_VALUE,
+                                              DEFAULT_KEEP_ALIVE_TIME_MS,
+                                              TimeUnit.SECONDS,
+                                              new SynchronousQueue<Runnable>(),
+                                              threadFactory);
 
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
@@ -123,10 +116,8 @@ public class PCloudAPIClient {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null.");
         }
-        return new RealCall(request,
-                                   callExecutor,
-                                   interceptors,
-                                   new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealCall(request, callExecutor, interceptors,
+                new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     /**
@@ -163,10 +154,8 @@ public class PCloudAPIClient {
             endpoint = request.endpoint();
         }
 
-        return new RealMultiCall(new ArrayList<>(requests),
-                                        callExecutor,
-                                        interceptors,
-                                        new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors,
+                new ConnectionProvider(connectionPool, connectionFactory, false));
     }
 
     /**
@@ -271,9 +260,9 @@ public class PCloudAPIClient {
 
     public static Builder newClient() {
         return new Builder()
-                       .setConnectTimeoutMs(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
-                       .setWriteTimeoutMs(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
-                       .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
+                .setConnectTimeoutMs(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
+                .setWriteTimeoutMs(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
+                .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
     }
 
     /**
