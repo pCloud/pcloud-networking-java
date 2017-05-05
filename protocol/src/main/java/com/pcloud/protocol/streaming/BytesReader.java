@@ -30,6 +30,16 @@ import java.util.Locale;
 import static com.pcloud.IOUtils.closeQuietly;
 import static com.pcloud.protocol.streaming.TypeToken.*;
 
+/**
+ * Reads bytes from source
+ * <p>
+ * An implementation of {@linkplain ProtocolResponseReader} which is able to read bytes from a {@linkplain BufferedSource}
+ * <p>
+ * Generally used to read the bytes of a network response into serialized data
+ *
+ * @see ProtocolReader
+ * @see ProtocolResponseReader
+ */
 public class BytesReader implements ProtocolResponseReader {
 
     private static final int TYPE_STRING_START = 0;
@@ -85,6 +95,13 @@ public class BytesReader implements ProtocolResponseReader {
     private BytesReader() {
     }
 
+    /**
+     * Create a {@linkplain BytesReader} instance
+     * <p>
+     *
+     * @param bufferedSource a {@linkplain BufferedSource} to read the data from
+     * @throws IllegalArgumentException on a null {@linkplain BufferedSource} argument
+     */
     public BytesReader(BufferedSource bufferedSource) {
         if (bufferedSource == null) {
             throw new IllegalArgumentException("Source argument cannot be null.");
@@ -341,6 +358,9 @@ public class BytesReader implements ProtocolResponseReader {
         return currentScope;
     }
 
+    /**
+     * Close the {@linkplain BufferedSource}
+     */
     @Override
     public void close() {
         closeQuietly(bufferedSource);

@@ -18,6 +18,9 @@ package com.pcloud.protocol.streaming;
 
 import java.lang.reflect.Type;
 
+/**
+ * An exception thrown when it is not possible to serialize a given data type
+ */
 public class UnserializableTypeException extends SerializationException {
 
     public UnserializableTypeException(Type type) {

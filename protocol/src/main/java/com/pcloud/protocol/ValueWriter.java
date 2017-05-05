@@ -21,8 +21,20 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * A utility class designed to write data from a source to a sink
+ */
 public class ValueWriter {
 
+    /**
+     * Write all the data from a {@linkplain ProtocolWriter} to a {@linkplain Map}
+     * <p>
+     *
+     * @param writer a {@linkplain ProtocolWriter} to write the data
+     * @param values a {@linkplain Map} to take the data and act as a data sink
+     * @throws IOException on failed IO operations
+     * @throws IllegalArgumentException on null arguments
+     */
     public void writeAll(ProtocolWriter writer, Map<String, ?> values) throws IOException {
         if (writer == null) {
             throw new IllegalArgumentException("ProtocolWriter argument cannot be null.");

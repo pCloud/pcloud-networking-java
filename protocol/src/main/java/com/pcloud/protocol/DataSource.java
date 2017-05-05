@@ -33,6 +33,7 @@ import java.io.IOException;
  * this class allows for a flexible way to write bytes to a {@link BufferedSink}.
  * <p>
  * Generally used for specifying a data source when creating/uploading files.
+ * <ul>
  * <li>
  * The {@link #create(File)} method can be used for reading data from a local file.
  * <li>
@@ -41,6 +42,7 @@ import java.io.IOException;
  * The {@link #create(ByteString)} method can be used for reading data from Okio's immutable byte arrays.
  * <li>
  * For any other cases just extend the class and do your magic in the {@link #writeTo(BufferedSink)} method.
+ * </ul>
  */
 public abstract class DataSource {
 
@@ -67,6 +69,8 @@ public abstract class DataSource {
      * <p>
      * Override this method to provide the size of the data
      * to be written, if known in advance, otherwise return -1.
+     *
+     * @return a long representing the data source length
      */
     public long contentLength() {
         return -1;
@@ -76,6 +80,7 @@ public abstract class DataSource {
      * Write the data to a {@link BufferedSink}.
      *
      * @param sink {@link BufferedSink}
+     * @throws IOException on failed IO operations
      */
     public abstract void writeTo(BufferedSink sink) throws IOException;
 
