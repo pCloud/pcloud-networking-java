@@ -46,19 +46,19 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Boolean value) throws IOException {
-            writer.writeValue((boolean)value);
+            writer.writeValue((boolean) value);
         }
     };
 
     private static final TypeAdapter<Integer> INTEGER_ADAPTER = new TypeAdapter<Integer>() {
         @Override
         public Integer deserialize(ProtocolReader reader) throws IOException {
-            return (int)reader.readNumber();
+            return (int) reader.readNumber();
         }
 
         @Override
         public void serialize(ProtocolWriter writer, Integer value) throws IOException {
-            writer.writeValue((int)value);
+            writer.writeValue((int) value);
         }
     };
 
@@ -70,7 +70,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Long value) throws IOException {
-            writer.writeValue((long)value);
+            writer.writeValue((long) value);
         }
     };
 
@@ -81,13 +81,13 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
             try {
                 return Double.parseDouble(numberString);
             } catch (NumberFormatException e) {
-                throw new IOException("Failed to convert '"+numberString+"' to a Double", e);
+                throw new IOException("Failed to convert '" + numberString + "' to a Double", e);
             }
         }
 
         @Override
         public void serialize(ProtocolWriter writer, Double value) throws IOException {
-            writer.writeValue((double)value);
+            writer.writeValue((double) value);
         }
     };
 
@@ -98,13 +98,13 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
             try {
                 return Float.parseFloat(numberString);
             } catch (NumberFormatException e) {
-                throw new IOException("Failed to convert '"+numberString+"' to a Float", e);
+                throw new IOException("Failed to convert '" + numberString + "' to a Float", e);
             }
         }
 
         @Override
         public void serialize(ProtocolWriter writer, Float value) throws IOException {
-            writer.writeValue((float)value);
+            writer.writeValue((float) value);
         }
     };
 
@@ -116,7 +116,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Short value) throws IOException {
-            writer.writeValue((short)value);
+            writer.writeValue((short) value);
         }
     };
 
@@ -128,7 +128,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Byte value) throws IOException {
-            writer.writeValue((byte)value);
+            writer.writeValue((byte) value);
         }
     };
 

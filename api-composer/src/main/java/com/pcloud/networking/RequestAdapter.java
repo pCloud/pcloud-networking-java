@@ -30,7 +30,10 @@ interface RequestAdapter {
      * A factory for {@linkplain RequestAdapter} construction
      */
     interface Factory {
-        RequestAdapter create(ApiComposer composer, java.lang.reflect.Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations);
+        RequestAdapter create(ApiComposer composer,
+                              java.lang.reflect.Method method,
+                              Type[] argumentTypes,
+                              Annotation[][] argumentAnnotations);
     }
 
     /**

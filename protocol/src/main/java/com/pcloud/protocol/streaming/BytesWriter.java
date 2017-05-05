@@ -37,6 +37,8 @@ public class BytesWriter implements ProtocolRequestWriter {
     private static final int REQUEST_PARAM_NAME_LENGTH_LIMIT = 63;
     private static final int REQUEST_SIZE_LIMIT_BYTES = 65535;
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
+    private static final int MAX_METHOD_LENGTH = 127;
+    private static final int BITWISE_SHIFT_SIX = 6;
 
     private BufferedSink sink;
     private Buffer paramsBuffer;
@@ -93,14 +95,15 @@ public class BytesWriter implements ProtocolRequestWriter {
         Buffer metadataBuffer = new Buffer();
 
         int methodNameLength = (int) Utf8.size(methodName);
-        if (methodNameLength > 127) {
+        if (methodNameLength > MAX_METHOD_LENGTH) {
             throw new SerializationException("Method name cannot be larger than 127 bytes.");
         }
 
         final long dataSourceLength = dataSource != null ? dataSource.contentLength() : 0;
         if (dataSourceLength < 0L) {
-            throw new SerializationException("Unknown or invalid DataSource content length '"
-                    + dataSourceLength + "'.");
+            throw new SerializationException("Unknown or invalid DataSource content length '" +
+                                                     dataSourceLength +
+                                                     "'.");
         }
 
         boolean hasData = dataSourceLength > 0;
@@ -119,7 +122,7 @@ public class BytesWriter implements ProtocolRequestWriter {
         final long requestSize = metadataBuffer.size() + paramsBuffer.size();
         if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
             throw new SerializationException("The maximum allowed request size is 65535 bytes," +
-                    " current is " + requestSize + " bytes.");
+                                                     " current is " + requestSize + " bytes.");
         }
 
         sink.writeShortLe((int) requestSize);
@@ -176,7 +179,7 @@ public class BytesWriter implements ProtocolRequestWriter {
             throw new SerializationException("Parameter name '%s' is too long.", nextValueName);
         }
 
-        int encodedParamData = parameterNameLength | (type << 6);
+        int encodedParamData = parameterNameLength | (type << BITWISE_SHIFT_SIX);
         paramsBuffer.writeByte(encodedParamData);
         paramsBuffer.writeUtf8(nextValueName);
         nextValueName = null;
@@ -284,13 +287,13 @@ public class BytesWriter implements ProtocolRequestWriter {
         }
     }
 
-    private void checkWriteValueFinished(){
+    private void checkWriteValueFinished() {
         if (nextValueName != null) {
             throw new IllegalStateException("Expected a call to one of the writeValue() methods.");
         }
     }
 
-    private void checkWriteNameCalled(){
+    private void checkWriteNameCalled() {
         if (nextValueName == null) {
             throw new IllegalStateException("Call writeName() before calling this method.");
         }

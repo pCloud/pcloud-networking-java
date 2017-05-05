@@ -23,7 +23,12 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
@@ -108,9 +113,11 @@ public class ApiComposer {
     }
 
     /**
-     * Returns a {@linkplain List} of all the {@linkplain ResponseInterceptor} objects you provided in the {@linkplain Builder}
+     * Returns a {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
      *
-     * @return A {@linkplain List} of all the {@linkplain ResponseInterceptor} objects you provided in the {@linkplain Builder}
+     * @return A {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
      */
     public List<ResponseInterceptor> interceptors() {
         return interceptors;
@@ -121,7 +128,8 @@ public class ApiComposer {
      * <p>
      * Note that you should provide an interface which does not extend anything or else this wont work!
      *
-     * @param apiType The class of the java interface in which you have written the methods to represent the network calls
+     * @param apiType The class of the java interface in which you have
+     *                written the methods to represent the network calls
      * @param <T>     The generic type of the returned instance
      * @return An instance of a class of the same generic type as the class you provided as an argument
      * implementing the interface in which you have written methods to represent your network calls
@@ -329,7 +337,8 @@ public class ApiComposer {
          * Does the same thing as {@linkplain #removeInterceptor(ResponseInterceptor)}
          * for each {@linkplain ResponseInterceptor} in the {@linkplain Collection}
          *
-         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor} objects to be removed from the {@linkplain Builder}
+         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor}
+         *                     objects to be removed from the {@linkplain Builder}
          * @return A reference to the {@linkplain Builder} object
          * @throws IllegalArgumentException on a null {@linkplain Collection} argument
          */
@@ -404,7 +413,8 @@ public class ApiComposer {
          * If set to true the {@linkplain ApiComposer} created from this builder will initialize
          * the interface implementations immediately after the {@linkplain ApiComposer#compose(Class)} is called.
          * <p>
-         * If set to false the {@linkplain ApiComposer#compose(Class)} will only check the conditions for implementing the interface
+         * If set to false the {@linkplain ApiComposer#compose(Class)} will only
+         * check the conditions for implementing the interface
          * but will actually implement it when the request is called.
          *
          * @param loadEagerly the condition for whether the interface implementation should be lazy or eager
@@ -416,7 +426,8 @@ public class ApiComposer {
         }
 
         /**
-         * Creates and returns a new instance of the {@linkplain ApiComposer} with the parameters set via the {@linkplain Builder}
+         * Creates and returns a new instance of the {@linkplain ApiComposer}
+         * with the parameters set via the {@linkplain Builder}
          *
          * @return A new instance of the {@linkplain ApiComposer} with the parameters set via the {@linkplain Builder}
          */

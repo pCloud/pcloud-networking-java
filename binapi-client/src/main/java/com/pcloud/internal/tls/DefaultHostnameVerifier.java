@@ -38,7 +38,7 @@ public final class DefaultHostnameVerifier implements HostnameVerifier {
     }
 
     @Override
-    public final boolean verify(String s, SSLSession sslSession) {
+    public boolean verify(String s, SSLSession sslSession) {
         return platformHostnameVerifier.verify(s, sslSession);
     }
 }

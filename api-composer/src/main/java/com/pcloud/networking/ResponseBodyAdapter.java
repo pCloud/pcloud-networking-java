@@ -18,11 +18,9 @@ package com.pcloud.networking;
 
 import com.pcloud.Response;
 import com.pcloud.ResponseBody;
-import com.pcloud.ResponseData;
 
 import java.io.IOException;
 
-import static com.pcloud.IOUtils.closeQuietly;
 
 class ResponseBodyAdapter implements ResponseAdapter<ResponseBody> {
 

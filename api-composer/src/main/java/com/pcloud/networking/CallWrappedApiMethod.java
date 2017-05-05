@@ -21,10 +21,9 @@ import com.pcloud.Request;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
+class CallWrappedApiMethod<T, R> extends ApiMethod<R> {
 
     static final ApiMethod.Factory FACTORY = new Factory();
 
@@ -33,7 +32,8 @@ class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
     private ResponseAdapter<T> returnTypeAdapter;
     private CallAdapter callAdapter;
 
-    private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> returnTypeAdapter, CallAdapter callAdapter) {
+    private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter,
+                                 ResponseAdapter<T> returnTypeAdapter, CallAdapter callAdapter) {
         this.apiMethodName = apiMethodName;
         this.requestAdapter = requestAdapter;
         this.returnTypeAdapter = returnTypeAdapter;
@@ -44,8 +44,8 @@ class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
     @SuppressWarnings("unchecked")
     public R invoke(ApiComposer apiComposer, Object[] args) throws IOException {
         Request.Builder builder = Request.create()
-                .endpoint(apiComposer.endpointProvider().endpoint())
-                .methodName(apiMethodName);
+                                    .endpoint(apiComposer.endpointProvider().endpoint())
+                                    .methodName(apiMethodName);
         requestAdapter.adapt(builder, args);
         com.pcloud.Call rawCall = apiComposer.apiClient().newCall(builder.build());
 
@@ -55,12 +55,13 @@ class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
     private static class Factory extends ApiMethod.Factory {
 
         @Override
-        public ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations) {
+        public ApiMethod<?> create(ApiComposer composer, Method method,
+                                   Type[] argumentTypes, Annotation[][] argumentAnnotations) {
             String apiMethodName = parseMethodNameAnnotation(method);
             RequestAdapter requestAdapter = getRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
 
             CallAdapter<?, ?> callAdapter = composer.loadCallAdapter(method);
-            if(callAdapter == null) {
+            if (callAdapter == null) {
                 return null;
             }
             Type adapterResponseType = callAdapter.responseType();
@@ -74,5 +75,4 @@ class CallWrappedApiMethod<T,R> extends ApiMethod<R> {
             return new CallWrappedApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter, callAdapter);
         }
     }
-
 }

@@ -16,8 +16,8 @@
 
 package com.pcloud.networking;
 
-import java.lang.reflect.*;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 
 import static com.pcloud.networking.Types.getRawType;
 

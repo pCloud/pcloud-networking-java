@@ -28,6 +28,10 @@ import java.util.concurrent.TimeUnit;
 
 public class IOUtils {
 
+    private static final int HEX_255 = 0xff;
+    private static final int EIGHT_KB = 8192;
+    private static final int NEXT_BYTE_POSITION = 256;
+
     public static void closeQuietly(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -35,6 +39,7 @@ public class IOUtils {
             } catch (RuntimeException rethrown) {
                 throw rethrown;
             } catch (Exception ignored) {
+                //Empty
             }
         }
     }
@@ -48,6 +53,7 @@ public class IOUtils {
             } catch (RuntimeException rethrown) {
                 throw rethrown;
             } catch (Exception ignored) {
+                //Empty
             }
         }
     }
@@ -57,8 +63,8 @@ public class IOUtils {
      * https://code.google.com/p/android/issues/detail?id=54072
      */
     public static boolean isAndroidGetsocknameError(AssertionError e) {
-        return e.getCause() != null && e.getMessage() != null
-                && e.getMessage().contains("getsockname failed");
+        return e.getCause() != null && e.getMessage() != null &&
+                       e.getMessage().contains("getsockname failed");
     }
 
     /**
@@ -67,13 +73,13 @@ public class IOUtils {
      */
     public static boolean skipAll(Source source, int duration, TimeUnit timeUnit) throws IOException {
         long now = System.nanoTime();
-        long originalDuration = source.timeout().hasDeadline()
-                ? source.timeout().deadlineNanoTime() - now
-                : Long.MAX_VALUE;
+        long originalDuration = source.timeout().hasDeadline() ?
+                                        source.timeout().deadlineNanoTime() - now :
+                                        Long.MAX_VALUE;
         source.timeout().deadlineNanoTime(now + Math.min(originalDuration, timeUnit.toNanos(duration)));
         try {
             Buffer skipBuffer = new Buffer();
-            while (source.read(skipBuffer, 8192) != -1) {
+            while (source.read(skipBuffer, EIGHT_KB) != -1) {
                 skipBuffer.clear();
             }
             return true; // Success! The source has been exhausted.
@@ -95,12 +101,12 @@ public class IOUtils {
             long value = 0;
             long m = 1;
             for (int i = 0; i < byteCount; i++) {
-                value += m * (number[i] & 0xff);
-                m *= 256;
+                value += m * (number[i] & HEX_255);
+                m *= NEXT_BYTE_POSITION;
             }
             return value;
         } else {
-            return source.readByte() & 0xff;
+            return source.readByte() & HEX_255;
         }
     }
 
@@ -112,12 +118,12 @@ public class IOUtils {
             long value = 0;
             long m = 1;
             for (int i = 0; i < byteCount; i++) {
-                value += m * (numberBytes.getByte(i) & 0xff);
-                m *= 256;
+                value += m * (numberBytes.getByte(i) & HEX_255);
+                m *= NEXT_BYTE_POSITION;
             }
             return value;
         } else {
-            return source.buffer().getByte(0) & 0xff;
+            return source.buffer().getByte(0) & HEX_255;
         }
     }
 

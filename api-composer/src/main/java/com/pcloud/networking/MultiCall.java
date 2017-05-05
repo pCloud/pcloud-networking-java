@@ -30,8 +30,8 @@ import java.util.concurrent.TimeoutException;
  * the same thread blocking until its done or an exception is thrown
  * <li> {@linkplain #enqueue(MultiCallback)} will asynchronously enqueue on another thread
  * calling a {@linkplain MultiCallback} to report progress, success or failure
- * <li> {@linkplain #enqueueAndWait()} will enqueue on another thread but will block the
- * calling thread until its done or an exception is thrown
+ * <li> {@linkplain #enqueueAndWait()} will enqueue on another thread but will
+ * block the calling thread until its done or an exception is thrown
  * <li> Can be used only once. You can check if this call has been executed via {@linkplain #isExecuted()}
  * <li> To reuse you can call {@linkplain #clone()} and execute the clone object
  * <li> It is safe to call {@linkplain #cancel()} multiple times
@@ -43,6 +43,7 @@ import java.util.concurrent.TimeoutException;
  * @see MultiCallback
  */
 public interface MultiCall<T, R> extends Cloneable {
+
     /**
      * Returns a {@linkplain List} of the requests for this {@linkplain MultiCall}
      *
@@ -68,7 +69,8 @@ public interface MultiCall<T, R> extends Cloneable {
     List<R> enqueueAndWait() throws IOException, InterruptedException;
 
     /**
-     * Enqueues on another thread but blocks the calling thread for at most the amount of time specified in the arguments.
+     * Enqueues on another thread but blocks the calling thread for
+     * at most the amount of time specified in the arguments.
      * <p>
      * Note you are not guaranteed to receive all the responses in the time you specified and
      * if all the operations are not complete in this time a {@linkplain TimeoutException} will be thrown

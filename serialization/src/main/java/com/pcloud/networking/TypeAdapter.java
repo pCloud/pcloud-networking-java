@@ -18,12 +18,8 @@ package com.pcloud.networking;
 
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolWriter;
-import com.pcloud.protocol.streaming.TypeToken;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
-import java.util.Map;
-
 /**
  * An interface for converting between objects and their binary protocol representations.
  * <p>

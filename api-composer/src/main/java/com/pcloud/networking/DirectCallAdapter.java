@@ -29,7 +29,7 @@ class DirectCallAdapter  {
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
             Type returnType = method.getGenericReturnType();
-            if(!(returnType instanceof ApiResponse)) {
+            if (!(returnType instanceof ApiResponse)) {
                 return null;
             }
             return new CallAdapter<Object, Object>() {

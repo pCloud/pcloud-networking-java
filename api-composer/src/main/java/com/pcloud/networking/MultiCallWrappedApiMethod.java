@@ -20,11 +20,11 @@ import com.pcloud.Request;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 import static com.pcloud.networking.Types.getParameterUpperBound;
@@ -47,7 +47,11 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
     private ResponseAdapter<R> returnTypeAdapter;
     private CallAdapter callAdapter;
 
-    private MultiCallWrappedApiMethod(String apiMethodName, RequestContainerAdapter<Object, T> argumentsRequestContainerAdapter, RequestAdapter requestAdapter, ResponseAdapter<R> returnTypeAdapter, CallAdapter callAdapter) {
+    private MultiCallWrappedApiMethod(String apiMethodName,
+                                      RequestContainerAdapter<Object, T> argumentsRequestContainerAdapter,
+                                      RequestAdapter requestAdapter,
+                                      ResponseAdapter<R> returnTypeAdapter,
+                                      CallAdapter callAdapter) {
         this.apiMethodName = apiMethodName;
         this.argumentsRequestContainerAdapter = argumentsRequestContainerAdapter;
         this.requestAdapter = requestAdapter;
@@ -80,12 +84,13 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
     private static class Factory extends ApiMethod.Factory {
 
         @Override
-        public ApiMethod<?> create(ApiComposer composer, Method method, Type[] argumentTypes, Annotation[][] argumentAnnotations) {
+        public ApiMethod<?> create(ApiComposer composer, Method method,
+                                   Type[] argumentTypes, Annotation[][] argumentAnnotations) {
             Type requestContainerType = argumentTypes[0];
             String apiMethodName = parseMethodNameAnnotation(method);
 
-            if (!hasRequestBodyAnnotation(argumentAnnotations)
-                    || !hasValidRequestContainerType(requestContainerType)) {
+            if (!hasRequestBodyAnnotation(argumentAnnotations) ||
+                    !hasValidRequestContainerType(requestContainerType)) {
                 return null;
             }
 
@@ -113,12 +118,13 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
 
             ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, innerReturnType);
 
-            return new MultiCallWrappedApiMethod<>(apiMethodName, containerAdapter, requestAdapter, returnTypeAdapter, callAdapter);
+            return new MultiCallWrappedApiMethod<>(apiMethodName, containerAdapter,
+                    requestAdapter, returnTypeAdapter, callAdapter);
         }
 
         private static boolean hasValidRequestContainerType(Type requestContainerType) {
-            return Types.arrayComponentType(requestContainerType) != null
-                    || List.class.isAssignableFrom(getRawType(requestContainerType));
+            return Types.arrayComponentType(requestContainerType) != null ||
+                    List.class.isAssignableFrom(getRawType(requestContainerType));
         }
 
         private static <T> RequestContainerAdapter<?, T> getContainerAdapter(Method method, Type requestContainerType) {
@@ -145,8 +151,8 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
             } else if (List.class.isAssignableFrom(getRawType(requestContainerType))) {
                 // Requests are given as a List/
                 if (!(requestContainerType instanceof ParameterizedType)) {
-                    throw new IllegalStateException("Requests List type must be parameterized"
-                            + " as List<Foo> or List<? extends Foo>");
+                    throw new IllegalStateException("Requests List type must be parameterized" +
+                            " as List<Foo> or List<? extends Foo>");
                 }
                 actualRequestType = getParameterUpperBound(0, requestContainerType);
                 containerAdapter = new RequestContainerAdapter<List<T>, T>() {
@@ -162,7 +168,8 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
                 };
 
             } else {
-                throw apiMethodError(method, "MultiCall-returning methods should have a single, @RequestBody-annotated argument " +
+                throw apiMethodError(method,
+                        "MultiCall-returning methods should have a single, @RequestBody-annotated argument " +
                         ", either an array or a java.util.List<> of the Request type.");
             }
 
