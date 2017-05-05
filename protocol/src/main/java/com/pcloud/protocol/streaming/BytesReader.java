@@ -22,15 +22,15 @@ import okio.Okio;
 
 import java.io.IOException;
 import java.net.ProtocolException;
-import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+import java.util.Locale;
 
 import static com.pcloud.IOUtils.closeQuietly;
 import static com.pcloud.protocol.streaming.TypeToken.*;
 
 public class BytesReader implements ProtocolResponseReader {
-
-    private static final Charset PROTOCOL_CHARSET = Charset.forName("UTF-8");
 
     private static final int TYPE_STRING_START = 0;
     private static final int TYPE_STRING_END = 3;
@@ -57,7 +57,9 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int TYPE_AGGREGATE_NUMBER = -4;
     private static final int TYPE_AGGREGATE_END_ARRAY = -5;
     private static final int TYPE_AGGREGATE_END_OBJECT = -6;
-    public static final int DEFAULT_STRING_CACHE_SIZE = 50;
+    private static final int DEFAULT_STRING_CACHE_SIZE = 50;
+
+    private static final long PEEK_READ_LIMIT_BYTES = 256L;
 
     private int currentScope = SCOPE_NONE;
     private int previousScope = SCOPE_NONE;
@@ -214,7 +216,7 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     private void cacheString(String string) {
-        if (stringCache.length == lastStringId + 1){
+        if (stringCache.length == lastStringId + 1) {
             stringCache = Arrays.copyOf(stringCache, stringCache.length * 2);
         }
 
@@ -252,7 +254,7 @@ public class BytesReader implements ProtocolResponseReader {
         reader.currentScope = this.currentScope;
         reader.previousScope = this.previousScope;
         reader.scopeStack = new ArrayDeque<>(this.scopeStack);
-        reader.bufferedSource = Okio.buffer(new PeekingSource(this.bufferedSource, 0L));
+        reader.bufferedSource = Okio.buffer(new PeekingSource(this.bufferedSource, 0L, PEEK_READ_LIMIT_BYTES));
         reader.stringCache = this.stringCache;
         reader.dataLength = this.dataLength;
         reader.lastStringId = this.lastStringId;
@@ -266,7 +268,7 @@ public class BytesReader implements ProtocolResponseReader {
     @Override
     public void skipValue() throws IOException {
 
-        if(currentScope == SCOPE_NONE){
+        if (currentScope == SCOPE_NONE) {
             throw new IllegalStateException("Trying to skipValue, but currentScope is " + currentScope + ". You must call beginResponse() first.");
         }
 
@@ -413,29 +415,32 @@ public class BytesReader implements ProtocolResponseReader {
 
     private String typeName(final int type) {
         TypeToken typeToken;
-        if (type == TYPE_AGGREGATE_NUMBER) {
-            // Number, may a 1-8 byte long integer.
-            // Number, with compression optimization
-            typeToken = NUMBER;
-        } else if (type == TYPE_BEGIN_OBJECT) {
-            // Object
-            typeToken = BEGIN_OBJECT;
-        } else if (type == TYPE_BEGIN_ARRAY) {
-            // Array
-            typeToken = BEGIN_ARRAY;
-        } else if (type == TYPE_AGGREGATE_BOOLEAN) {
-            // Boolean, 18 means 'false', 19 is 'true'
-            typeToken = BOOLEAN;
-        } else if (type == TYPE_AGGREGATE_END_ARRAY) {
-            typeToken = END_ARRAY;
-        } else if (type == TYPE_AGGREGATE_END_OBJECT) {
-            typeToken = END_OBJECT;
-        } else {
-            try {
-                typeToken = getToken(type);
-            } catch (SerializationException e) {
-                return "(Unknown type " + type + ")";
-            }
+        switch (type) {
+            case TYPE_AGGREGATE_NUMBER:
+                // Number, may a 1-8 byte long integer.
+                // Number, with compression optimization
+                typeToken = NUMBER;
+                break;
+            case TYPE_AGGREGATE_STRING:
+                // Object
+                typeToken = STRING;
+                break;
+            case TYPE_AGGREGATE_BOOLEAN:
+                // Boolean, 18 means 'false', 19 is 'true'
+                typeToken = BOOLEAN;
+                break;
+            case TYPE_AGGREGATE_END_ARRAY:
+                typeToken = END_ARRAY;
+                break;
+            case TYPE_AGGREGATE_END_OBJECT:
+                typeToken = END_OBJECT;
+                break;
+            default:
+                try {
+                    typeToken = getToken(type);
+                } catch (SerializationException e) {
+                    return "(Unknown type " + type + ")";
+                }
         }
 
         return typeToken.toString().toUpperCase(Locale.ENGLISH);
