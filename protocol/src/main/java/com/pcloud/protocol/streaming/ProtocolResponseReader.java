@@ -18,17 +18,53 @@ package com.pcloud.protocol.streaming;
 
 import java.io.IOException;
 
+/**
+ * A contract for a reader which can read data from a response
+ *
+ * @see ProtocolReader
+ * @see BytesReader
+ */
 @SuppressWarnings("WeakerAccess")
 public interface ProtocolResponseReader extends ProtocolReader {
 
+    /**
+     * Indicates the reader has begun reading a response
+     */
     int SCOPE_RESPONSE = 1;
+
+    /**
+     * A value to indicate the data content length is unknown
+     */
     int UNKNOWN_SIZE = -1;
 
+    /**
+     * Begin reading a response from the data source
+     * <p>
+     *
+     * @return the length of the response
+     * @throws IOException if the source has been exhausted prior to this operation
+     */
     long beginResponse() throws IOException;
 
+    /**
+     * End reading a response from the data source
+     * <p>
+     *
+     * @return the length of the data after the response
+     * @throws IOException if the source has been exhausted prior to this operation
+     */
     long endResponse() throws IOException;
 
+    /**
+     * Get the length of the data that follows the response
+     * <p>
+     *
+     * @return a long representing the data length
+     */
     long dataContentLength();
 
+    /**
+     * {@inheritDoc}
+     */
     ProtocolResponseReader newPeekingReader();
 }

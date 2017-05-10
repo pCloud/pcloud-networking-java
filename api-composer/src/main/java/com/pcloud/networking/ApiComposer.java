@@ -23,7 +23,12 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.LinkedList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
@@ -35,6 +40,7 @@ import static com.pcloud.networking.ApiMethod.Factory.apiMethodError;
  * @see PCloudAPIClient
  * @see ResponseInterceptor
  */
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class ApiComposer {
     /**
      * Creates and returns a {@linkplain Builder} to build the {@linkplain ApiComposer} with
@@ -45,10 +51,26 @@ public class ApiComposer {
         return new Builder();
     }
 
-    private static final List<ApiMethod.Factory> BUILT_IN_FACTORIES = Arrays.asList(
-            DirectApiMethod.FACTORY,
+    /**
+     * Internal list of {@linkplain ApiMethod.Factory} factories
+     * <p>
+     * Holds the list of available {@linkplain ApiMethod.Factory} implementations.
+     * <p>
+     * <b>Note that the order of elements is important, please consider it before modification.</b>
+     */
+    private static final List<ApiMethod.Factory> BUILT_IN_API_METHOD_FACTORIES = Arrays.asList(
+            MultiCallWrappedApiMethod.FACTORY,
             CallWrappedApiMethod.FACTORY,
-            MultiCallWrappedApiMethod.FACTORY);
+            DirectApiMethod.FACTORY
+    );
+
+    /**
+     * The built-in set of {@linkplain CallAdapter.Factory} implementations
+     */
+    private static final List<CallAdapter.Factory> BUILD_IN_CALL_ADAPTER_FACTORIES = Arrays.asList(
+            CallWrappedCallAdapter.FACTORY,
+            DirectCallAdapter.FACTORY
+    );
 
     private EndpointProvider endpointProvider;
     private PCloudAPIClient apiClient;
@@ -57,7 +79,8 @@ public class ApiComposer {
 
     private boolean loadEagerly;
     private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
-    private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_FACTORIES);
+    private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_API_METHOD_FACTORIES);
+    private List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(BUILD_IN_CALL_ADAPTER_FACTORIES);
 
     private ApiComposer(Builder builder) {
         if (builder.apiClient == null) {
@@ -68,6 +91,7 @@ public class ApiComposer {
         this.apiClient = builder.apiClient;
         this.transformer = builder.transformer != null ? builder.transformer : Transformer.create().build();
         this.interceptors = new ArrayList<>(builder.interceptors);
+        this.callAdapterFactories.addAll(builder.callAdapterFactories);
         this.loadEagerly = builder.loadEagerly;
     }
 
@@ -99,9 +123,11 @@ public class ApiComposer {
     }
 
     /**
-     * Returns a {@linkplain List} of all the {@linkplain ResponseInterceptor} objects you provided in the {@linkplain Builder}
+     * Returns a {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
      *
-     * @return A {@linkplain List} of all the {@linkplain ResponseInterceptor} objects you provided in the {@linkplain Builder}
+     * @return A {@linkplain List} of all the {@linkplain ResponseInterceptor}
+     * objects you provided in the {@linkplain Builder}
      */
     public List<ResponseInterceptor> interceptors() {
         return interceptors;
@@ -112,7 +138,8 @@ public class ApiComposer {
      * <p>
      * Note that you should provide an interface which does not extend anything or else this wont work!
      *
-     * @param apiType The class of the java interface in which you have written the methods to represent the network calls
+     * @param apiType The class of the java interface in which you have
+     *                written the methods to represent the network calls
      * @param <T>     The generic type of the returned instance
      * @return An instance of a class of the same generic type as the class you provided as an argument
      * implementing the interface in which you have written methods to represent your network calls
@@ -142,6 +169,17 @@ public class ApiComposer {
                         return apiMethod.invoke(ApiComposer.this, args);
                     }
                 });
+    }
+
+
+    CallAdapter<?, ?> nextCallAdapter(Method method) {
+        CallAdapter<?, ?> callAdapter = null;
+        for (CallAdapter.Factory adapterFactory : callAdapterFactories) {
+            if ((callAdapter = adapterFactory.get(this, method)) != null) {
+                break;
+            }
+        }
+        return callAdapter;
     }
 
     private ApiMethod<?> loadApiMethod(Method javaMethod) {
@@ -187,6 +225,7 @@ public class ApiComposer {
      * @return A new instance of a {@linkplain Builder} to build a new {@linkplain ApiComposer}
      */
     public Builder newBuilder() {
+        this.callAdapterFactories.removeAll(BUILD_IN_CALL_ADAPTER_FACTORIES);
         return new Builder(this);
     }
 
@@ -199,6 +238,7 @@ public class ApiComposer {
         private PCloudAPIClient apiClient;
         private Transformer transformer;
         private List<ResponseInterceptor> interceptors = new LinkedList<>();
+        private List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>();
         private boolean loadEagerly;
 
         private Builder() {
@@ -209,6 +249,7 @@ public class ApiComposer {
             this.apiClient = composer.apiClient;
             this.transformer = composer.transformer;
             this.interceptors = new ArrayList<>(composer.interceptors);
+            this.callAdapterFactories = new ArrayList<>(composer.callAdapterFactories);
         }
 
         /**
@@ -292,7 +333,8 @@ public class ApiComposer {
          * Does the same thing as {@linkplain #removeInterceptor(ResponseInterceptor)}
          * for each {@linkplain ResponseInterceptor} in the {@linkplain Collection}
          *
-         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor} objects to be removed from the {@linkplain Builder}
+         * @param interceptors A {@linkplain Collection} of {@linkplain ResponseInterceptor}
+         *                     objects to be removed from the {@linkplain Builder}
          * @return A reference to the {@linkplain Builder} object
          * @throws IllegalArgumentException on a null {@linkplain Collection} argument
          */
@@ -327,13 +369,49 @@ public class ApiComposer {
         }
 
         /**
-         * Determines if the interface implementation will be lazy or eager. By default the implementation will be lazy.
+         * Sets a single {@linkplain CallAdapter.Factory} for this {@linkplain ApiComposer}
+         *
+         * @param adapterFactory The {@linkplain CallAdapter.Factory} to be set to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain CallAdapter.Factory} argument
+         */
+        public Builder addAdapterFactory(CallAdapter.Factory adapterFactory) {
+            if (adapterFactory == null) {
+                throw new IllegalArgumentException("CallAdapter.Factory argument cannot be null.");
+            }
+            this.callAdapterFactories.add(adapterFactory);
+            return this;
+        }
+
+        /**
+         * Adds a {@linkplain Collection} of {@linkplain CallAdapter.Factory} objects for the {@linkplain Builder}
          * <p>
-         * If set to true the {@linkplain ApiComposer} created from this builder will initialize
-         * the interface implementations immediately after the {@linkplain ApiComposer#compose(Class)} is called.
+         * Does the same thing as {@linkplain #addAdapterFactory(CallAdapter.Factory)} for each
+         * {@linkplain CallAdapter.Factory} in the {@linkplain Collection}
+         *
+         * @param adapterFactories A {@linkplain Collection} of {@linkplain CallAdapter.Factory}
+         *                     objects to be added to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         */
+        public Builder addCallAdapterFactories(Iterable<CallAdapter.Factory> adapterFactories) {
+            if (adapterFactories == null) {
+                throw new IllegalArgumentException("CallAdapter.Factory collection argument cannot be null.");
+            }
+            for (CallAdapter.Factory factory : adapterFactories) {
+                addAdapterFactory(factory);
+            }
+            return this;
+        }
+
+        /**
+         * Determine if the interface implementation will be lazy or eager.
          * <p>
-         * If set to false the {@linkplain ApiComposer#compose(Class)} will only check the conditions for implementing the interface
-         * but will actually implement it when the request is called.
+         * If set to {@code true }the {@linkplain ApiComposer} created from this builder will initialize
+         * all interface method implementations immediately after the {@linkplain ApiComposer#compose(Class)} is called.
+         * <p>
+         * If set to {@code false} the {@linkplain ApiComposer#compose(Class)} will only
+         * basic conditions for the supplied interface class and will actually resolve
+         * the interface method implementations on-demand (when the methods are called for the first time).
          *
          * @param loadEagerly the condition for whether the interface implementation should be lazy or eager
          * @return A reference to the {@linkplain Builder} object
@@ -344,7 +422,8 @@ public class ApiComposer {
         }
 
         /**
-         * Creates and returns a new instance of the {@linkplain ApiComposer} with the parameters set via the {@linkplain Builder}
+         * Creates and returns a new instance of the {@linkplain ApiComposer}
+         * with the parameters set via the {@linkplain Builder}
          *
          * @return A new instance of the {@linkplain ApiComposer} with the parameters set via the {@linkplain Builder}
          */

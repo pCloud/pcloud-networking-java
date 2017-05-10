@@ -26,6 +26,7 @@ import java.io.Closeable;
  * @see ApiResponse
  * @see ResponseData
  */
+
 public class DataApiResponse extends ApiResponse implements Closeable {
 
     private ResponseData responseData;

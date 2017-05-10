@@ -17,7 +17,11 @@
 package com.pcloud.networking;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A factory like class which provides {@linkplain TypeAdapter} objects
@@ -33,10 +37,10 @@ import java.util.*;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Transformer {
 
-    private final static Collection<TypeAdapterFactory> DEFAULT_FACTORIES;
-
+    private static final Collection<TypeAdapterFactory> DEFAULT_FACTORIES;
+    private static final int DEFAULT_FACTORIES_LIST_CAPACITY = 4;
     static {
-        DEFAULT_FACTORIES = new ArrayList<>(4);
+        DEFAULT_FACTORIES = new ArrayList<>(DEFAULT_FACTORIES_LIST_CAPACITY);
         DEFAULT_FACTORIES.add(new PrimitiveTypesAdapterFactory());
         DEFAULT_FACTORIES.add(new CollectionsTypeAdapterFactory());
         DEFAULT_FACTORIES.add(new ArrayTypeAdapterFactory());

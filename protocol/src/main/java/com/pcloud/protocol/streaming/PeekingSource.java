@@ -28,16 +28,26 @@ class PeekingSource extends ForwardingSource {
     private BufferedSource source;
     private long offset;
     private boolean sourceExhausted;
+    private long readLimit;
 
     PeekingSource(BufferedSource delegate, long offset) {
+        this(delegate, offset, Long.MAX_VALUE);
+    }
+
+    PeekingSource(BufferedSource delegate, long offset, long readLimit) {
         super(delegate);
         this.offset = offset;
         this.source = delegate;
         this.sourceBuffer = source.buffer();
+        this.readLimit = readLimit;
     }
 
     @Override
     public long read(Buffer sink, long byteCount) throws IOException {
+        if (byteCount > readLimit) {
+            byteCount = readLimit;
+        }
+
         long bytesLeftInBuffer = sourceBuffer.size();
         if (bytesLeftInBuffer < byteCount) {
             if (bytesLeftInBuffer == 0 && sourceExhausted) {

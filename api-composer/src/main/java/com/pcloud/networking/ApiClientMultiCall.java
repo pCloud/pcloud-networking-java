@@ -35,7 +35,10 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     private ResponseAdapter<R> responseAdapter;
     private List<T> requests;
 
-    ApiClientMultiCall(ApiComposer apiComposer, com.pcloud.MultiCall rawCall, ResponseAdapter<R> responseAdapter, List<T> requests) {
+    ApiClientMultiCall(ApiComposer apiComposer,
+                       com.pcloud.MultiCall rawCall,
+                       ResponseAdapter<R> responseAdapter,
+                       List<T> requests) {
         this.apiComposer = apiComposer;
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
@@ -58,7 +61,8 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     }
 
     @Override
-    public List<R> enqueueAndWait(long timeout, TimeUnit timeUnit) throws IOException, InterruptedException, TimeoutException {
+    public List<R> enqueueAndWait(long timeout, TimeUnit timeUnit)
+            throws IOException, InterruptedException, TimeoutException {
         return adapt(rawCall.enqueueAndWait(timeout, timeUnit));
     }
 
@@ -152,7 +156,10 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
                     interceptor.intercept((ApiResponse) result);
                 } catch (Exception e) {
                     closeQuietly(response);
-                    throw new RuntimeException(String.format("Error while calling ResponseInterceptor of type '%s'", interceptor.getClass()), e);
+                    throw new RuntimeException(
+                            String.format("Error while calling ResponseInterceptor of type '%s'",
+                                    interceptor.getClass()), e
+                    );
                 }
             }
         }
