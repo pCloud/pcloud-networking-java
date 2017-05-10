@@ -5,4 +5,5 @@ include 'utils'
 include 'serialization'
 include 'api-composer'
 include 'serialization-adapters'
+include 'api-composer-adapters'
 

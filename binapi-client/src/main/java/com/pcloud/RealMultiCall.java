@@ -181,6 +181,7 @@ class RealMultiCall implements MultiCall {
                     }
 
                     success = true;
+                    RealMultiCall.this.connection = null;
                     MultiResponse response = new MultiResponse(new ArrayList<>(responseMap.values()));
                     callingCallback = true;
                     callback.onComplete(RealMultiCall.this, response);
@@ -200,7 +201,6 @@ class RealMultiCall implements MultiCall {
                         closeQuietly(connection);
                         closeAndClearCompletedResponses(responseMap);
                     }
-                    RealMultiCall.this.connection = null;
                 }
             }
         });

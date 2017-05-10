@@ -28,8 +28,13 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.IOUtils.closeQuietly;
+import static org.mockito.Mockito.spy;
 
 public abstract class ApiIntegrationTest {
 
@@ -51,6 +56,13 @@ public abstract class ApiIntegrationTest {
         resolveTestAccountCredentials();
 
         apiClient = PCloudAPIClient.newClient()
+                .callExecutor(spy(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "PCloud API Client");
+                    }
+                })))
                 .addInterceptor(new RequestInterceptor() {
                     @Override
                     public void intercept(Request request, ProtocolWriter writer) throws IOException {

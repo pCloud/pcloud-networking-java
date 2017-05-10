@@ -41,6 +41,17 @@ public final class Types {
     private Types() {
     }
 
+    /**
+     * Extract the upper bound of the generic parameter at {@code index} from {@code type}. For
+     * example, index 1 of {@code Map<String, ? extends Runnable>} returns {@code Runnable}.
+     */
+    static Type getParameterUpperBound(int index, Type type) {
+        if (!(type instanceof ParameterizedType)) {
+            throw new IllegalArgumentException(
+                    "Call return type must be parameterized as Call<Foo> or Call<? extends Foo>");
+        }
+        return Types.getParameterUpperBound(index, (ParameterizedType) type);
+    }
 
     static Type getParameterUpperBound(int index, ParameterizedType type) {
         Type[] types = type.getActualTypeArguments();
