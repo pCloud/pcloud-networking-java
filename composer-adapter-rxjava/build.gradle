@@ -17,3 +17,11 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
     testCompile 'org.assertj:assertj-core:2.5.0'
 }
+
+ext {
+    bintrayPackage = 'composer-adapter-rxjava'
+    artifactId = 'composer-adapter-rxjava'
+}
+
+apply from: '../bintray.gradle'
+apply from: '../maven-pom.gradle'
