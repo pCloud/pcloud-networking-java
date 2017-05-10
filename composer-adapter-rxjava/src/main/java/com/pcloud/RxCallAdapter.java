@@ -21,7 +21,12 @@ import com.pcloud.networking.CallAdapter;
 import com.pcloud.networking.Types;
 import rx.Emitter;
 import rx.Observable;
+import rx.Observer;
 import rx.Single;
+import rx.functions.Action1;
+import rx.functions.Action2;
+import rx.functions.Cancellable;
+import rx.functions.Func0;
 import rx.observables.SyncOnSubscribe;
 import com.pcloud.networking.Call;
 import com.pcloud.networking.MultiCall;
@@ -40,7 +45,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
     private final Type responseType;
 
-    public RxCallAdapter(Type responseType) {
+    private RxCallAdapter(Type responseType) {
         this.responseType = responseType;
     }
 
@@ -52,39 +57,60 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
     @Override
     public Observable<T> adapt(final Call<T> call) {
 
-        return Observable.<T>create(SyncOnSubscribe.createSingleState(call::clone, (callClone, observer) -> {
-            try {
-                observer.onNext(callClone.execute());
-                observer.onCompleted();
-            } catch (Throwable throwable) {
-                observer.onError(throwable);
+        return Observable.<T>create(SyncOnSubscribe.createSingleState(new Func0<Call<T>>() {
+            @Override
+            public Call<T> call() {
+                return call.clone();
             }
-        }, Call::cancel));
+        }, new Action2<Call<T>, Observer<? super T>>() {
+            @Override
+            public void call(Call<T> callClone, Observer<? super T> observer) {
+                try {
+                    observer.onNext(callClone.execute());
+                    observer.onCompleted();
+                } catch (Throwable throwable) {
+                    observer.onError(throwable);
+                }
+            }
+        }, new Action1<Call<T>>() {
+            @Override
+            public void call(Call<T> tCall) {
+                tCall.cancel();
+            }
+        }));
     }
 
     @Override
     public Observable<T> adapt(final MultiCall<?, T> call) {
-        return Observable.fromEmitter(emitter -> {
-            final MultiCall<?, T> multiCall = call.clone();
-            MultiCallback callback = new MultiCallback<Object, T>() {
-                @Override
-                public void onFailure(MultiCall<Object, T> call1, IOException e, List<T> completedResponses) {
-                    emitter.onError(e);
-                }
+        return Observable.fromEmitter(new Action1<Emitter<T>>() {
+            @Override
+            public void call(final Emitter<T> emitter) {
+                final MultiCall<?, T> multiCall = call.clone();
+                MultiCallback callback = new MultiCallback<Object, T>() {
+                    @Override
+                    public void onFailure(MultiCall<Object, T> call1, IOException e, List<T> completedResponses) {
+                        emitter.onError(e);
+                    }
 
-                @Override
-                public void onResponse(MultiCall<Object, T> call1, int key, T response) {
-                    emitter.onNext(response);
-                }
+                    @Override
+                    public void onResponse(MultiCall<Object, T> call1, int key, T response) {
+                        emitter.onNext(response);
+                    }
 
-                @Override
-                public void onComplete(MultiCall<Object, T> call1, List<T> results) {
-                    emitter.onCompleted();
-                }
-            };
-            emitter.setCancellation(multiCall::cancel);
-            //noinspection unchecked
-            multiCall.enqueue(callback);
+                    @Override
+                    public void onComplete(MultiCall<Object, T> call1, List<T> results) {
+                        emitter.onCompleted();
+                    }
+                };
+                emitter.setCancellation(new Cancellable() {
+                    @Override
+                    public void cancel() throws Exception {
+                        multiCall.cancel();
+                    }
+                });
+                //noinspection unchecked
+                multiCall.enqueue(callback);
+            }
         }, Emitter.BackpressureMode.BUFFER);
     }
 
