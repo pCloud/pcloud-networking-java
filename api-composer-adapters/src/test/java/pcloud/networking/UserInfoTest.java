@@ -21,6 +21,8 @@ import com.pcloud.networking.*;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import rx.Observable;
 import rx.observers.TestSubscriber;
 
@@ -150,11 +152,14 @@ public class UserInfoTest extends ApiIntegrationTest {
 //    }
 
     private void mockExecutorSubmit(ExecutorService executor) {
-        doAnswer(invocation -> {
-            Object[] args = invocation.getArguments();
-            Runnable runnable = (Runnable) args[0];
-            runnable.run();
-            return new FutureTask<>(runnable, null);
+        doAnswer(new Answer() {
+            @Override
+            public Object answer(InvocationOnMock invocation) throws Throwable {
+                Object[] args = invocation.getArguments();
+                Runnable runnable = (Runnable) args[0];
+                runnable.run();
+                return new FutureTask<>(runnable, null);
+            }
         }).when(executor).submit(notNull(Runnable.class));
     }
 
