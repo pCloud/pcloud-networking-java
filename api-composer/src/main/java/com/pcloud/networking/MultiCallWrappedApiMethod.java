@@ -103,7 +103,7 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
             RequestAdapter requestAdapter = getRequestAdapter(composer, method,
                     new Type[]{containerAdapter.requestType()}, argumentAnnotations);
 
-            CallAdapter<?, ?> callAdapter = composer.loadCallAdapter(method);
+            CallAdapter<?, ?> callAdapter = composer.nextCallAdapter(method);
 
             final Class<?> innerReturnType = getRawType(callAdapter.responseType());
 

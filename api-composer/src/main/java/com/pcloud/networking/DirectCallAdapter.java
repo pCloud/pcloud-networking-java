@@ -28,14 +28,14 @@ class DirectCallAdapter  {
     static class DirectCallAdapterFactory extends CallAdapter.Factory {
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
-            Type returnType = method.getGenericReturnType();
-            if (!(returnType instanceof ApiResponse)) {
+            final Class<?> returnType = Types.getRawType(method.getGenericReturnType());
+            if (!(ApiResponse.class.isAssignableFrom(returnType))) {
                 return null;
             }
             return new CallAdapter<Object, Object>() {
                 @Override
                 public Type responseType() {
-                    return null;
+                    return returnType;
                 }
 
                 @Override
