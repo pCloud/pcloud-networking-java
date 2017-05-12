@@ -103,14 +103,14 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
                 field.set(value, fieldValue);
             } catch (SerializationException e) {
                 throw new SerializationException("Cannot deserialize field '" +
-                                                         field.getDeclaringClass().getName() +
-                                                         "." +
-                                                         field.getName() +
-                                                         "'" +
-                                                         " of type '" +
-                                                         field.getType().getName() +
-                                                         "'.",
-                                                        e);
+                        field.getDeclaringClass().getName() +
+                        "." +
+                        field.getName() +
+                        "'" +
+                        " of type '" +
+                        field.getType().getName() +
+                        "'.",
+                        e);
             }
         }
 
@@ -121,9 +121,11 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
                 throw new SerializationException("Cannot serialize object fields of type '%s'.", field.getType());
             }
 
-            writer.writeName(name);
             T fieldValue = (T) field.get(value);
-            adapter.serialize(writer, fieldValue);
+            if (fieldValue != null) {
+                writer.writeName(name);
+                adapter.serialize(writer, fieldValue);
+            }
         }
     }
 }

@@ -34,7 +34,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, String value) throws IOException {
-            writer.writeValue(value);
+            if (value != null) {
+                writer.writeValue(value);
+            }
         }
     };
 
@@ -58,7 +60,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Integer value) throws IOException {
-            writer.writeValue((int) value);
+            if (value != null) {
+                writer.writeValue((int) value);
+            }
         }
     };
 
@@ -70,7 +74,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Long value) throws IOException {
-            writer.writeValue((long) value);
+            if (value != null) {
+                writer.writeValue((long) value);
+            }
         }
     };
 
@@ -87,7 +93,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Double value) throws IOException {
-            writer.writeValue((double) value);
+            if (value != null) {
+                writer.writeValue((double) value);
+            }
         }
     };
 
@@ -104,7 +112,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Float value) throws IOException {
-            writer.writeValue((float) value);
+            if (value != null) {
+                writer.writeValue((float) value);
+            }
         }
     };
 
@@ -116,7 +126,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Short value) throws IOException {
-            writer.writeValue((short) value);
+            if (value != null) {
+                writer.writeValue((short) value);
+            }
         }
     };
 
@@ -128,7 +140,9 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
 
         @Override
         public void serialize(ProtocolWriter writer, Byte value) throws IOException {
-            writer.writeValue((byte) value);
+            if (value != null) {
+                writer.writeValue((byte) value);
+            }
         }
     };
 

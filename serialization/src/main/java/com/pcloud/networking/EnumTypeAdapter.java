@@ -68,8 +68,10 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
 
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
-        String name = constantToNameMap.get(value);
-        writer.writeValue(name);
+        if (value != null) {
+            String name = constantToNameMap.get(value);
+            writer.writeValue(name);
+        }
     }
 
     @Override
