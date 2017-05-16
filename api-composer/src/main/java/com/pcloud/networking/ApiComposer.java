@@ -16,8 +16,10 @@
 
 package com.pcloud.networking;
 
+import com.pcloud.Endpoint;
 import com.pcloud.PCloudAPIClient;
 
+import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -171,7 +173,6 @@ public class ApiComposer {
                 });
     }
 
-
     CallAdapter<?, ?> nextCallAdapter(Method method) {
         CallAdapter<?, ?> callAdapter = null;
         for (CallAdapter.Factory adapterFactory : callAdapterFactories) {
@@ -180,6 +181,10 @@ public class ApiComposer {
             }
         }
         return callAdapter;
+    }
+
+    void notifyIOError(Endpoint endpoint, IOException error){
+        endpointProvider.endpointConnectionError(endpoint, error);
     }
 
     private ApiMethod<?> loadApiMethod(Method javaMethod) {

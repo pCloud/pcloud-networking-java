@@ -39,7 +39,12 @@ class ApiClientCall<T> implements Call<T> {
 
     @Override
     public T execute() throws IOException {
-        return adapt(rawCall.execute());
+        try {
+            return adapt(rawCall.execute());
+        } catch (IOException e) {
+            apiComposer.notifyIOError(rawCall.request().endpoint(), e);
+            throw new IOException("Error while executing request.", e);
+        }
     }
 
     @Override
@@ -51,15 +56,21 @@ class ApiClientCall<T> implements Call<T> {
         rawCall.enqueue(new com.pcloud.Callback() {
             @Override
             public void onFailure(com.pcloud.Call call, IOException e) {
-                callback.onFailure(ApiClientCall.this, e);
+                apiComposer.notifyIOError(call.request().endpoint(), e);
+                if (!isCancelled()) {
+                    callback.onFailure(ApiClientCall.this, e);
+                }
             }
 
             @Override
             public void onResponse(com.pcloud.Call call, Response response) throws IOException {
-                try {
-                    callback.onResponse(ApiClientCall.this, adapt(response));
-                } catch (IOException e) {
-                    callback.onFailure(ApiClientCall.this, e);
+                if (!isCancelled()) {
+                    try {
+                        callback.onResponse(ApiClientCall.this, adapt(response));
+                    } catch (IOException e) {
+                        apiComposer.notifyIOError(call.request().endpoint(), e);
+                        callback.onFailure(ApiClientCall.this, e);
+                    }
                 }
             }
         });
@@ -87,7 +98,7 @@ class ApiClientCall<T> implements Call<T> {
     }
 
     @Override
-    public boolean isCanceled() {
+    public boolean isCancelled() {
         return rawCall.isCancelled();
     }
 
@@ -98,7 +109,7 @@ class ApiClientCall<T> implements Call<T> {
     }
 
     protected T adapt(Response response) throws IOException {
-        if (isCanceled()) {
+        if (isCancelled()) {
             throw new IOException("Cancelled");
         }
         T result = responseAdapter.adapt(response);

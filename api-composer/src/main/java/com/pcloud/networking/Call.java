@@ -99,7 +99,7 @@ public interface Call<T> extends Cloneable {
     /**
      * @return {@code true} if this call has been cancelled, {@code false} otherwise
      */
-    boolean isCanceled();
+    boolean isCancelled();
 
     /**
      * @return a new, identical call to this one which can be enqueued or executed again.
