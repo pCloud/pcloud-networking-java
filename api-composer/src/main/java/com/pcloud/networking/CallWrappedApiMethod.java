@@ -58,7 +58,6 @@ class CallWrappedApiMethod<T, R> extends ApiMethod<R> {
         public ApiMethod<?> create(ApiComposer composer, Method method,
                                    Type[] argumentTypes, Annotation[][] argumentAnnotations) {
             String apiMethodName = parseMethodNameAnnotation(method);
-            RequestAdapter requestAdapter = getRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
 
             CallAdapter<?, ?> callAdapter = composer.nextCallAdapter(method);
             if (callAdapter == null) {
@@ -70,6 +69,7 @@ class CallWrappedApiMethod<T, R> extends ApiMethod<R> {
                 return null;
             }
 
+            RequestAdapter requestAdapter = getRequestAdapter(composer, method, argumentTypes, argumentAnnotations);
             ResponseAdapter<?> returnTypeAdapter = getResponseAdapter(composer, method, adapterResponseType);
 
             return new CallWrappedApiMethod<>(apiMethodName, requestAdapter, returnTypeAdapter, callAdapter);
