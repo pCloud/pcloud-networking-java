@@ -243,6 +243,9 @@ public class RealMultiCallTest {
     }
 
 
+    public void test {
+        ResultIterator iterator = ge
+    }
 
     private byte[] getMockByteDataResponse(int numberOfRequests) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(numberOfRequests*EMPTY_ARRAY_RESPONSE_LENGTH);
