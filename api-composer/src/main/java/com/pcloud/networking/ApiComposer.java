@@ -389,6 +389,23 @@ public class ApiComposer {
         }
 
         /**
+         * Adds an array of {@linkplain CallAdapter.Factory} objects for the {@linkplain Builder}
+         * <p>
+         * Does the same thing as {@linkplain #addAdapterFactory(CallAdapter.Factory)} for each
+         * {@linkplain CallAdapter.Factory} in the {@linkplain Collection}
+         *
+         * @param adapterFactories An array of {@linkplain CallAdapter.Factory}
+         *                     objects to be added to the {@linkplain ApiComposer}
+         * @return A reference to the {@linkplain Builder} object
+         */
+        public Builder addAdapterFactories(CallAdapter.Factory... adapterFactories) {
+            if (adapterFactories == null) {
+                throw new IllegalArgumentException("CallAdapter.Factory collection argument cannot be null.");
+            }
+            return addAdapterFactories(Arrays.asList(adapterFactories));
+        }
+
+        /**
          * Adds a {@linkplain Collection} of {@linkplain CallAdapter.Factory} objects for the {@linkplain Builder}
          * <p>
          * Does the same thing as {@linkplain #addAdapterFactory(CallAdapter.Factory)} for each
@@ -398,7 +415,7 @@ public class ApiComposer {
          *                     objects to be added to the {@linkplain ApiComposer}
          * @return A reference to the {@linkplain Builder} object
          */
-        public Builder addCallAdapterFactories(Iterable<CallAdapter.Factory> adapterFactories) {
+        public Builder addAdapterFactories(Iterable<CallAdapter.Factory> adapterFactories) {
             if (adapterFactories == null) {
                 throw new IllegalArgumentException("CallAdapter.Factory collection argument cannot be null.");
             }

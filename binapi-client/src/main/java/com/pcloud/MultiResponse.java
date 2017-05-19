@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import static com.pcloud.IOUtils.closeQuietly;
+
 /**
  * An implementation of a container for multiple responses.
  * <p>
@@ -74,13 +76,11 @@ public class MultiResponse implements Closeable {
 
     /**
      * Closes all the responses in this {@linkplain MultiResponse}
-     *
-     * @throws IOException on failed IO operations
      */
     @Override
-    public void close() throws IOException {
+    public void close() {
         for (Response r : responses) {
-            r.close();
+            closeQuietly(r);
         }
     }
 

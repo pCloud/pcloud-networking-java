@@ -32,6 +32,18 @@ public class IOUtils {
     private static final int EIGHT_KB = 8192;
     private static final int NEXT_BYTE_POSITION = 256;
 
+    public static void closeQuietly(Closeable[] closeables){
+        for (Closeable c : closeables){
+            closeQuietly(c);
+        }
+    }
+
+    public static void closeQuietly(Iterable<? extends Closeable> closeables){
+        for (Closeable c : closeables){
+            closeQuietly(c);
+        }
+    }
+
     public static void closeQuietly(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -65,6 +77,13 @@ public class IOUtils {
     public static boolean isAndroidGetsocknameError(AssertionError e) {
         return e.getCause() != null && e.getMessage() != null &&
                        e.getMessage().contains("getsockname failed");
+    }
+
+    public static void skipAll(Source source) throws IOException {
+        Buffer skipBuffer = new Buffer();
+        while (source.read(skipBuffer, EIGHT_KB) != -1) {
+            skipBuffer.clear();
+        }
     }
 
     /**

@@ -41,7 +41,7 @@ import java.util.List;
  * Created by Dimitard on 25.4.2017 г..
  */
 public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
-    public static final RxCallAdapterFactory FACTORY = new RxCallAdapterFactory();
+    public static final CallAdapter.Factory FACTORY = new RxCallAdapterFactory();
 
     private final Type responseType;
 
