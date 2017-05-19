@@ -56,7 +56,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
             return adapt(rawCall.execute());
         } catch (IOException e) {
             apiComposer.notifyIOError(rawCall.requests().get(0).endpoint(), e);
-            throw new IOException("Error while executing request.", e);
+            throw e;
         }
     }
 

@@ -43,7 +43,7 @@ class ApiClientCall<T> implements Call<T> {
             return adapt(rawCall.execute());
         } catch (IOException e) {
             apiComposer.notifyIOError(rawCall.request().endpoint(), e);
-            throw new IOException("Error while executing request.", e);
+            throw e;
         }
     }
 
