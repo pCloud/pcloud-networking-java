@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
-public interface ResultIterator extends Closeable {
+public interface Interactor extends Closeable {
 
     boolean hasMoreRequests();
 

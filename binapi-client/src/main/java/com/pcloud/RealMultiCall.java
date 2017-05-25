@@ -19,6 +19,7 @@ package com.pcloud;
 import com.pcloud.protocol.streaming.*;
 import okio.Buffer;
 import okio.BufferedSource;
+import okio.ByteString;
 import okio.Okio;
 
 import java.io.Closeable;
@@ -193,7 +194,7 @@ class RealMultiCall implements MultiCall {
     }
 
     @Override
-    public ResultIterator start() throws IOException {
+    public Interactor start() throws IOException {
         checkAndMarkExecuted();
         throwIfCancelled();
 
@@ -201,18 +202,7 @@ class RealMultiCall implements MultiCall {
         final Connection connection = connectionProvider.obtainConnection(endpoint);
         this.connection = connection;
 
-        boolean requestWritten = false;
-        try {
-            writeRequests(connection);
-            requestWritten = true;
-        } finally {
-            if (!requestWritten) {
-                closeQuietly(connection);
-                this.connection = null;
-            }
-        }
-
-        return new ResultIterator() {
+        return new Interactor() {
 
             private final int requestCount = requests.size();
             private final AtomicInteger remainingRequests = new AtomicInteger(requestCount);
@@ -221,7 +211,7 @@ class RealMultiCall implements MultiCall {
 
             @Override
             public boolean hasMoreRequests() {
-                return remainingRequests.get() < requestCount;
+                return remainingRequests.get() > 0;
             }
 
             @Override
@@ -230,7 +220,7 @@ class RealMultiCall implements MultiCall {
 
                 int sent = 0;
                 while (remainingRequests.get() > 0 && sent < count) {
-                    int key = (requestCount - remainingRequests.get() - 1);
+                    int key = (requestCount - remainingRequests.get());
                     writeRequest(connection, key, requests.get(key));
                     remainingRequests.decrementAndGet();
                     sent++;
@@ -252,7 +242,7 @@ class RealMultiCall implements MultiCall {
                     throw new IllegalStateException("Cannot read next response, no more elements to read.");
                 }
 
-                if (handledResponses.get() == remainingRequests.get()) {
+                if (handledResponses.get() == requestCount - remainingRequests.get()) {
                     throw new IllegalStateException("Cannot read next response, submit at least one more request.");
                 }
 
@@ -266,7 +256,7 @@ class RealMultiCall implements MultiCall {
 
                 Response result;
                 try {
-                    result = nextUnsafeResponse(connection);
+                    result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
                     lastResultReference.set(result);
                     handledResponses.incrementAndGet();
                     readSuccess = true;
@@ -388,15 +378,9 @@ class RealMultiCall implements MultiCall {
         return id;
     }
 
-    private Response nextUnsafeResponse(Connection connection) throws IOException {
-        final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
-        final Buffer responseBuffer = new Buffer();
-        connection.source().read(responseBuffer, responseLength + RESPONSE_LENGTH);
-
-        final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
-
-        FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection);
-        int id = scanResponseParameters(reader, true);
+    private Response nextUnsafeResponse(Connection connection, boolean recycleOnClose) throws IOException {
+        FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection, recycleOnClose);
+        int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
         return Response.create()
                 .request(requests.get(id))
                 .responseBody(responseBody)
@@ -414,7 +398,7 @@ class RealMultiCall implements MultiCall {
         return new BufferedResponseBody(responseBuffer, reader, responseLength);
     }
 
-    private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection) throws IOException {
+    private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection, final boolean recycleOnClose) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
         final FixedLengthSource source = new FixedLengthSource(connection.source(),
@@ -422,12 +406,17 @@ class RealMultiCall implements MultiCall {
                 0, TimeUnit.MILLISECONDS) {
             @Override
             protected void exhausted(boolean reuseSource) {
+                if (reuseSource && recycleOnClose){
+                    connectionProvider.recycleConnection(connection);
+                    RealMultiCall.this.connection = null;
+                }
             }
         };
 
-        final BytesReader reader = new NoDataBytesReader(Okio.buffer(source));
+        final BufferedSource bufferedSource = Okio.buffer(source);
+        final BytesReader reader = new NoDataBytesReader(bufferedSource);
         checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
-        return new FixedLengthResponseBody(source, reader, responseLength);
+        return new FixedLengthResponseBody(bufferedSource, source, reader, responseLength);
     }
 
     private int scanResponseParameters(ProtocolResponseReader reader, boolean readUntilEnd) throws IOException {
@@ -505,6 +494,11 @@ class RealMultiCall implements MultiCall {
         }
 
         @Override
+        public ByteString valuesBytes() throws IOException {
+            return source.readByteString();
+        }
+
+        @Override
         public long contentLength() {
             return contentLength;
         }
@@ -522,11 +516,13 @@ class RealMultiCall implements MultiCall {
     }
 
     private static class FixedLengthResponseBody extends ResponseBody {
+        private final BufferedSource bufferedSource;
         private final FixedLengthSource source;
         private ProtocolReader reader;
         private long contentLength;
 
-        FixedLengthResponseBody(FixedLengthSource source, BytesReader reader, long contentLength) {
+        FixedLengthResponseBody(BufferedSource bufferedSource, FixedLengthSource source, BytesReader reader, long contentLength) {
+            this.bufferedSource = bufferedSource;
             this.source = source;
             this.reader = reader;
             this.contentLength = contentLength;
@@ -535,6 +531,11 @@ class RealMultiCall implements MultiCall {
         @Override
         public ProtocolReader reader() {
             return reader;
+        }
+
+        @Override
+        public ByteString valuesBytes() throws IOException {
+            return bufferedSource.readByteString();
         }
 
         @Override

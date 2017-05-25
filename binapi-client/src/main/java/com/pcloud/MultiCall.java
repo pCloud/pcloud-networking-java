@@ -60,7 +60,7 @@ public interface MultiCall extends Cloneable {
      */
     MultiResponse execute() throws IOException;
 
-    ResultIterator start() throws IOException;
+    Interactor start() throws IOException;
 
     /**
      * Executes the calls on another thread but blocks the calling thread until the operation is complete or an exception is thrown.

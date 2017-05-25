@@ -20,6 +20,8 @@ import com.pcloud.protocol.streaming.BytesReader;
 import com.pcloud.protocol.streaming.BytesWriter;
 import com.pcloud.protocol.streaming.ProtocolReader;
 import com.pcloud.protocol.streaming.ProtocolRequestWriter;
+import okio.BufferedSource;
+import okio.ByteString;
 import okio.Okio;
 
 import java.io.IOException;
@@ -207,7 +209,7 @@ class RealCall implements Call {
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
-        FixedLengthSource responseParametersSource = new FixedLengthSource(connection.source(), responseLength + RESPONSE_LENGTH) {
+        final FixedLengthSource responseParametersSource = new FixedLengthSource(connection.source(), responseLength + RESPONSE_LENGTH) {
             @Override
             protected void exhausted(boolean reuseSource) {
                 if (!reuseSource) {
@@ -216,7 +218,8 @@ class RealCall implements Call {
             }
         };
 
-        final BytesReader reader = new SelfEndingBytesReader(Okio.buffer(responseParametersSource));
+        final BufferedSource source = Okio.buffer(responseParametersSource);
+        final BytesReader reader = new SelfEndingBytesReader(source);
         reader.beginResponse();
         return new ResponseBody() {
 
@@ -226,6 +229,11 @@ class RealCall implements Call {
             @Override
             public ProtocolReader reader() {
                 return reader;
+            }
+
+            @Override
+            public ByteString valuesBytes() throws IOException {
+                return source.readByteString();
             }
 
             @Override
