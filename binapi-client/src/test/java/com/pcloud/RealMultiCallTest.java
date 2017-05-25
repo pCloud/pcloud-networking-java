@@ -17,6 +17,7 @@
 package com.pcloud;
 
 import org.assertj.core.api.ThrowableAssert;
+import org.hamcrest.Matchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
@@ -372,7 +373,7 @@ public class RealMultiCallTest {
             expectedValues.add(bytes.toValues());
         }
 
-        assertThat(expectedValues, org.hamcrest.Matchers.hasItem(responseValues));
+        assertThat(expectedValues, Matchers.hasItem(responseValues));
     }
 
     private byte[] getMockByteDataResponse(int numberOfRequests) {

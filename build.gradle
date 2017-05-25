@@ -6,15 +6,18 @@ repositories {
 buildscript {
     repositories {
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath "gradle.plugin.gradle-plugins:jartest:1.0.1"
     }
 }
 
 allprojects {
-    apply plugin: 'java'
     apply plugin: 'checkstyle'
     checkstyle {
         configFile file("${rootDir}/checkstyle.xml")

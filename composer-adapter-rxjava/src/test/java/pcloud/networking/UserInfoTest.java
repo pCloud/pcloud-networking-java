@@ -17,8 +17,10 @@
 package pcloud.networking;
 
 import com.pcloud.RxCallAdapter;
-import com.pcloud.networking.*;
-import org.junit.Before;
+import com.pcloud.networking.ApiComposer;
+import com.pcloud.networking.ApiIntegrationTest;
+import com.pcloud.networking.UserInfoRequest;
+import com.pcloud.networking.UserInfoResponse;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
