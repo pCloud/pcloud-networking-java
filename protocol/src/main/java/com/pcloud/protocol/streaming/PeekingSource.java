@@ -48,15 +48,14 @@ class PeekingSource extends ForwardingSource {
             byteCount = readLimit;
         }
 
-        long bytesLeftInBuffer = sourceBuffer.size();
+        long bytesLeftInBuffer = sourceBuffer.size() - offset;
         if (bytesLeftInBuffer < byteCount) {
             if (bytesLeftInBuffer == 0 && sourceExhausted) {
                 return -1;
             }
-            sourceExhausted = source.request(offset + byteCount - bytesLeftInBuffer);
+            sourceExhausted = !source.request(offset + byteCount);
         }
-
-        long bytesRead = Math.min(byteCount, sourceBuffer.size() - offset);
+        long bytesRead = sourceExhausted ? sourceBuffer.size() - offset : byteCount;
         sourceBuffer.copyTo(sink, offset, bytesRead);
         offset += bytesRead;
         return bytesRead;
