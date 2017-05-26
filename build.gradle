@@ -21,8 +21,9 @@ allprojects {
     apply plugin: 'checkstyle'
     checkstyle {
         configFile file("${rootDir}/checkstyle.xml")
-        showViolations = true
-        ignoreFailures = false
+        showViolations true
+        ignoreFailures false
+        sourceSets [delegate.sourceSets.main]
     }
 
     tasks.withType(Checkstyle) {
