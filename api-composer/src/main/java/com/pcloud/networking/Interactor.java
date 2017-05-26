@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.pcloud;
+package com.pcloud.networking;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -32,10 +32,10 @@ import java.io.IOException;
  * <p>
  * <b>NOTE:Take care of calling {@linkplain #close()} when done with objects of this type, or resource leaks will occur.</b>
  */
-public interface Interactor extends Closeable {
+public interface Interactor<T> extends Closeable {
 
     /**
-     * @return {@code true} if there are more {@linkplain Request}s that can be written, {@code false} otherwise.
+     * @return {@code true} if there are more requests that can be written, {@code false} otherwise.
      */
     boolean hasMoreRequests();
 
@@ -53,10 +53,11 @@ public interface Interactor extends Closeable {
      * @throws IllegalArgumentException when {@code count < 0}
      * @throws IOException              if an error occurs during sending, or the {@linkplain MultiCall} has been cancelled.
      */
+
     int submitRequests(int count) throws IOException;
 
     /**
-     * @return {@code true} if there are more {@linkplain Response}s that can be read, {@code false} otherwise.
+     * @return {@code true} if there are more {@linkplain T}s that can be read, {@code false} otherwise.
      */
     boolean hasNextResponse();
 
@@ -68,11 +69,11 @@ public interface Interactor extends Closeable {
      * The method will throw an {@linkplain IllegalStateException} if the number of sent requests is equal to the number of received responses
      * to avoid the case where the method will be waiting for a response, but none is expected to arrive, thus blocking forever (or a connection read timeout is reached).
      *
-     * @return the next {@linkplain Response}
+     * @return the next {@linkplain T}
      * @throws IllegalStateException if trying to read more responses than sent requests
      * @throws IOException           if an error occurs during reading, or the {@linkplain MultiCall} has been cancelled.
      */
-    Response nextResponse() throws IOException;
+    T nextResponse() throws IOException;
 
     @Override
     void close();

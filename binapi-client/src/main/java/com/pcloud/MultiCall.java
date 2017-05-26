@@ -60,7 +60,14 @@ public interface MultiCall extends Cloneable {
      */
     MultiResponse execute() throws IOException;
 
-    Interactor start() throws IOException;
+    /**
+     * Start executing the call and return a {@linkplain Interactor}
+     * <p>
+     * For more details on usage, see {@link Interactor}
+     *
+     * @return a new {@linkplain Interactor} instance
+     */
+    Interactor start();
 
     /**
      * Executes the calls on another thread but blocks the calling thread until the operation is complete or an exception is thrown.

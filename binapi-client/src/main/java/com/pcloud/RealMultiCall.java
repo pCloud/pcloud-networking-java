@@ -194,98 +194,9 @@ class RealMultiCall implements MultiCall {
     }
 
     @Override
-    public Interactor start() throws IOException {
+    public Interactor start() {
         checkAndMarkExecuted();
-        throwIfCancelled();
-
-        Endpoint endpoint = requests.get(0).endpoint();
-        final Connection connection = connectionProvider.obtainConnection(endpoint);
-        this.connection = connection;
-
-        return new Interactor() {
-
-            private final int requestCount = requests.size();
-            private final AtomicInteger remainingRequests = new AtomicInteger(requestCount);
-            private final AtomicInteger handledResponses = new AtomicInteger(0);
-            private final AtomicReference<Response> lastResultReference = new AtomicReference<>(null);
-
-            @Override
-            public boolean hasMoreRequests() {
-                return remainingRequests.get() > 0;
-            }
-
-            @Override
-            public int submitRequests(int count) throws IOException {
-                throwIfCancelled();
-
-                int sent = 0;
-                while (remainingRequests.get() > 0 && sent < count) {
-                    int key = (requestCount - remainingRequests.get());
-                    writeRequest(connection, key, requests.get(key));
-                    remainingRequests.decrementAndGet();
-                    sent++;
-                }
-
-                return sent;
-            }
-
-            @Override
-            public boolean hasNextResponse() {
-                return handledResponses.get() < requestCount;
-            }
-
-            @Override
-            public Response nextResponse() throws IOException {
-                throwIfCancelled();
-                boolean readSuccess = false;
-                if (!hasNextResponse()) {
-                    throw new IllegalStateException("Cannot read next response, no more elements to read.");
-                }
-
-                if (handledResponses.get() == requestCount - remainingRequests.get()) {
-                    throw new IllegalStateException("Cannot read next response, submit at least one more request.");
-                }
-
-                Response lastResult = lastResultReference.get();
-                if (lastResult != null) {
-                    FixedLengthResponseBody responseBody = (FixedLengthResponseBody) lastResult.responseBody();
-                    if (responseBody.bytesRemaining() > 0L) {
-                        throw new IOException("Previously returned Result object has not been read fully.");
-                    }
-                }
-
-                Response result;
-                try {
-                    result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
-                    lastResultReference.set(result);
-                    handledResponses.incrementAndGet();
-                    readSuccess = true;
-                } finally {
-                    if (!readSuccess) {
-                        closeQuietly(connection);
-                        RealMultiCall.this.connection = null;
-                    }
-                }
-
-                return result;
-            }
-
-            @Override
-            public void close() {
-                if (!hasNextResponse()) {
-                    Response response = lastResultReference.get();
-                    FixedLengthResponseBody body = (FixedLengthResponseBody) response.responseBody();
-                    if (body.bytesRemaining() == 0L) {
-                        connectionProvider.recycleConnection(connection);
-                    } else {
-                        closeQuietly(connection);
-                    }
-                } else {
-                    closeQuietly(connection);
-                }
-                RealMultiCall.this.connection = null;
-            }
-        };
+        return new RealInteractor();
     }
 
     @Override
@@ -556,6 +467,123 @@ class RealMultiCall implements MultiCall {
 
         long bytesRemaining() {
             return source.bytesRemaining();
+        }
+    }
+
+    private class RealInteractor implements Interactor {
+
+        private final int requestCount;
+        private final AtomicInteger remainingRequests;
+        private final AtomicInteger handledResponses;
+        private final AtomicReference<Response> lastResultReference;
+        private boolean connected = false;
+
+        public RealInteractor() {
+            requestCount = requests.size();
+            remainingRequests = new AtomicInteger(requestCount);
+            handledResponses = new AtomicInteger(0);
+            lastResultReference = new AtomicReference<>(null);
+        }
+
+        private void connect() throws IOException {
+            throwIfCancelled();
+
+            Endpoint endpoint = requests.get(0).endpoint();
+            final Connection connection = connectionProvider.obtainConnection(endpoint);
+            RealMultiCall.this.connection = connection;
+            this.connected = true;
+        }
+
+        @Override
+        public boolean hasMoreRequests() {
+            return remainingRequests.get() > 0;
+        }
+
+        @Override
+        public int submitRequests(int count) throws IOException {
+            if (count < 0) {
+                throw new IllegalArgumentException("Count parameter cannot be a negative number.");
+            }
+
+            synchronized (this){
+                if (!connected){
+                    connect();
+                }
+            }
+
+            // Do the check again to avoid any race conditions
+            // leaving the Connection open.
+            if (isCancelled()){
+                closeQuietly(connection);
+                throwIfCancelled();
+            }
+
+            int sent = 0;
+            while (remainingRequests.get() > 0 && sent < count) {
+                int key = (requestCount - remainingRequests.get());
+                writeRequest(connection, key, requests.get(key));
+                remainingRequests.decrementAndGet();
+                sent++;
+            }
+
+            return sent;
+        }
+
+        @Override
+        public boolean hasNextResponse() {
+            return handledResponses.get() < requestCount;
+        }
+
+        @Override
+        public Response nextResponse() throws IOException {
+            throwIfCancelled();
+            boolean readSuccess = false;
+            if (!hasNextResponse()) {
+                throw new IllegalStateException("Cannot read next response, no more elements to read.");
+            }
+
+            if (handledResponses.get() == requestCount - remainingRequests.get()) {
+                throw new IllegalStateException("Cannot read next response, submit at least one more request.");
+            }
+
+            Response lastResult = lastResultReference.get();
+            if (lastResult != null) {
+                FixedLengthResponseBody responseBody = (FixedLengthResponseBody) lastResult.responseBody();
+                if (responseBody.bytesRemaining() > 0L) {
+                    throw new IOException("Previously returned Result object has not been read fully.");
+                }
+            }
+
+            Response result;
+            try {
+                result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
+                lastResultReference.set(result);
+                handledResponses.incrementAndGet();
+                readSuccess = true;
+            } finally {
+                if (!readSuccess) {
+                    closeQuietly(connection);
+                    RealMultiCall.this.connection = null;
+                }
+            }
+
+            return result;
+        }
+
+        @Override
+        public void close() {
+            if (!hasNextResponse()) {
+                Response response = lastResultReference.get();
+                FixedLengthResponseBody body = (FixedLengthResponseBody) response.responseBody();
+                if (body.bytesRemaining() == 0L) {
+                    connectionProvider.recycleConnection(connection);
+                } else {
+                    closeQuietly(connection);
+                }
+            } else {
+                closeQuietly(connection);
+            }
+            RealMultiCall.this.connection = null;
         }
     }
 }

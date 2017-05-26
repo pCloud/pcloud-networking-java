@@ -91,6 +91,16 @@ public interface MultiCall<T, R> extends Cloneable {
      */
     void enqueue(MultiCallback<T, R> callback);
 
+
+    /**
+     * Start executing the call and return a {@linkplain Interactor}
+     * <p>
+     * For more details on usage, see {@link Interactor}
+     *
+     * @return a new {@linkplain Interactor} instance
+     */
+    Interactor<R> start();
+
     /**
      * Returns true if this {@linkplain MultiCall} has been executed already
      *

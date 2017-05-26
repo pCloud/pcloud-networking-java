@@ -16,26 +16,22 @@
 
 package com.pcloud;
 
-import com.pcloud.networking.ApiComposer;
-import com.pcloud.networking.CallAdapter;
-import com.pcloud.networking.Types;
-import rx.Emitter;
-import rx.Observable;
-import rx.Observer;
-import rx.Single;
-import rx.functions.Action1;
-import rx.functions.Action2;
-import rx.functions.Cancellable;
-import rx.functions.Func0;
-import rx.observables.SyncOnSubscribe;
+import com.pcloud.networking.*;
 import com.pcloud.networking.Call;
+import com.pcloud.networking.Interactor;
 import com.pcloud.networking.MultiCall;
 import com.pcloud.networking.MultiCallback;
+import rx.*;
+import rx.functions.*;
+import rx.observables.AsyncOnSubscribe;
+import rx.observables.SyncOnSubscribe;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Created by Dimitard on 25.4.2017 г..
@@ -45,7 +41,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
     private final Type responseType;
 
-    private RxCallAdapter(Type responseType) {
+    RxCallAdapter(Type responseType) {
         this.responseType = responseType;
     }
 
@@ -82,36 +78,52 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
     @Override
     public Observable<T> adapt(final MultiCall<?, T> call) {
-        return Observable.fromEmitter(new Action1<Emitter<T>>() {
+        return Observable.create(AsyncOnSubscribe.createSingleState(new Func0<Object>() {
             @Override
-            public void call(final Emitter<T> emitter) {
-                final MultiCall<?, T> multiCall = call.clone();
-                MultiCallback callback = new MultiCallback<Object, T>() {
-                    @Override
-                    public void onFailure(MultiCall<Object, T> call1, IOException e, List<T> completedResponses) {
-                        emitter.onError(e);
-                    }
-
-                    @Override
-                    public void onResponse(MultiCall<Object, T> call1, int key, T response) {
-                        emitter.onNext(response);
-                    }
-
-                    @Override
-                    public void onComplete(MultiCall<Object, T> call1, List<T> results) {
-                        emitter.onCompleted();
-                    }
-                };
-                emitter.setCancellation(new Cancellable() {
-                    @Override
-                    public void cancel() throws Exception {
-                        multiCall.cancel();
-                    }
-                });
-                //noinspection unchecked
-                multiCall.enqueue(callback);
+            public Object call() {
+                try {
+                    return call.clone().start();
+                } catch (Throwable e) {
+                    return e;
+                }
             }
-        }, Emitter.BackpressureMode.BUFFER);
+        }, new Action3<Object, Long, Observer<Observable<? extends T>>>() {
+            @Override
+            public void call(Object o, final Long requested, Observer<Observable<? extends T>> observableObserver) {
+                if (o instanceof Throwable) {
+                    observableObserver.onError((Throwable) o);
+                    return;
+                }
+
+                final Interactor<T> interactor = (Interactor<T>) o;
+
+                if (!interactor.hasNextResponse()){
+                    observableObserver.onCompleted();
+                    return;
+                }
+                observableObserver.onNext(Observable.fromEmitter(new Action1<Emitter<T>>() {
+                    @Override
+                    public void call(Emitter<T> emitter) {
+                        try {
+                            int submitted = interactor.submitRequests((int)Math.min(Integer.MAX_VALUE, requested));
+                            for (int i = 0; i < submitted; i++) {
+                                emitter.onNext(interactor.nextResponse());
+                            }
+                            emitter.onCompleted();
+                        } catch (Exception e) {
+                            emitter.onError(e);
+                        }
+                    }
+                }, Emitter.BackpressureMode.BUFFER));
+            }
+        }, new Action1<Object>() {
+            @Override
+            public void call(Object o) {
+                if (o instanceof Interactor) {
+                    ((Interactor) o).close();
+                }
+            }
+        }));
     }
 
     static class RxCallAdapterFactory extends CallAdapter.Factory {

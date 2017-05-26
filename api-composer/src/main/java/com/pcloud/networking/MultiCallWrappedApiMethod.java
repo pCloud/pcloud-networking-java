@@ -86,7 +86,7 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
         @Override
         public ApiMethod<?> create(ApiComposer composer, Method method,
                                    Type[] argumentTypes, Annotation[][] argumentAnnotations) {
-            if (argumentTypes.length == 0){
+            if (argumentTypes.length == 0) {
                 return null;
             }
 

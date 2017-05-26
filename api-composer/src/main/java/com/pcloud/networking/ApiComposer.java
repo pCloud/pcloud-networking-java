@@ -183,7 +183,7 @@ public class ApiComposer {
         return callAdapter;
     }
 
-    void notifyIOError(Endpoint endpoint, IOException error){
+    void notifyIOError(Endpoint endpoint, IOException error) {
         endpointProvider.endpointConnectionError(endpoint, error);
     }
 

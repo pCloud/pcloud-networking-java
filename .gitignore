@@ -36,3 +36,4 @@ captures/
 
 # Keystore files
 *.jks
+javadoc/
