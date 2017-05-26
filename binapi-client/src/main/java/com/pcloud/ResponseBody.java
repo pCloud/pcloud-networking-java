@@ -18,6 +18,7 @@ package com.pcloud;
 
 import com.pcloud.protocol.ValueReader;
 import com.pcloud.protocol.streaming.ProtocolReader;
+import okio.ByteString;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -39,6 +40,12 @@ public abstract class ResponseBody implements Closeable {
      * @return A reference to the {@linkplain ProtocolReader} which is able to read the {@linkplain RequestBody}
      */
     public abstract ProtocolReader reader();
+
+    public abstract ByteString valuesBytes() throws IOException;
+
+    public final byte[] valuesByteArray() throws IOException {
+        return valuesBytes().toByteArray();
+    }
 
     /**
      * Reads the data from the {@linkplain RequestBody} and constructs a {@linkplain Map} with all the data

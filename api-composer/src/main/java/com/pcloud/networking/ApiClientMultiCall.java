@@ -117,6 +117,37 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     }
 
     @Override
+    public Interactor<R> start() {
+        final com.pcloud.Interactor rawInteractor = rawCall.start();
+        return new Interactor<R>() {
+            @Override
+            public boolean hasMoreRequests() {
+                return rawInteractor.hasMoreRequests();
+            }
+
+            @Override
+            public int submitRequests(int count) throws IOException {
+                return rawInteractor.submitRequests(count);
+            }
+
+            @Override
+            public boolean hasNextResponse() {
+                return rawInteractor.hasNextResponse();
+            }
+
+            @Override
+            public R nextResponse() throws IOException {
+                return adapt(rawInteractor.nextResponse());
+            }
+
+            @Override
+            public void close() {
+                rawInteractor.close();
+            }
+        };
+    }
+
+    @Override
     public boolean isExecuted() {
         return rawCall.isExecuted();
     }

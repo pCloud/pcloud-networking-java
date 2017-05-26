@@ -42,7 +42,7 @@ public class Request {
     private RequestBody body;
     private DataSource dataSource;
 
-    private Request(Builder builder) {
+    Request(Builder builder) {
         this.methodName = builder.methodName;
         this.body = builder.body;
         this.dataSource = builder.dataSource;

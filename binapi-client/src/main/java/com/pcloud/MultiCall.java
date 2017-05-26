@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static com.pcloud.IOUtils.closeQuietly;
+
 /**
  * Created by Georgi on 26.12.2016 г..
  */
@@ -42,6 +44,7 @@ import java.util.concurrent.TimeoutException;
  */
 public interface MultiCall extends Cloneable {
 
+
     /**
      * Returns a {@linkplain List} of the {@linkplain Request} objects in this {@linkplain MultiCall}
      *
@@ -56,6 +59,15 @@ public interface MultiCall extends Cloneable {
      * @throws IOException On failed IO operations
      */
     MultiResponse execute() throws IOException;
+
+    /**
+     * Start executing the call and return a {@linkplain Interactor}
+     * <p>
+     * For more details on usage, see {@link Interactor}
+     *
+     * @return a new {@linkplain Interactor} instance
+     */
+    Interactor start();
 
     /**
      * Executes the calls on another thread but blocks the calling thread until the operation is complete or an exception is thrown.

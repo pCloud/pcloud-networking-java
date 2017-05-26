@@ -23,23 +23,30 @@ import okio.Timeout;
 
 import java.io.IOException;
 import java.net.ProtocolException;
+import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.IOUtils.skipAll;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public abstract class FixedLengthSource implements Source {
 
-    private static final int DISCARD_STREAM_TIMEOUT_MILLIS = 200;
+    private static final int DEFAULT_DISCARD_TIMEOUT_MILLIS = 300;
 
     private long bytesRemaining;
     private boolean closed;
     private Source source;
     private ForwardingTimeout timeout;
+    private int discardTimeoutMillis;
 
-    protected FixedLengthSource(Source source, long contentLength) {
+    protected FixedLengthSource(Source source, long contentLength, long discardTimeout, TimeUnit timeUnit) {
         this.source = source;
         this.timeout = new ForwardingTimeout(source.timeout());
         this.bytesRemaining = contentLength;
+        this.discardTimeoutMillis = (int) timeUnit.toMillis(discardTimeout);
+    }
+
+    protected FixedLengthSource(Source source, long contentLength) {
+        this(source, contentLength, DEFAULT_DISCARD_TIMEOUT_MILLIS, MILLISECONDS);
     }
 
     public Timeout timeout() {
@@ -68,10 +75,12 @@ public abstract class FixedLengthSource implements Source {
 
     @Override
     public synchronized void close() throws IOException {
-        if (!closed) {
-            if (bytesRemaining != 0 &&
-                        !skipAll(this, DISCARD_STREAM_TIMEOUT_MILLIS, MILLISECONDS)) {
+        if (!closed && bytesRemaining != 0) {
+            if (discardTimeoutMillis != 0 && !skipAll(this, discardTimeoutMillis, MILLISECONDS)) {
                 scrap(false);
+            } else {
+                skipAll(this);
+                scrap(true);
             }
 
             closed = true;

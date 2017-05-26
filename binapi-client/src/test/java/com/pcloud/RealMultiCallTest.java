@@ -17,23 +17,20 @@
 package com.pcloud;
 
 import org.assertj.core.api.ThrowableAssert;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.hamcrest.Matchers;
+import org.junit.*;
+import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class RealMultiCallTest {
@@ -44,6 +41,9 @@ public class RealMultiCallTest {
     private ExecutorService executor;
     private static ExecutorService realExecutor;
     private ConnectionProvider connectionProvider;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void initialSetup() throws Exception {
@@ -65,8 +65,8 @@ public class RealMultiCallTest {
     @Test
     public void testExecuteMarksTheMultiCallAsExecuted() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
-        RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
+        retrofitConnectionProvider(connection);
+        MultiCall multiCall = createMultiCall(connection, executor);
 
         multiCall.execute();
 
@@ -76,9 +76,9 @@ public class RealMultiCallTest {
     @Test
     public void testSuccessfulResponseRecyclesTheConnection() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
+        MultiCall multiCall = createMultiCall(connection, executor);
 
         multiCall.execute();
 
@@ -88,9 +88,9 @@ public class RealMultiCallTest {
     @Test
     public void testExecutingTwiceThrowsIllegalStateException() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
+        final MultiCall multiCall = createMultiCall(connection, executor);
 
         multiCall.execute();
 
@@ -105,9 +105,9 @@ public class RealMultiCallTest {
     @Test
     public void testExecutingAfterCancelThrowsIOException() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
+        final MultiCall multiCall = createMultiCall(connection, executor);
 
         multiCall.cancel();
 
@@ -126,9 +126,9 @@ public class RealMultiCallTest {
         Connection connection = createDummyConnection(request.endpoint(), getMockByteDataResponse(1));
         when(connection.source()).thenThrow(IOException.class);
 
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall multiCall = getMockRealMultiCall(connection, executor);
+        final MultiCall multiCall = createMultiCall(connection, executor);
 
         try {
             multiCall.execute();
@@ -141,9 +141,9 @@ public class RealMultiCallTest {
     @SuppressWarnings("unchecked")
     public void testEnqueueAndWaitBlocksUntilResponse() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall multiCall = getMockRealMultiCall(connection, realExecutor);
+        final MultiCall multiCall = createMultiCall(connection, realExecutor);
 
         multiCall.enqueueAndWait();
 
@@ -155,10 +155,10 @@ public class RealMultiCallTest {
     @Test
     public void testEnqueueWithTimeoutBlocksUntilTimeout() throws Exception {
         final Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
 
-        final RealMultiCall multiCall = getMockRealMultiCall(connection, realExecutor);
+        final MultiCall multiCall = createMultiCall(connection, realExecutor);
 
         doAnswer(new Answer() {
             @Override
@@ -181,9 +181,9 @@ public class RealMultiCallTest {
     public void testSuccessfulEnqueueReportsResultsToTheCallback() throws Exception {
         List<Request> requestList = getMockRequestList(Endpoint.DEFAULT, 3);
         final Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(requestList.size()));
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall call = getMockRealMultiCall(requestList, executor);
+        final MultiCall call = createMultiCall(requestList, executor);
 
         when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
             @Override
@@ -205,7 +205,7 @@ public class RealMultiCallTest {
         verify(callback, times(call.requests().size())).onResponse(eq(call), captor.capture(), any(Response.class));
 
         List<Integer> values = captor.getAllValues();
-        for(int i = 0; i < values.size(); i++) {
+        for (int i = 0; i < values.size(); i++) {
             assertTrue(values.contains(i));
         }
     }
@@ -218,9 +218,9 @@ public class RealMultiCallTest {
         responseData[EMPTY_ARRAY_RESPONSE_LENGTH + 1] = -1;
 
         final Connection connection = createDummyConnection(Endpoint.DEFAULT, responseData);
-        mockConnection(connection);
+        retrofitConnectionProvider(connection);
 
-        final RealMultiCall call = getMockRealMultiCall(requestList, executor);
+        final MultiCall call = createMultiCall(requestList, executor);
 
         when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
             @Override
@@ -242,11 +242,143 @@ public class RealMultiCallTest {
         verify(connection).close();
     }
 
+@Test
+    public void test_Interactor_WritesRequests() throws IOException {
 
+        Request request1 = Request.create()
+                .methodName("someApiMethod")
+                .body(TestRequestBody.create()
+                        .setValue("arg1", "value1")
+                        .setValue("arg2", "value2")
+                        .setValue("arg3", "value3")
+                        .setValue("arg4", "value4")
+                        .build())
+                .build();
+
+        Request request2 = request1.newRequest()
+                .body(TestRequestBody.create()
+                        .setValue("arg5", "value5")
+                        .setValue("arg6", "value6")
+                        .setValue("arg7", "value7")
+                        .setValue("arg8", "value8")
+                        .build())
+                .build();
+
+    Request expectedRequest1 = Request.create()
+            .methodName("someApiMethod")
+            .body(TestRequestBody.create()
+                    .setValue("id", 0)
+                    .setValue("arg1", "value1")
+                    .setValue("arg2", "value2")
+                    .setValue("arg3", "value3")
+                    .setValue("arg4", "value4")
+                    .build())
+            .build();
+
+    Request expectedRequest2 = request1.newRequest()
+            .body(TestRequestBody.create()
+                    .setValue("id", 1)
+                    .setValue("arg5", "value5")
+                    .setValue("arg6", "value6")
+                    .setValue("arg7", "value7")
+                    .setValue("arg8", "value8")
+                    .build())
+            .build();
+
+        Connection connection = spy(new DummyConnection());
+        retrofitConnectionProvider(connection);
+        MultiCall call = createMultiCall(request1, request2);
+        Interactor interactor = call.start();
+
+        RequestWriter requestWriter = new RequestWriter();
+        assertEquals(interactor.submitRequests(1), 1);
+        assertEquals(connection.sink().buffer().readByteString(), requestWriter.bytes(expectedRequest1));
+
+        assertEquals(interactor.submitRequests(1), 1);
+        assertEquals(connection.sink().buffer().readByteString(), requestWriter.bytes(expectedRequest2));
+
+        assertFalse(interactor.hasMoreRequests());
+        assertEquals(interactor.submitRequests(Integer.MAX_VALUE), 0);
+    }
+
+    @Test
+    public void start_Returns_NonNull_Interactor() throws IOException {
+        MultiCall call = createMultiCall(Request.create().methodName("something").build());
+        assertNotNull(call.start());
+    }
+
+    @Test
+    public void interactor_Throws_If_Reading_BeforeWriting() throws IOException {
+        Request request1 = Request.create()
+                .methodName("someApiMethod")
+                .body(TestRequestBody.create()
+                        .setValue("arg1", "value1")
+                        .setValue("arg2", "value2")
+                        .setValue("arg3", "value3")
+                        .setValue("arg4", "value4")
+                        .build())
+                .build();
+        Connection connection = spy(DummyConnection.withResponses());
+        retrofitConnectionProvider(connection);
+        MultiCall call = createMultiCall(request1);
+        Interactor interactor = call.start();
+
+        expectedException.expect(IllegalStateException.class);
+        interactor.nextResponse();
+    }
+
+    @Test
+    public void interactor_ReadsResponses() throws IOException {
+
+        Request request1 = Request.create()
+                .methodName("someApiMethod")
+                .body(RequestBody.EMPTY)
+                .build();
+
+        List<ResponseBytes> expectedResponses = Arrays.asList(
+                new ResponseBytes()
+                        .writeValue("id", 0)
+                        .writeValue("result", 0),
+                new ResponseBytes()
+                        .writeValue("id", 1)
+                        .writeValue("result", 5000)
+                        .writeValue("error", "Something went ka-boom."),
+                new ResponseBytes()
+                        .writeValue("id", 2)
+                        .writeValue("result", 2000)
+                        .writeValue("error", "Token went ka-boom."));
+        Connection connection = spy(DummyConnection.withResponses(expectedResponses));
+        retrofitConnectionProvider(connection);
+
+        MultiCall call = createMultiCall(request1, request1, request1);
+        Interactor interactor = call.start();
+        interactor.submitRequests(Integer.MAX_VALUE);
+
+        while (interactor.hasNextResponse()){
+            assertContainsResponse(expectedResponses, interactor.nextResponse());
+        }
+
+        assertFalse(interactor.hasNextResponse());
+        verify(connectionProvider, times(1)).recycleConnection(eq(connection));
+
+        expectedException.expect(IllegalStateException.class);
+        interactor.nextResponse();
+    }
+
+    private static void assertContainsResponse(Collection<ResponseBytes> responses, Response response) throws IOException {
+        Map<String,?> responseValues = response.responseBody().toValues();
+
+        Collection<Map<String,?>> expectedValues = new ArrayList<>(responses.size());
+        for (ResponseBytes bytes : responses){
+            expectedValues.add(bytes.toValues());
+        }
+
+        assertThat(expectedValues, Matchers.hasItem(responseValues));
+    }
 
     private byte[] getMockByteDataResponse(int numberOfRequests) {
-        ByteBuffer byteBuffer = ByteBuffer.allocate(numberOfRequests*EMPTY_ARRAY_RESPONSE_LENGTH);
-        for(int i = 0; i < numberOfRequests; i++) {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(numberOfRequests * EMPTY_ARRAY_RESPONSE_LENGTH);
+        for (int i = 0; i < numberOfRequests; i++) {
             byteBuffer.put(new byte[]{6, 0, 0, 0, 16, 102, 105, 100, (byte) (200 + i), -1});
         }
         return byteBuffer.array();
@@ -260,13 +392,13 @@ public class RealMultiCallTest {
         return requestList;
     }
 
-    private RealMultiCall getMockRealMultiCall(Connection connection, ExecutorService executor) {
-        return getMockRealMultiCall(
+    private MultiCall createMultiCall(Connection connection, ExecutorService executor) {
+        return createMultiCall(
                 Collections.singletonList(RequestUtils.getUserInfoRequest(connection.endpoint()))
                 , executor);
     }
 
-    private void mockConnection(Connection connection) throws IOException {
+    private void retrofitConnectionProvider(Connection connection) throws IOException {
         when(connectionProvider.obtainConnection(connection.endpoint()))
                 .thenReturn(connection);
     }
@@ -275,7 +407,15 @@ public class RealMultiCallTest {
         return spy(new DummyConnection(endpoint, data));
     }
 
-    private RealMultiCall getMockRealMultiCall(List<Request> requests, ExecutorService executor) {
+    private MultiCall createMultiCall(Request... requests) {
+        return createMultiCall(Arrays.asList(requests), executor);
+    }
+
+    private MultiCall createMultiCall(ExecutorService executor, Request... requests) {
+        return createMultiCall(Arrays.asList(requests), executor);
+    }
+
+    private MultiCall createMultiCall(List<Request> requests, ExecutorService executor) {
         return spy(new RealMultiCall(requests,
                 executor, new ArrayList<RequestInterceptor>(), connectionProvider));
     }

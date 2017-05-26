@@ -25,7 +25,7 @@ import java.nio.charset.Charset;
 
 import static org.junit.Assert.*;
 
-public class FIleOperationTest extends ApiIntegrationTest {
+public class FileOperationTest extends ApiIntegrationTest {
 
 
     @Test
