@@ -16,7 +16,11 @@
 
 package com.pcloud;
 
-import com.pcloud.protocol.streaming.*;
+import com.pcloud.protocol.streaming.BytesReader;
+import com.pcloud.protocol.streaming.BytesWriter;
+import com.pcloud.protocol.streaming.ProtocolReader;
+import com.pcloud.protocol.streaming.ProtocolRequestWriter;
+import com.pcloud.protocol.streaming.ProtocolResponseReader;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ByteString;
@@ -24,8 +28,17 @@ import okio.Okio;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -278,13 +291,14 @@ class RealMultiCall implements MultiCall {
         }
     }
 
-    private int readNextBufferedResponse(final Connection connection, Map<Integer, Response> responseMap) throws IOException {
+    private int readNextBufferedResponse(final Connection connection,
+                                         Map<Integer, Response> responseMap) throws IOException {
         ResponseBody responseBody = createBufferedResponseBody(connection);
         int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
         Response response = Response.create()
-                .request(requests.get(id))
-                .responseBody(responseBody)
-                .build();
+                                    .request(requests.get(id))
+                                    .responseBody(responseBody)
+                                    .build();
         responseMap.put(id, response);
         return id;
     }
@@ -293,9 +307,9 @@ class RealMultiCall implements MultiCall {
         FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection, recycleOnClose);
         int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
         return Response.create()
-                .request(requests.get(id))
-                .responseBody(responseBody)
-                .build();
+                       .request(requests.get(id))
+                       .responseBody(responseBody)
+                       .build();
     }
 
     private BufferedResponseBody createBufferedResponseBody(final Connection connection) throws IOException {
@@ -309,15 +323,16 @@ class RealMultiCall implements MultiCall {
         return new BufferedResponseBody(responseBuffer, reader, responseLength);
     }
 
-    private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection, final boolean recycleOnClose) throws IOException {
+    private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection,
+                                                             final boolean recycleOnClose) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
         final FixedLengthSource source = new FixedLengthSource(connection.source(),
-                responseLength + RESPONSE_LENGTH,
-                0, TimeUnit.MILLISECONDS) {
+                                                                      responseLength + RESPONSE_LENGTH,
+                                                                      0, TimeUnit.MILLISECONDS) {
             @Override
             protected void exhausted(boolean reuseSource) {
-                if (reuseSource && recycleOnClose){
+                if (reuseSource && recycleOnClose) {
                     connectionProvider.recycleConnection(connection);
                     RealMultiCall.this.connection = null;
                 }
@@ -432,7 +447,10 @@ class RealMultiCall implements MultiCall {
         private ProtocolReader reader;
         private long contentLength;
 
-        FixedLengthResponseBody(BufferedSource bufferedSource, FixedLengthSource source, BytesReader reader, long contentLength) {
+        FixedLengthResponseBody(BufferedSource bufferedSource,
+                                FixedLengthSource source,
+                                BytesReader reader,
+                                long contentLength) {
             this.bufferedSource = bufferedSource;
             this.source = source;
             this.reader = reader;
@@ -505,15 +523,15 @@ class RealMultiCall implements MultiCall {
                 throw new IllegalArgumentException("Count parameter cannot be a negative number.");
             }
 
-            synchronized (this){
-                if (!connected){
+            synchronized (this) {
+                if (!connected) {
                     connect();
                 }
             }
 
             // Do the check again to avoid any race conditions
             // leaving the Connection open.
-            if (isCancelled()){
+            if (isCancelled()) {
                 closeQuietly(connection);
                 throwIfCancelled();
             }

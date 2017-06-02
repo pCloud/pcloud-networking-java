@@ -299,8 +299,9 @@ public class BytesReader implements ProtocolResponseReader {
     public void skipValue() throws IOException {
 
         if (currentScope == SCOPE_NONE) {
-            throw new IllegalStateException("Trying to skipValue, but currentScope is "
-                    + currentScope + ". You must call beginResponse() first.");
+            throw new IllegalStateException("Trying to skipValue, but currentScope is " +
+                                                    currentScope +
+                                                    ". You must call beginResponse() first.");
         }
 
         final int type = peekType();

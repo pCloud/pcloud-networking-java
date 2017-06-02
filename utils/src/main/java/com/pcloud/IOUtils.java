@@ -26,24 +26,42 @@ import java.io.InterruptedIOException;
 import java.net.Socket;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Utility class to help with IO operations
+ */
 public class IOUtils {
 
     private static final int HEX_255 = 0xff;
     private static final int EIGHT_KB = 8192;
     private static final int NEXT_BYTE_POSITION = 256;
 
-    public static void closeQuietly(Closeable[] closeables){
-        for (Closeable c : closeables){
+    /**
+     * Closes all {@linkplain Closeable} objects from an array
+     *
+     * @param closeables an array of {@linkplain Closeable} to be closed
+     */
+    public static void closeQuietly(Closeable[] closeables) {
+        for (Closeable c : closeables) {
             closeQuietly(c);
         }
     }
 
-    public static void closeQuietly(Iterable<? extends Closeable> closeables){
-        for (Closeable c : closeables){
+    /**
+     * Closes all {@linkplain Closeable} objects from a {@linkplain Iterable}
+     *
+     * @param closeables an {@linkplain Iterable} of {@linkplain Closeable} to be closed
+     */
+    public static void closeQuietly(Iterable<? extends Closeable> closeables) {
+        for (Closeable c : closeables) {
             closeQuietly(c);
         }
     }
 
+    /**
+     * Closes a {@linkplain Closeable} object
+     *
+     * @param closeable the {@linkplain Closeable} object to be closed
+     */
     public static void closeQuietly(Closeable closeable) {
         if (closeable != null) {
             try {
@@ -56,6 +74,11 @@ public class IOUtils {
         }
     }
 
+    /**
+     * Closes a {@linkplain Socket} object
+     *
+     * @param socket the {@linkplain Socket} to be closed
+     */
     public static void closeQuietly(Socket socket) {
         if (socket != null) {
             try {
@@ -79,6 +102,12 @@ public class IOUtils {
                        e.getMessage().contains("getsockname failed");
     }
 
+    /**
+     * Goes through the {@linkplain Source} and consumes all the contents
+     *
+     * @param source the {@linkplain Source} to consume data from
+     * @throws IOException upon failed IO operations
+     */
     public static void skipAll(Source source) throws IOException {
         Buffer skipBuffer = new Buffer();
         while (source.read(skipBuffer, EIGHT_KB) != -1) {
@@ -113,6 +142,14 @@ public class IOUtils {
         }
     }
 
+    /**
+     * Reads a number from the {@linkplain BufferedSource}
+     *
+     * @param source    the data source to read from
+     * @param byteCount the number of bytes to read
+     * @return the number extracted from the source
+     * @throws IOException on failed IO operations
+     */
     public static long readNumberLe(BufferedSource source, int byteCount) throws IOException {
         source.require(byteCount);
         if (byteCount > 1) {
@@ -129,6 +166,15 @@ public class IOUtils {
         }
     }
 
+    /**
+     * Peeks but does not consume a number from a {@linkplain BufferedSource}
+     *
+     * @param source    the data source to peek from
+     * @param offset    marks where should the peeking begin
+     * @param byteCount the number of bytes to read
+     * @return the number extracted form the {@linkplain BufferedSource}
+     * @throws IOException on failed IO operations
+     */
     public static long peekNumberLe(BufferedSource source, int offset, int byteCount) throws IOException {
         source.require(offset + byteCount);
         if (byteCount > 1) {
@@ -146,6 +192,14 @@ public class IOUtils {
         }
     }
 
+    /**
+     * Peeks but does not consume a number from a {@linkplain BufferedSource}
+     *
+     * @param source    the data source to peek from
+     * @param byteCount the number of bytes to peek
+     * @return the number value extracted from the source
+     * @throws IOException
+     */
     public static long peekNumberLe(BufferedSource source, int byteCount) throws IOException {
         return peekNumberLe(source, 0, byteCount);
     }

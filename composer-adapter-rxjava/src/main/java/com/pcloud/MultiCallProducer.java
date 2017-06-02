@@ -25,7 +25,9 @@ public class MultiCallProducer<S, T> implements Producer {
     private S generator;
     private Func3<S, Long, Observer<? super T>, Long> handler;
 
-    public MultiCallProducer(Subscriber<? super T> subscriber, S generator, Func3<S, Long, Observer<? super T>, Long> handler) {
+    public MultiCallProducer(Subscriber<? super T> subscriber,
+                             S generator,
+                             Func3<S, Long, Observer<? super T>, Long> handler) {
         this.subscriber = new SerializedSubscriber<>(subscriber, true);
         this.subscription = BooleanSubscription.create(new Action0() {
             @Override

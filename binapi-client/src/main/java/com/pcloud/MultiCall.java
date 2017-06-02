@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static com.pcloud.IOUtils.closeQuietly;
 
 /**
  * Created by Georgi on 26.12.2016 г..

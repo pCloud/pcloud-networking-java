@@ -23,7 +23,13 @@ import com.pcloud.networking.TypeAdapterFactory;
 import java.lang.reflect.Type;
 import java.util.Date;
 
+/**
+ * A factory for providing {@linkplain TimestampDateTypeAdapter} instances
+ *
+ * @see TimestampDateTypeAdapter
+ */
 public class TimestampDateTypeAdapterFactory implements TypeAdapterFactory {
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
         if (type != Date.class) {

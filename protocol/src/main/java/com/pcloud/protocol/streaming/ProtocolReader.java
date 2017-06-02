@@ -18,7 +18,6 @@ package com.pcloud.protocol.streaming;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.annotation.Inherited;
 
 /**
  * A contract for an object capable of reading serialized data from a data source.

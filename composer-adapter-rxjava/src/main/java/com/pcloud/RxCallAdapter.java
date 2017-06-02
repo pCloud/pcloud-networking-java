@@ -16,22 +16,26 @@
 
 package com.pcloud;
 
-import com.pcloud.networking.*;
+import com.pcloud.networking.ApiComposer;
 import com.pcloud.networking.Call;
+import com.pcloud.networking.CallAdapter;
 import com.pcloud.networking.Interactor;
 import com.pcloud.networking.MultiCall;
-import com.pcloud.networking.MultiCallback;
-import rx.*;
-import rx.functions.*;
+
+import com.pcloud.networking.Types;
+import rx.Emitter;
+import rx.Observable;
+import rx.Observer;
+import rx.Single;
+import rx.functions.Action1;
+import rx.functions.Action2;
+import rx.functions.Action3;
+import rx.functions.Func0;
 import rx.observables.AsyncOnSubscribe;
 import rx.observables.SyncOnSubscribe;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
 
 /**
  * Created by Dimitard on 25.4.2017 г..
@@ -97,7 +101,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
                 final Interactor<T> interactor = (Interactor<T>) o;
 
-                if (!interactor.hasNextResponse()){
+                if (!interactor.hasNextResponse()) {
                     observableObserver.onCompleted();
                     return;
                 }
@@ -105,7 +109,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
                     @Override
                     public void call(Emitter<T> emitter) {
                         try {
-                            int submitted = interactor.submitRequests((int)Math.min(Integer.MAX_VALUE, requested));
+                            int submitted = interactor.submitRequests((int) Math.min(Integer.MAX_VALUE, requested));
                             for (int i = 0; i < submitted; i++) {
                                 emitter.onNext(interactor.nextResponse());
                             }

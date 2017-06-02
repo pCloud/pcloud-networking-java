@@ -26,7 +26,12 @@ import okio.Okio;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static com.pcloud.IOUtils.closeQuietly;
 
@@ -209,7 +214,8 @@ class RealCall implements Call {
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
-        final FixedLengthSource responseParametersSource = new FixedLengthSource(connection.source(), responseLength + RESPONSE_LENGTH) {
+        final FixedLengthSource responseParametersSource =
+                new FixedLengthSource(connection.source(), responseLength + RESPONSE_LENGTH) {
             @Override
             protected void exhausted(boolean reuseSource) {
                 if (!reuseSource) {

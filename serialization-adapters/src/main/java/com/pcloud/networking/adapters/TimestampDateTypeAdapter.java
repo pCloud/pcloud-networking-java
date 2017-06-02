@@ -23,13 +23,32 @@ import com.pcloud.protocol.streaming.ProtocolWriter;
 import java.io.IOException;
 import java.util.Date;
 
+/**
+ * Adapter that converts between Timestamp and {@linkplain Date}
+ */
 public class TimestampDateTypeAdapter extends TypeAdapter<Date> {
+
     private static final long DATE_MULTIPLIER = 1000L;
+
+    /**
+     * Deserializes binary data from a {@linkplain ProtocolReader} into a {@linkplain Date}
+     *
+     * @param reader A {@linkplain ProtocolReader} to read the data
+     * @return A {@linkplain Date} object deserialized from the binary data
+     * @throws IOException on failed IO operations
+     */
     @Override
     public Date deserialize(ProtocolReader reader) throws IOException {
         return new Date(reader.readNumber() * DATE_MULTIPLIER);
     }
 
+    /**
+     * Serializes a {@linkplain Date} object and writes the binary data into a {@linkplain ProtocolWriter}
+     *
+     * @param writer A {@linkplain ProtocolWriter} to write the data
+     * @param value  A concrete java implementation of the data type to be serialized
+     * @throws IOException on failed IO operations
+     */
     @Override
     public void serialize(ProtocolWriter writer, Date value) throws IOException {
         writer.writeValue(value.getTime() / DATE_MULTIPLIER);
