@@ -21,7 +21,6 @@ import com.pcloud.networking.Call;
 import com.pcloud.networking.CallAdapter;
 import com.pcloud.networking.Interactor;
 import com.pcloud.networking.MultiCall;
-
 import com.pcloud.networking.Types;
 import rx.Emitter;
 import rx.Observable;
@@ -37,10 +36,9 @@ import rx.observables.SyncOnSubscribe;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
-/**
- * Created by Dimitard on 25.4.2017 г..
- */
 public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
+
+    @SuppressWarnings("unused")
     public static final CallAdapter.Factory FACTORY = new RxCallAdapterFactory();
 
     private final Type responseType;
@@ -99,6 +97,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
                     return;
                 }
 
+                @SuppressWarnings("unchecked")
                 final Interactor<T> interactor = (Interactor<T>) o;
 
                 if (!interactor.hasNextResponse()) {
