@@ -95,11 +95,11 @@ public class PCloudAPIClient {
         };
         this.callExecutor = builder.callExecutor != null ?
                 builder.callExecutor : new ThreadPoolExecutor(0,
-                                              Integer.MAX_VALUE,
-                                              DEFAULT_KEEP_ALIVE_TIME_MS,
-                                              TimeUnit.SECONDS,
-                                              new SynchronousQueue<Runnable>(),
-                                              threadFactory);
+                Integer.MAX_VALUE,
+                DEFAULT_KEEP_ALIVE_TIME_MS,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<Runnable>(),
+                threadFactory);
 
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }

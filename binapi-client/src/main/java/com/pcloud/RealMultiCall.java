@@ -296,9 +296,9 @@ class RealMultiCall implements MultiCall {
         ResponseBody responseBody = createBufferedResponseBody(connection);
         int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
         Response response = Response.create()
-                                    .request(requests.get(id))
-                                    .responseBody(responseBody)
-                                    .build();
+                .request(requests.get(id))
+                .responseBody(responseBody)
+                .build();
         responseMap.put(id, response);
         return id;
     }
@@ -307,9 +307,9 @@ class RealMultiCall implements MultiCall {
         FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection, recycleOnClose);
         int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
         return Response.create()
-                       .request(requests.get(id))
-                       .responseBody(responseBody)
-                       .build();
+                .request(requests.get(id))
+                .responseBody(responseBody)
+                .build();
     }
 
     private BufferedResponseBody createBufferedResponseBody(final Connection connection) throws IOException {
@@ -328,8 +328,8 @@ class RealMultiCall implements MultiCall {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
         final FixedLengthSource source = new FixedLengthSource(connection.source(),
-                                                                      responseLength + RESPONSE_LENGTH,
-                                                                      0, TimeUnit.MILLISECONDS) {
+                responseLength + RESPONSE_LENGTH,
+                0, TimeUnit.MILLISECONDS) {
             @Override
             protected void exhausted(boolean reuseSource) {
                 if (reuseSource && recycleOnClose) {
