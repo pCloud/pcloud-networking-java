@@ -1,7 +1,5 @@
-group = getPublishProperty('groupId')
-version = getPublishProperty('versionName')
-
 apply plugin: 'java'
+apply plugin: 'com.github.hauner.jarTest'
 
 sourceCompatibility = 1.7
 
@@ -10,15 +8,17 @@ repositories {
 }
 
 dependencies {
-    compile project(':utils-io')
+    compile project(':binapi-client')
+    compile project(':serialization')
+    compile project(':utils-reflection')
     testCompile group: 'junit', name: 'junit', version: '4.11'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
-    compile 'com.squareup.okio:okio:1.12.0'
+    testCompile 'org.assertj:assertj-core:2.5.0'
 }
 
 ext {
-    bintrayPackage = 'protocol'
-    artifactId = 'protocol'
+    bintrayPackage = 'composer'
+    artifactId = 'composer'
 }
 
 apply from: '../bintray.gradle'

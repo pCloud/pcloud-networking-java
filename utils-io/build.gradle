@@ -8,13 +8,13 @@ repositories {
 }
 
 dependencies {
-    compile project(':protocol')
-    compile project(':utils-reflection')
     testCompile group: 'junit', name: 'junit', version: '4.11'
+    compileOnly 'com.squareup.okio:okio:1.11.0'
 }
+
 ext {
-    bintrayPackage = 'serialization'
-    artifactId = 'serialization'
+    bintrayPackage = 'utils'
+    artifactId = 'utils'
 }
 
 apply from: '../bintray.gradle'

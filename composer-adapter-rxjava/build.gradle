@@ -11,8 +11,8 @@ repositories {
 dependencies {
     compile 'io.reactivex:rxjava:1.2.5'
     testCompile 'io.reactivex:rxjava:1.2.5'
-    compile  project(':api-composer')
-    testCompile project(path: ':api-composer', configuration: 'testArchives')
+    compile  project(':composer')
+    testCompile project(path: ':composer', configuration: 'testArchives')
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
     testCompile 'org.assertj:assertj-core:2.5.0'
