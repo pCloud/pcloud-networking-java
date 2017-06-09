@@ -11,3 +11,5 @@ ext {
     artifactId = 'utils-reflection'
 }
 
+apply from: '../bintray.gradle'
+apply from: '../maven-pom.gradle'
