@@ -14,8 +14,8 @@ dependencies {
 }
 
 ext {
-    bintrayPackage = 'serialization-adapters'
-    artifactId = 'serialization-adapters'
+    bintrayPackage = 'serialization-adapters-timestamp'
+    artifactId = 'serialization-adapters-timestamp'
 }
 
 apply from: '../bintray.gradle'
