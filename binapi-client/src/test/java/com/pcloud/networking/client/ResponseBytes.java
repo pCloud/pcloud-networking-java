@@ -26,6 +26,7 @@ import okio.ByteString;
 import java.io.IOException;
 import java.util.Map;
 
+@SuppressWarnings("WeakerAccess,unused")
 public class ResponseBytes {
 
     public static ResponseBytes empty(){
@@ -154,6 +155,7 @@ public class ResponseBytes {
             endArray();
             return this;
         } else if (Map.class.isAssignableFrom(valueType)) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> map = (Map<String, Object>) value;
             if (!map.isEmpty()) {
                 beginObject();

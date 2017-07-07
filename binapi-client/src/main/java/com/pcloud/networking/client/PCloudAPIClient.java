@@ -85,7 +85,7 @@ public class PCloudAPIClient {
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
 
         this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier,
-                                             connectTimeoutMs, readTimeoutMs, MILLISECONDS);
+                                             connectTimeoutMs, readTimeoutMs, writeTimeoutMs, MILLISECONDS);
 
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override

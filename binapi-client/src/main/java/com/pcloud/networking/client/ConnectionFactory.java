@@ -29,17 +29,19 @@ class ConnectionFactory {
     private HostnameVerifier hostnameVerifier;
     private int connectTimeout;
     private int readTimeout;
+    private int writeTimeout;
     private TimeUnit timeUnit;
 
     ConnectionFactory(SocketFactory socketFactory,
                       SSLSocketFactory sslSocketFactory,
                       HostnameVerifier hostnameVerifier,
-                      int connectTimeout, int readTimeout, TimeUnit timeUnit) {
+                      int connectTimeout, int readTimeout, int writeTimeout, TimeUnit timeUnit) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
+        this.writeTimeout = writeTimeout;
         this.timeUnit = timeUnit;
     }
 
@@ -51,7 +53,7 @@ class ConnectionFactory {
         RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier);
         boolean connected = false;
         try {
-            connection.connect(endpoint, connectTimeout, readTimeout, timeUnit);
+            connection.connect(endpoint, connectTimeout, readTimeout, writeTimeout, timeUnit);
             connected = true;
         } finally {
             if (!connected) {

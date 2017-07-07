@@ -55,7 +55,7 @@ class RealConnection implements Connection {
     }
 
     void connect(Endpoint endpoint, int connectTimeout,
-                 int readTimeout, TimeUnit timeUnit) throws ConnectException {
+                 int readTimeout, int writeTimout, TimeUnit timeUnit) throws ConnectException {
 
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
@@ -67,6 +67,8 @@ class RealConnection implements Connection {
             this.source = Okio.buffer(Okio.source(socket));
             this.sink = Okio.buffer(Okio.sink(socket));
             this.endpoint = endpoint;
+            source.timeout().timeout(readTimeout, timeUnit);
+            sink.timeout().timeout(writeTimout, timeUnit);
             success = true;
         } catch (IOException e) {
             throw new ConnectException(e);
