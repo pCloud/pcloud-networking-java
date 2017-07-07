@@ -496,22 +496,13 @@ class RealMultiCall implements MultiCall {
         private final AtomicInteger remainingRequests;
         private final AtomicInteger handledResponses;
         private final AtomicReference<Response> lastResultReference;
-        private boolean connected = false;
+        private volatile boolean closed;
 
-        public RealInteractor() {
+        private RealInteractor() {
             requestCount = requests.size();
             remainingRequests = new AtomicInteger(requestCount);
             handledResponses = new AtomicInteger(0);
             lastResultReference = new AtomicReference<>(null);
-        }
-
-        private void connect() throws IOException {
-            throwIfCancelled();
-
-            Endpoint endpoint = requests.get(0).endpoint();
-            final Connection connection = connectionProvider.obtainConnection(endpoint);
-            RealMultiCall.this.connection = connection;
-            this.connected = true;
         }
 
         @Override
@@ -526,17 +517,13 @@ class RealMultiCall implements MultiCall {
             }
 
             synchronized (this) {
-                if (!connected) {
-                    connect();
+                if (!isCancelled() && !closed && connection == null) {
+                    Endpoint endpoint = requests.get(0).endpoint();
+                    connection = connectionProvider.obtainConnection(endpoint);
                 }
             }
-
-            // Do the check again to avoid any race conditions
-            // leaving the Connection open.
-            if (isCancelled()) {
-                closeQuietly(connection);
-                throwIfCancelled();
-            }
+            throwIfCancelled();
+            throwIfClosed();
 
             int sent = 0;
             while (remainingRequests.get() > 0 && sent < count) {
@@ -557,6 +544,8 @@ class RealMultiCall implements MultiCall {
         @Override
         public Response nextResponse() throws IOException {
             throwIfCancelled();
+            throwIfClosed();
+
             boolean readSuccess = false;
             if (!hasNextResponse()) {
                 throw new IllegalStateException("Cannot read next response, no more elements to read.");
@@ -574,36 +563,46 @@ class RealMultiCall implements MultiCall {
                 }
             }
 
-            Response result;
             try {
-                result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
+                Response result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
                 lastResultReference.set(result);
                 handledResponses.incrementAndGet();
                 readSuccess = true;
+                return result;
             } finally {
                 if (!readSuccess) {
-                    closeQuietly(connection);
-                    RealMultiCall.this.connection = null;
+                    synchronized (this) {
+                        closeQuietly(connection);
+                        RealMultiCall.this.connection = null;
+                    }
                 }
             }
 
-            return result;
         }
 
         @Override
         public void close() {
-            if (!hasNextResponse()) {
-                Response response = lastResultReference.get();
-                FixedLengthResponseBody body = (FixedLengthResponseBody) response.responseBody();
-                if (body.bytesRemaining() == 0L) {
-                    connectionProvider.recycleConnection(connection);
-                } else {
-                    closeQuietly(connection);
+            synchronized (this) {
+                closed = true;
+                if (connection != null) {
+                    // Check if the last response was being read.
+                    Response lastResponse;
+                    if (!hasNextResponse() && (lastResponse = lastResultReference.get()) != null) {
+                        FixedLengthResponseBody body = (FixedLengthResponseBody) lastResponse.responseBody();
+                        if (body.bytesRemaining() == 0L) {
+                            connectionProvider.recycleConnection(connection);
+                        }
+                    }
                 }
-            } else {
                 closeQuietly(connection);
+                connection = null;
             }
-            RealMultiCall.this.connection = null;
+        }
+
+        private void throwIfClosed() throws IOException {
+            if (closed) {
+                throw new IOException("This Interactor has been closed.");
+            }
         }
     }
 }
