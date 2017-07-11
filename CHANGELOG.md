@@ -1,6 +1,12 @@
 Changelog
 ==========
 
+Version 1.0.2 (11.07.2017)
+--------------------------
+#### Client
+
+* Remove the akward ConnectException thrown from RealConnection.connect(), the method will pass-through any thrown IOExceptions in its body.
+
 Version 1.0.1 (07.07.2017)
 --------------------------
 #### Client
