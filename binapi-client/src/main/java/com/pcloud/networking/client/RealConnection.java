@@ -55,7 +55,7 @@ class RealConnection implements Connection {
     }
 
     void connect(Endpoint endpoint, int connectTimeout,
-                 int readTimeout, int writeTimout, TimeUnit timeUnit) throws ConnectException {
+                 int readTimeout, int writeTimout, TimeUnit timeUnit) throws IOException {
 
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
@@ -70,8 +70,6 @@ class RealConnection implements Connection {
             source.timeout().timeout(readTimeout, timeUnit);
             sink.timeout().timeout(writeTimout, timeUnit);
             success = true;
-        } catch (IOException e) {
-            throw new ConnectException(e);
         } finally {
             if (!success) {
                 close();
