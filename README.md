@@ -1,4 +1,4 @@
-# <img src="https://github.com/pCloud/pcloud-sdk-java/raw/master/docs/logo_color.png" width="72"> pCloud Java SDK
+# <img src="docs/logo_color.png" width="72"> pCloud Java SDK
 
 An official type-safe networking client for [ pCloud's API][docs] binary protocol by pCloud AG.
 
@@ -10,6 +10,162 @@ An official type-safe networking client for [ pCloud's API][docs] binary protoco
 ## Documentation
 
 The pCloud API and binary protocol documentation can be found [here][docs].
+
+
+## Components
+
+<img src="docs/images/module-stack.png">
+
+### Composer
+
+The `composer` module contains a Retrofit-like adapter library for composing API calls via annotated Java interface declarations.
+
+#### Features
+
+* Declaration of API calls as annotated Java interface methods.
+* Automatic serialization and deserialization of objects to the binary protocol.
+* Allowance for bulk sending of requests.
+* Support for RxJava via extension modules.
+
+#### Example
+
+```java
+public interface Api {
+
+    @Method("copyfile")
+    ApiResponse copy(@RequestBody CopyFileRequest request) throws IOException;
+
+    @Method("deletefile")
+    Observable<ApiResponse> deleteFiles(@RequestBody List<DeleteFileRequest> requests);
+
+    @Method("showpublink")
+    Call<ListLinkResponse> listPublink(@Parameter("code") String code);
+}
+
+Api api = ApiComposer.create()
+                .create()
+                .compose(Api.class);
+api.copy(...)
+
+```
+
+#### Download
+
+[ ![Download](https://api.bintray.com/packages/pcloud/pcloud-networking-java/composer/images/download.svg) ](https://bintray.com/pcloud/pcloud-networking-java/composer/_latestVersion)
+
+```xml
+<dependency>
+  <groupId>pcloud-networking-java</groupId>
+  <artifactId>composer</artifactId>
+  <version>1.0.3</version>
+  <type>pom</type>
+</dependency>
+```
+
+```groovy
+compile 'pcloud-networking-java:composer:1.0.3'
+```
+
+### Client
+
+The `binapi-client` module contains a network client to compose and execute binary API requests.
+
+#### Features
+
+* A user-friendly API similar in terms and behavior to OkHTTP.
+* Support for request cancellation.
+* Connection pooling to improve resource usage and battery life on mobile devices.
+* Highly configurable (read/connect/write timeout durations, pool size and idle times, socket factories, host verification strategies, )
+
+#### Download
+
+[ ![Download](https://api.bintray.com/packages/pcloud/pcloud-networking-java/binapi-client/images/download.svg) ](https://bintray.com/pcloud/pcloud-networking-java/binapi-client/_latestVersion)
+
+```xml
+<dependency>
+  <groupId>pcloud-networking-java</groupId>
+  <artifactId>binapi-client</artifactId>
+  <version>1.0.3</version>
+  <type>pom</type>
+</dependency>
+```
+
+```groovy
+compile 'pcloud-networking-java:binapi-client:1.0.3'
+```
+
+--------------------------------------------------------------------------------
+### Serialization
+
+The `serialization` module contains a library for serializing Java objects to binary protocol primitives.
+
+#### Features
+
+* Familiar API based on field annotations.
+* Built-in adapters for the Java primitive types and their boxed variants.
+* Support for custom adapters.
+
+#### Download
+
+[ ![Download](https://api.bintray.com/packages/pcloud/pcloud-networking-java/serialization/images/download.svg) ](https://bintray.com/pcloud/pcloud-networking-java/serialization/_latestVersion)
+
+```xml
+<dependency>
+  <groupId>pcloud-networking-java</groupId>
+  <artifactId>serialization</artifactId>
+  <version>1.0.32</version>
+  <type>pom</type>
+</dependency>
+```
+
+```groovy
+compile 'pcloud-networking-java:serialization:1.0.3'
+```
+--------------------------------------------------------------------------------
+### Protocol
+
+The `protocol` module contains the core logic for writing/reading data in the format defined by the binary protocol.
+
+#### Features
+
+* Stream-based protocol readers and writers based on Square's [Okio library](https://github.com/square/okio).
+* Helper classes that allow reading to/writing from `java.util.Map` key-value mappings.
+* Support for peeking and cloning of readers
+
+#### Download
+
+[ ![Download](https://api.bintray.com/packages/pcloud/pcloud-networking-java/protocol/images/download.svg) ](https://bintray.com/pcloud/pcloud-networking-java/protocol/_latestVersion)
+
+```xml
+<dependency>
+  <groupId>pcloud-networking-java</groupId>
+  <artifactId>protocol</artifactId>
+  <version>1.0.3</version>
+  <type>pom</type>
+</dependency>
+```
+
+```groovy
+compile 'pcloud-networking-java:protocol:1.0.3'
+```
+
+
+## License
+	Copyright (c) 2017 pCloud AG
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+
 
 
 
