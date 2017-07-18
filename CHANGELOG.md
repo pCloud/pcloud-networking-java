@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 1.0.3 (18.07.2017)
+--------------------------
+#### Composer
+
+* Adapted interface methods will always use `Endpoint.DEFAULT` as endpoint, to leave the opportunity to have the final endpoint resolved from the `PCloudAPIClient`'s `EndpointProvider` instance.
+
+
 Version 1.0.2 (11.07.2017)
 --------------------------
 #### Client
