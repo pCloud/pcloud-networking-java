@@ -21,19 +21,39 @@ import java.util.Locale;
 
 /**
  * An exception thrown whenever something goes wrong during data serialization
+ *
  * @see BytesWriter
  * @see BytesReader
  */
 public class SerializationException extends IOException {
 
+    /**
+     * Create with an error message format and arguments in {@code String.format()} style
+     *
+     * @param message the message template
+     * @param args the message arguments
+     */
     public SerializationException(String message, Object... args) {
         this(String.format(Locale.US, message, args));
     }
 
+    /**
+     * Create with an error message
+     *
+     * @param message The detail message (which is saved for later retrieval by the getMessage() method)
+     */
     public SerializationException(String message) {
         super(message);
     }
 
+    /**
+     * Create with an error message and a CAUSE
+     *
+     * @param message The detail message (which is saved for later retrieval by the getMessage() method)
+     * @param cause The cause (which is saved for later retrieval by the getCause() method).
+     *              (A null value is permitted, and indicates that the cause
+     *              is nonexistent or unknown.)
+     */
     public SerializationException(String message, Throwable cause) {
         super(message, cause);
     }

@@ -31,6 +31,7 @@ import java.io.IOException;
  * </ul>
  * <p>
  * <b>NOTE:Take care of calling {@linkplain #close()} when done with objects of this type, or resource leaks will occur.</b>
+ * @param <T> The response type
  */
 public interface Interactor<T> extends Closeable {
 

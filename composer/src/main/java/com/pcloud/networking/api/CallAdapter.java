@@ -23,19 +23,47 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 /**
- * Created by Dimitard on 25.4.2017 г..
+ * An adapter that allows modifying the return type.
+ * <p>
+ * Install a implementation of {@link Factory} by calling
+ * {@linkplain com.pcloud.networking.api.ApiComposer.Builder#addAdapterFactory(Factory)}
+ * or
+ * {@linkplain com.pcloud.networking.api.ApiComposer.Builder#addAdapterFactories(Iterable)}
+ *
+ * @param <T> The source type
+ * @param <R> The adapted result type
  */
 public interface CallAdapter<T, R> {
 
+    /**
+     * @return the actual type of {@linkplain R}
+     */
     Type responseType();
 
+    /**
+     * Adapt a {@linkplain Call} to a {@linkplain R}
+     *
+     * @param call a non-null {@linkplain Call} instance
+     * @return an adapted call of type {@linkplain R}
+     * @throws IOException on a possible network failure
+     */
     R adapt(Call<T> call) throws IOException;
 
+    /**
+     * Adapt a {@linkplain MultiCall} to a {@linkplain R}
+     *
+     * @param call a non-null {@linkplain MultiCall} instance
+     * @return an adapted call of type {@linkplain R}
+     * @throws IOException on a possible network failure
+     */
     R adapt(MultiCall<?, T> call) throws IOException;
 
+    /**
+     * A factory class for creating {@linkplain CallAdapter} instances.
+     */
     abstract class Factory {
         /**
-         * Returns a call adapter for interface methods that return {@code returnType}, or null if it
+         * Returns a {@linkplain CallAdapter} for interface methods that return {@code returnType}, or null if it
          * cannot be handled by this factory.
          *
          * @param apiComposer the calling {@linkplain ApiComposer} instance
@@ -44,7 +72,15 @@ public interface CallAdapter<T, R> {
          */
         public abstract CallAdapter<?, ?> get(ApiComposer apiComposer, Method method);
 
-        protected Type getParameterUpperBound(int index, Type type) {
+        /**
+         * Helper method for obtaining the actual type of a generic
+         * type with multiple parameters
+         *
+         * @param index the index of the generic parameter
+         * @param type the target generic type
+         * @return the actual type of the parameter at {@code index}
+         */
+        protected static Type getParameterUpperBound(int index, Type type) {
             return Types.getParameterUpperBound(index, type);
         }
     }

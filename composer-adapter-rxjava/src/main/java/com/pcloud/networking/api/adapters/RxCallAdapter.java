@@ -36,6 +36,18 @@ import rx.observables.SyncOnSubscribe;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
+/**
+ * A {@linkplain CallAdapter} implementation that returns RxJava 1.x Observables
+ * <p>
+ * This adapter implementation allows for declaring interface methods
+ * that return instances of {@linkplain Observable}, both for single
+ * and batched request calls.
+ * <p>
+ * To install, call {@linkplain com.pcloud.networking.api.ApiComposer.Builder#addAdapterFactory(Factory)}
+ * with the {@linkplain #FACTORY} object.
+ *
+ * @param <T> the type of the response object
+ */
 public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
     @SuppressWarnings("unused")

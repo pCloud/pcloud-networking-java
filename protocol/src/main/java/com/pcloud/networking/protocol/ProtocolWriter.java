@@ -114,6 +114,7 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
 
     /**
      *  Flush the data source
+     *  @throws IOException on failed IO operations
      */
     @Override
     void flush() throws IOException;

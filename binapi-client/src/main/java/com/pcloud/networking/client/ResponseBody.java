@@ -41,8 +41,26 @@ public abstract class ResponseBody implements Closeable {
      */
     public abstract ProtocolReader reader();
 
+    /**
+     * Return the body content as a immutable {@linkplain ByteString}
+     * <p>
+     * Note that the method will read an entire response body
+     * in memory, which potentially may cause an {@linkplain OutOfMemoryError}
+     *
+     * @return a {@linkplain ByteString} with the bytes of the body
+     * @throws IOException on failed IO operations
+     */
     public abstract ByteString valuesBytes() throws IOException;
 
+    /**
+     * Return the body content as a byte array
+     * <p>
+     * Note that the method will read an entire response body
+     * in memory, which potentially may cause an {@linkplain OutOfMemoryError}
+     *
+     * @return a byte array with the bytes of the body
+     * @throws IOException on failed IO operations
+     */
     public final byte[] valuesByteArray() throws IOException {
         return valuesBytes().toByteArray();
     }

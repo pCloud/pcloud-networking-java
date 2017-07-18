@@ -258,6 +258,13 @@ public class PCloudAPIClient {
         return new Builder(this);
     }
 
+    /**
+     * Create a new {@linkplain Builder} instance
+     * <p>
+     * Use this method to start configuring a new {@linkplain PCloudAPIClient} instance.
+     *
+     * @return a new {@linkplain Builder} instance
+     */
     public static Builder newClient() {
         return new Builder()
                 .setConnectTimeoutMs(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)

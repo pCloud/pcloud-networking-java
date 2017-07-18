@@ -38,7 +38,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface Parameter {
 
     /**
-     * @return the requestBody parameter name
+     * The API parameter's name.
+     *<p>
+     * Assigns and returns the API method's parameter name,
+     * e.g. like "folderid", or "auth".
      */
     String value();
 }

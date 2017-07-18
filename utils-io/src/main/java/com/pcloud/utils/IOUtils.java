@@ -96,6 +96,9 @@ public class IOUtils {
     /**
      * Returns true if {@code e} is due to a firmware bug fixed after Android 4.2.2.
      * https://code.google.com/p/android/issues/detail?id=54072
+     *
+     * @param e the suspected error
+     * @return true if error is due to firmware bug, false otherwise
      */
     public static boolean isAndroidGetsocknameError(AssertionError e) {
         return e.getCause() != null && e.getMessage() != null &&
@@ -118,6 +121,12 @@ public class IOUtils {
     /**
      * Reads until {@code in} is exhausted or the deadline has been reached. This is careful to not
      * extend the deadline if one exists already.
+     *
+     * @param source the target source to be exhausted
+     * @param duration the time available for exhaustion
+     * @param timeUnit the time unit of exhaustion time
+     * @return true if the source was exhausted without closing, false if time ran out
+     * @throws IOException on an IO error
      */
     public static boolean skipAll(Source source, int duration, TimeUnit timeUnit) throws IOException {
         long now = System.nanoTime();
@@ -198,7 +207,7 @@ public class IOUtils {
      * @param source    the data source to peek from
      * @param byteCount the number of bytes to peek
      * @return the number value extracted from the source
-     * @throws IOException
+     * @throws IOException on an IO error
      */
     public static long peekNumberLe(BufferedSource source, int byteCount) throws IOException {
         return peekNumberLe(source, 0, byteCount);

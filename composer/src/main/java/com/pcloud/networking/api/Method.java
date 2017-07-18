@@ -33,9 +33,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface Method {
 
     /**
-     * Value string.
-     *
-     * @return the string
+     * The API method's name.
+     *<p>
+     * Assigns and returns the API method's name, e.g. like "userinfo",
+     * or "listfolder".
      */
     String value() default "";
 }

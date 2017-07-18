@@ -16,7 +16,6 @@
 
 package com.pcloud.networking.client;
 
-import com.pcloud.utils.FixedLengthSource;
 import com.pcloud.utils.IOUtils;
 import com.pcloud.networking.protocol.BytesReader;
 import com.pcloud.networking.protocol.BytesWriter;

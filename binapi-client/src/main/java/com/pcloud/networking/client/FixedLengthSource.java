@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.pcloud.utils;
+package com.pcloud.networking.client;
 
+import com.pcloud.utils.IOUtils;
 import okio.Buffer;
 import okio.ForwardingTimeout;
 import okio.Source;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public abstract class FixedLengthSource implements Source {
+abstract class FixedLengthSource implements Source {
 
     private static final int DEFAULT_DISCARD_TIMEOUT_MILLIS = 300;
 

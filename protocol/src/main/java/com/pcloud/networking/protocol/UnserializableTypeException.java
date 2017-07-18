@@ -23,6 +23,11 @@ import java.lang.reflect.Type;
  */
 public class UnserializableTypeException extends SerializationException {
 
+    /**
+     * Create for a specific {@link Type}
+     *
+     * @param type the unserializable type.
+     */
     public UnserializableTypeException(Type type) {
         super("'%s' serialization is not supported.", type);
     }
