@@ -61,9 +61,7 @@ class DirectApiMethod<T> extends ApiMethod<T> {
 
     @Override
     public T invoke(ApiComposer apiComposer, Object[] args) throws IOException {
-        Request.Builder builder = Request.create()
-                .endpoint(apiComposer.endpointProvider().endpoint())
-                .methodName(apiMethodName);
+        Request.Builder builder = Request.create().methodName(apiMethodName);
         requestAdapter.adapt(builder, args);
 
         com.pcloud.networking.client.Call rawCall = apiComposer.apiClient().newCall(builder.build());

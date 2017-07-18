@@ -69,9 +69,7 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
             throw new IllegalArgumentException("The requests container cannot be null!");
         }
         List<Request> rawRequests = new ArrayList<>(requests.size());
-        final Request.Builder builder = Request.create()
-                .endpoint(apiComposer.endpointProvider().endpoint())
-                .methodName(apiMethodName);
+        final Request.Builder builder = Request.create().methodName(apiMethodName);
 
         for (final T request : requests) {
             requestAdapter.adapt(builder, request);
