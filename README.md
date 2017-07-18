@@ -113,7 +113,7 @@ The `serialization` module contains a library for serializing Java objects to bi
 <dependency>
   <groupId>pcloud-networking-java</groupId>
   <artifactId>serialization</artifactId>
-  <version>1.0.32</version>
+  <version>1.0.3</version>
   <type>pom</type>
 </dependency>
 ```
