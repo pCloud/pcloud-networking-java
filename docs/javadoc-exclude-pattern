@@ -1,0 +1,1 @@
+(file[composer]:*/||file[binapi-client]:*/||file[serialization]:*/||file[protocol]:*/)&&!file[binapi-client]:src/main/java/com/pcloud/networking/client/internal/*&&!file[binapi-client]:src/main/java/com/pcloud/networking/client/internal/tls/*
