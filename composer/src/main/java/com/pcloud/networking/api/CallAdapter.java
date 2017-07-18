@@ -37,6 +37,10 @@ public interface CallAdapter<T, R> {
         /**
          * Returns a call adapter for interface methods that return {@code returnType}, or null if it
          * cannot be handled by this factory.
+         *
+         * @param apiComposer the calling {@linkplain ApiComposer} instance
+         * @param method      the Java method to be adapted
+         * @return a non-null {@linkplain CallAdapter} instanse
          */
         public abstract CallAdapter<?, ?> get(ApiComposer apiComposer, Method method);
 
