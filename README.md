@@ -11,6 +11,8 @@ An official type-safe networking client for [ pCloud's API][docs] binary protoco
 
 The pCloud API and binary protocol documentation can be found [here][docs].
 
+The library's JavaDoc documentation is posted [here](https://pcloud.github.io/pcloud-networking-java/).
+
 
 ## Components
 
