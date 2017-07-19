@@ -1,6 +1,19 @@
 Changelog
 ==========
 
+Version 1.0.4 (19.07.2017)
+--------------------------
+This is a maintenance release with updated documentation and removed unused classes
+
+#### Utils
+
+* Remove the unused `ByteCountingSource` from the `utils` module.
+* Move `FixedLengthSource` from `utils` to the `binapi-client` module
+
+#### Composer-Adapter-RxJava
+
+* Remove `MultiCallProducer` and `MultiCallOnSubscribe` as they are not used anymore.
+
 Version 1.0.3 (18.07.2017)
 --------------------------
 #### Composer
