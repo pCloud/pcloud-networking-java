@@ -1,6 +1,6 @@
-# <img src="docs/logo_color.png" width="72"> pCloud Java SDK
+# <img src="docs/logo_color.png" width="72"> pCloud Networking Java
 
-An official type-safe networking client for [ pCloud's API][docs] binary protocol by pCloud AG.
+A stack of networking libraries for [ pCloud's API][docs] binary protocol by pCloud AG.
 
 ## Requirements
 
@@ -70,14 +70,14 @@ compile 'pcloud-networking-java:composer:1.0.4'
 
 ### Client
 
-The `binapi-client` module contains a network client to compose and execute binary API requests.
+The `binapi-client` module contains a network client for composing and executing binary API requests.
 
 #### Features
 
 * A user-friendly API similar in terms and behavior to OkHTTP.
 * Support for request cancellation.
 * Connection pooling to improve resource usage and battery life on mobile devices.
-* Highly configurable (read/connect/write timeout durations, pool size and idle times, socket factories, host verification strategies, )
+* Highly configurable (read/connect/write timeout durations, pool size and idle times, socket factories, host verification strategies and more).
 
 #### Download
 
@@ -132,7 +132,7 @@ The `protocol` module contains the core logic for writing/reading data in the fo
 
 * Stream-based protocol readers and writers based on Square's [Okio library](https://github.com/square/okio).
 * Helper classes that allow reading to/writing from `java.util.Map` key-value mappings.
-* Support for peeking and cloning of readers
+* Support for peeking and non-consuming reads.
 
 #### Download
 
