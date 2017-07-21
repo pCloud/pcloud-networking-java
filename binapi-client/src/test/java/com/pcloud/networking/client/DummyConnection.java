@@ -20,9 +20,11 @@ package com.pcloud.networking.client;
 import okio.*;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -35,6 +37,7 @@ public class DummyConnection implements Connection {
     private Buffer readBuffer;
     private Buffer writeBuffer;
     private Endpoint endpoint;
+
 
     public DummyConnection() {
         this(Endpoint.DEFAULT);
@@ -75,7 +78,29 @@ public class DummyConnection implements Connection {
     }
 
     @Override
+    public void readTimeout(long timeout, TimeUnit timeUnit) throws SocketException {
+        readBuffer.timeout().timeout(timeout, timeUnit);
+    }
+
+    @Override
+    public void writeTimeout(long timeout, TimeUnit timeUnit) {
+        writeBuffer.timeout().timeout(timeout, timeUnit);
+    }
+
+    @Override
+    public int readTimeout() {
+        return (int) TimeUnit.NANOSECONDS.toMillis(readBuffer.timeout().timeoutNanos());
+    }
+
+    @Override
+    public int writeTimeout() {
+        return (int) TimeUnit.NANOSECONDS.toMillis(writeBuffer.timeout().timeoutNanos());
+    }
+
+    @Override
     public void close() {
+        readBuffer.close();
+        writeBuffer.close();
     }
 
     public static Connection withResponses(ResponseBytes... responses) throws IOException {

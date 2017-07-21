@@ -20,6 +20,8 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 
 import java.io.Closeable;
+import java.net.SocketException;
+import java.util.concurrent.TimeUnit;
 
 interface Connection extends Closeable {
 
@@ -28,6 +30,14 @@ interface Connection extends Closeable {
     BufferedSource source();
 
     BufferedSink sink();
+
+    void readTimeout(long timeout, TimeUnit timeUnit) throws SocketException;
+
+    void writeTimeout(long timeout, TimeUnit timeUnit);
+
+    int readTimeout();
+
+    int writeTimeout();
 
     @Override
     void close();

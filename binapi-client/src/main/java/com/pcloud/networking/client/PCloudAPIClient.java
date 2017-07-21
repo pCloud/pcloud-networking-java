@@ -21,19 +21,17 @@ import com.pcloud.networking.client.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.ThreadFactory;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
@@ -65,9 +63,9 @@ public class PCloudAPIClient {
 
     private final List<RequestInterceptor> interceptors;
 
-    private ConnectionPool connectionPool;
-    private ConnectionFactory connectionFactory;
-    private ExecutorService callExecutor;
+    private final ConnectionPool connectionPool;
+    private final ConnectionProvider connectionProvider;
+    private final ExecutorService callExecutor;
 
     private PCloudAPIClient(Builder builder) {
         this.connectTimeoutMs = builder.connectTimeoutMs;
@@ -84,8 +82,9 @@ public class PCloudAPIClient {
 
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
 
-        this.connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier,
-                                             connectTimeoutMs, readTimeoutMs, writeTimeoutMs, MILLISECONDS);
+        ConnectionFactory connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier);
+        this.connectionProvider = new ConnectionProvider(connectionPool, connectionFactory,
+                connectTimeoutMs, readTimeoutMs, writeTimeoutMs, false);
 
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
@@ -116,8 +115,7 @@ public class PCloudAPIClient {
         if (request == null) {
             throw new IllegalArgumentException("Request cannot be null.");
         }
-        return new RealCall(request, callExecutor, interceptors,
-                new ConnectionProvider(connectionPool, connectionFactory, false));
+        return new RealCall(request, callExecutor, interceptors, connectionProvider);
     }
 
     /**
@@ -155,7 +153,7 @@ public class PCloudAPIClient {
         }
 
         return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors,
-                new ConnectionProvider(connectionPool, connectionFactory, false));
+                connectionProvider);
     }
 
     /**

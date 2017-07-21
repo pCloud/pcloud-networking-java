@@ -16,20 +16,19 @@
 
 package com.pcloud.networking.client;
 
-import java.io.IOException;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.util.concurrent.TimeUnit;
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.Okio;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
-import okio.BufferedSink;
-import okio.BufferedSource;
-import okio.Okio;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.utils.IOUtils.closeQuietly;
 import static com.pcloud.utils.IOUtils.isAndroidGetsocknameError;
@@ -45,6 +44,9 @@ class RealConnection implements Connection {
     private BufferedSource source;
     private BufferedSink sink;
 
+    private int readTimeout;
+    private int writeTimeout;
+
     private long idleAtNanos;
     private Endpoint endpoint;
 
@@ -54,21 +56,21 @@ class RealConnection implements Connection {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    void connect(Endpoint endpoint, int connectTimeout,
-                 int readTimeout, int writeTimout, TimeUnit timeUnit) throws IOException {
+    void connect(Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
 
         if (socket != null) {
             throw new IllegalStateException("Already connected.");
         }
         boolean success = false;
         try {
-            this.rawSocket = createSocket(endpoint, connectTimeout, readTimeout, timeUnit);
-            this.socket = upgradeSocket(rawSocket, endpoint, readTimeout, timeUnit);
+            this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
+            this.socket = upgradeSocket(rawSocket, endpoint);
             this.source = Okio.buffer(Okio.source(socket));
             this.sink = Okio.buffer(Okio.sink(socket));
             this.endpoint = endpoint;
-            source.timeout().timeout(readTimeout, timeUnit);
-            sink.timeout().timeout(writeTimout, timeUnit);
+            socket.setSoTimeout(0);
+            source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
+            sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
             success = true;
         } finally {
             if (!success) {
@@ -90,6 +92,34 @@ class RealConnection implements Connection {
     @Override
     public BufferedSink sink() {
         return sink;
+    }
+
+    @Override
+    public void readTimeout(long timeout, TimeUnit timeUnit) {
+        readTimeout = (int) timeUnit.toMillis(timeout);
+        BufferedSource source = this.source;
+        if (source != null) {
+            source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    @Override
+    public void writeTimeout(long timeout, TimeUnit timeUnit) {
+        writeTimeout = (int) timeUnit.toMillis(timeout);
+        BufferedSink sink = this.sink;
+        if (sink != null) {
+            sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    @Override
+    public int readTimeout() {
+        return 0;
+    }
+
+    @Override
+    public int writeTimeout() {
+        return 0;
     }
 
     boolean isHealthy(boolean doExtensiveChecks) {
@@ -143,14 +173,12 @@ class RealConnection implements Connection {
         endpoint = null;
     }
 
-    private Socket createSocket(Endpoint endpoint, int connectTimeout,
-                                int readTimeout, TimeUnit timeUnit) throws IOException {
+    private Socket createSocket(Endpoint endpoint, int connectTimeout) throws IOException {
         Socket socket = null;
         boolean connectionSucceeded = false;
         try {
             socket = socketFactory.createSocket();
-            socket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
-            socket.connect(endpoint.socketAddress(), (int) timeUnit.toMillis(connectTimeout));
+            socket.connect(endpoint.socketAddress(), connectTimeout);
             connectionSucceeded = true;
             return socket;
 
@@ -164,8 +192,7 @@ class RealConnection implements Connection {
         }
     }
 
-    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint,
-                                    int readTimeout, TimeUnit timeUnit) throws IOException {
+    private SSLSocket upgradeSocket(Socket rawSocket, Endpoint endpoint) throws IOException {
         SSLSocket socket = null;
         boolean connectionSucceeded = false;
         try {
@@ -175,7 +202,6 @@ class RealConnection implements Connection {
                     endpoint.port(),
                     true /*close wrapped socket*/);
 
-            socket.setSoTimeout((int) timeUnit.toMillis(readTimeout));
             socket.startHandshake();
             if (!hostnameVerifier.verify(endpoint.host(), socket.getSession())) {
                 throw new SSLPeerUnverifiedException("Hostname " + endpoint.host() + " not verified:");

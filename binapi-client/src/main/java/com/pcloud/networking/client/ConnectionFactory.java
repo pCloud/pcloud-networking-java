@@ -27,25 +27,16 @@ class ConnectionFactory {
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
-    private int connectTimeout;
-    private int readTimeout;
-    private int writeTimeout;
-    private TimeUnit timeUnit;
 
     ConnectionFactory(SocketFactory socketFactory,
                       SSLSocketFactory sslSocketFactory,
-                      HostnameVerifier hostnameVerifier,
-                      int connectTimeout, int readTimeout, int writeTimeout, TimeUnit timeUnit) {
+                      HostnameVerifier hostnameVerifier) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
-        this.connectTimeout = connectTimeout;
-        this.readTimeout = readTimeout;
-        this.writeTimeout = writeTimeout;
-        this.timeUnit = timeUnit;
     }
 
-    RealConnection openConnection(Endpoint endpoint) throws IOException {
+    RealConnection openConnection(Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
         if (endpoint == null) {
             throw new AssertionError("null endpoint argument.");
         }
@@ -53,7 +44,7 @@ class ConnectionFactory {
         RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier);
         boolean connected = false;
         try {
-            connection.connect(endpoint, connectTimeout, readTimeout, writeTimeout, timeUnit);
+            connection.connect(endpoint, connectTimeout, timeUnit);
             connected = true;
         } finally {
             if (!connected) {
