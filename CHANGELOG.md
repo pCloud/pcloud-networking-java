@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 1.0.5 (21.07.2017)
+--------------------------
+
+#### Client
+
+* Fix a bug where `PCloudAPIClient` instances sharing a common `ConnectionPool` having different timeout settings would use recycled connections with timeouts different from the ones set via `PCLoudAPIClient.Builder`. The changes are entirely internal.
+
+
 Version 1.0.4 (19.07.2017)
 --------------------------
 This is a maintenance release with updated documentation and removed unused classes
