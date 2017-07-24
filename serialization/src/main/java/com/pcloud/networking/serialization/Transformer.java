@@ -185,20 +185,7 @@ public class Transformer {
          * @throws IllegalArgumentException on null arguments
          */
         public <T> Builder addTypeAdapter(final Type type, final TypeAdapter<T> adapter) {
-            if (type == null) {
-                throw new IllegalArgumentException("Type argument cannot be null.");
-            }
-            if (adapter == null) {
-                throw new IllegalArgumentException("TypeAdapter argument cannot be null.");
-            }
-
-            factories.add(new TypeAdapterFactory() {
-                @Override
-                public TypeAdapter<?> create(Type requested, Transformer transformer) {
-                    return type.equals(requested) ? adapter : null;
-                }
-            });
-
+            factories.add(new WrapperTypeAdapterFactory(type, adapter));
             return this;
         }
 
@@ -219,6 +206,24 @@ public class Transformer {
         }
 
         /**
+         * Registers an alias for a type.
+         * <p>
+         * The call binds the {@code target} type to be serialized/deserialized as another {@code alias} type.
+         * This can be useful for binding interface types to their implementations.
+         * <p>
+         *
+         * @param target the target type
+         * @param alias  the alias type
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on null arguments
+         * @throws IllegalArgumentException if the same type is supplied for both {@code target} and {@code alias}
+         */
+        public Builder addTypeAlias(Type target, Type alias) {
+            factories.add(new TypeAliasTypeAdapterFactory(target, alias));
+            return this;
+        }
+
+        /**
          * Builds the {@linkplain Transformer} object with all the custom {@linkplain TypeAdapter}
          * and {@linkplain TypeAdapterFactory} objects added to the {@linkplain Builder}
          *
@@ -229,4 +234,5 @@ public class Transformer {
         }
 
     }
+
 }
