@@ -1,6 +1,29 @@
 Changelog
 ==========
 
+Version 1.1.0 (24.07.2017)
+--------------------------
+
+#### Transformer
+
+* Add the `Transformer.Builder().addTypeAlias()` method for adding type aliases. The method can be used to register concrete implementations of interface types such as in the example below:
+
+```java
+interface Model {
+...
+}
+
+class DefaultModel implements Model {
+...
+}
+
+Transformer transformer = Transformer.create()
+		...
+		.addTypeAlias(Model.class, DefaultModel.class)
+        ...
+    	.build();
+```
+
 Version 1.0.5 (21.07.2017)
 --------------------------
 
