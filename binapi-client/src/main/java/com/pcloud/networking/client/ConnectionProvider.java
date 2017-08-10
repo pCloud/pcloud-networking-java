@@ -24,22 +24,28 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
 class ConnectionProvider {
 
     private ConnectionPool connectionPool;
+    private EndpointProvider endpointProvider;
     private ConnectionFactory connectionFactory;
     private int connectTimeout;
     private int readTimeout;
     private int writeTimeout;
     private boolean eagerlyCheckConnectivity;
 
-    ConnectionProvider(ConnectionPool connectionPool,
+    ConnectionProvider(ConnectionPool connectionPool, EndpointProvider endpointProvider,
                        ConnectionFactory connectionFactory,
                        int connectTimeout, int readTimeout, int writeTimeout,
                        boolean eagerlyCheckConnectivity) {
         this.connectionPool = connectionPool;
+        this.endpointProvider = endpointProvider;
         this.connectionFactory = connectionFactory;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.writeTimeout = writeTimeout;
         this.eagerlyCheckConnectivity = eagerlyCheckConnectivity;
+    }
+
+    Connection obtainConnection() throws IOException {
+        return obtainConnection(endpointProvider.endpoint());
     }
 
     Connection obtainConnection(Endpoint endpoint) throws IOException {
@@ -58,12 +64,18 @@ class ConnectionProvider {
             connection = connectionFactory.openConnection(endpoint, connectTimeout, TimeUnit.MILLISECONDS);
         }
 
-        connection.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
-        connection.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-        return connection;
+        ForwardingConnection forwardingConnection = new ForwardingConnection(connection, endpointProvider);
+        forwardingConnection.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        forwardingConnection.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
+
+
+        return forwardingConnection;
     }
 
     void recycleConnection(Connection connection) {
+        if (connection instanceof ForwardingConnection) {
+            connection = ((ForwardingConnection) connection).getWrappedConnection();
+        }
         connectionPool.recycle(connection);
     }
 }

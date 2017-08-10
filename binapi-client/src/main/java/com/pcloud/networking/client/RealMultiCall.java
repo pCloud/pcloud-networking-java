@@ -57,13 +57,20 @@ class RealMultiCall implements MultiCall {
     private ExecutorService callExecutor;
     private List<RequestInterceptor> interceptors;
     private ConnectionProvider connectionProvider;
+    private Endpoint endpoint;
 
     RealMultiCall(List<Request> requests, ExecutorService callExecutor,
                   List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
+        this(requests, callExecutor, interceptors, connectionProvider, null);
+    }
+
+    RealMultiCall(List<Request> requests, ExecutorService callExecutor,
+                  List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider, Endpoint endpoint) {
         this.requests = requests;
         this.callExecutor = callExecutor;
         this.connectionProvider = connectionProvider;
         this.interceptors = interceptors;
+        this.endpoint = endpoint;
     }
 
     @Override
@@ -81,8 +88,9 @@ class RealMultiCall implements MultiCall {
     private MultiResponse getMultiResponse() throws IOException {
         throwIfCancelled();
 
-        Endpoint endpoint = requests.get(0).endpoint();
-        Connection connection = connectionProvider.obtainConnection(endpoint);
+        Connection connection = endpoint != null ?
+                connectionProvider.obtainConnection(endpoint) :
+                connectionProvider.obtainConnection();
         this.connection = connection;
         boolean success = false;
         Map<Integer, Response> responseMap = new TreeMap<>();
@@ -157,14 +165,15 @@ class RealMultiCall implements MultiCall {
                 final Map<Integer, Response> responseMap = new TreeMap<>();
                 initializeResponseMap(responseMap, expectedCount);
 
-                Endpoint endpoint = requests.get(0).endpoint();
                 Connection connection = null;
                 boolean success = false;
                 boolean callingCallback = false;
                 try {
                     throwIfCancelled();
 
-                    connection = connectionProvider.obtainConnection(endpoint);
+                    connection = endpoint != null ?
+                            connectionProvider.obtainConnection(endpoint) :
+                            connectionProvider.obtainConnection();
                     RealMultiCall.this.connection = connection;
 
                     //Write the requests.
@@ -517,8 +526,9 @@ class RealMultiCall implements MultiCall {
 
             synchronized (this) {
                 if (!isCancelled() && !closed && connection == null) {
-                    Endpoint endpoint = requests.get(0).endpoint();
-                    connection = connectionProvider.obtainConnection(endpoint);
+                    connection = endpoint != null ?
+                            connectionProvider.obtainConnection(endpoint) :
+                            connectionProvider.obtainConnection();
                 }
             }
             throwIfCancelled();

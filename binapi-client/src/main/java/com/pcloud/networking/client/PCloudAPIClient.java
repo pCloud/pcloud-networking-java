@@ -65,6 +65,7 @@ public class PCloudAPIClient {
 
     private final ConnectionPool connectionPool;
     private final ConnectionProvider connectionProvider;
+    private final EndpointProvider endpointProvider;
     private final ExecutorService callExecutor;
 
     private PCloudAPIClient(Builder builder) {
@@ -81,9 +82,10 @@ public class PCloudAPIClient {
                         builder.hostnameVerifier : DefaultHostnameVerifier.INSTANCE;
 
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
+        this.endpointProvider = builder.endpointProvider != null ? builder.endpointProvider : EndpointProvider.DEFAULT;
 
         ConnectionFactory connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier);
-        this.connectionProvider = new ConnectionProvider(connectionPool, connectionFactory,
+        this.connectionProvider = new ConnectionProvider(connectionPool, endpointProvider, connectionFactory,
                 connectTimeoutMs, readTimeoutMs, writeTimeoutMs, false);
 
         ThreadFactory threadFactory = new ThreadFactory() {
@@ -121,15 +123,14 @@ public class PCloudAPIClient {
     /**
      * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls
      * <p>
-     * Note that all requests you wish to execute with a {@linkplain MultiCall}
-     * need to be opted for the same endpoint.
+     * Note that all requests you wish to execute with this {@linkplain MultiCall}
+     * will be executed on the {@linkplain EndpointProvider} currently set {@linkplain Endpoint}.
      *
      * @param requests A {@linkplain Collection} of {@linkplain Request} objects for this call
      * @return A new instance of a {@linkplain MultiCall} object with the specified requests
      * @throws IllegalArgumentException on a null {@linkplain Collection},
      *                                  on an empty {@linkplain Collection},
-     *                                  on a {@linkplain Collection} containing null elements or
-     *                                  if the {@linkplain Collection} contains {@linkplain Request} objects opted for different endpoints
+     *                                  on a {@linkplain Collection} containing null elements
      */
     public MultiCall newCall(Collection<Request> requests) {
         if (requests == null) {
@@ -140,20 +141,46 @@ public class PCloudAPIClient {
             throw new IllegalArgumentException("Requests collection is empty.");
         }
 
-        Endpoint endpoint = null;
         for (Request request : requests) {
             if (request == null) {
                 throw new IllegalArgumentException("Collection cannot contain null requests.");
             }
-
-            if (endpoint != null && !endpoint.equals(request.endpoint())) {
-                throw new IllegalArgumentException("Requests from the collection must be opted for the same endpoint.");
-            }
-            endpoint = request.endpoint();
         }
 
         return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors,
                 connectionProvider);
+    }
+
+    /**
+     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls
+     * <p>
+     * Note that all requests you execute with this {@linkplain MultiCall}
+     * will be opted from the provided {@linkplain Endpoint}.
+     *
+     * @param requests A {@linkplain Collection} of {@linkplain Request} objects for this call
+     * @param endpoint A {@linkplain Endpoint} object for the {@linkplain MultiCall}
+     * @return A new instance of a {@linkplain MultiCall} object with the specified requests
+     * @throws IllegalArgumentException on a null {@linkplain Collection},
+     *                                  on an empty {@linkplain Collection},
+     *                                  on a {@linkplain Collection} containing null elements
+     */
+    public MultiCall newCall(Collection<Request> requests, Endpoint endpoint) {
+        if (requests == null) {
+            throw new IllegalArgumentException("Requests collection cannot be null.");
+        }
+
+        if (requests.isEmpty()) {
+            throw new IllegalArgumentException("Requests collection is empty.");
+        }
+
+        for (Request request : requests) {
+            if (request == null) {
+                throw new IllegalArgumentException("Collection cannot contain null requests.");
+            }
+        }
+
+        return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors,
+                connectionProvider, endpoint);
     }
 
     /**
@@ -279,6 +306,7 @@ public class PCloudAPIClient {
         private int writeTimeoutMs;
         private int readTimeoutMs;
         private ConnectionPool connectionPool;
+        private EndpointProvider endpointProvider;
         private SocketFactory socketFactory;
         private SSLSocketFactory sslSocketFactory;
         private HostnameVerifier hostnameVerifier;
@@ -291,6 +319,7 @@ public class PCloudAPIClient {
             this.writeTimeoutMs = cloudAPIClient.writeTimeoutMs;
             this.readTimeoutMs = cloudAPIClient.readTimeoutMs;
             this.connectionPool = cloudAPIClient.connectionPool;
+            this.endpointProvider = cloudAPIClient.endpointProvider;
             this.socketFactory = cloudAPIClient.socketFactory;
             this.sslSocketFactory = cloudAPIClient.sslSocketFactory;
             this.hostnameVerifier = cloudAPIClient.hostnameVerifier;
@@ -407,6 +436,21 @@ public class PCloudAPIClient {
                 throw new IllegalArgumentException("ConnectionPool cannot be null.");
             }
             this.connectionPool = connectionPool;
+            return this;
+        }
+
+        /**
+         * Sets a {@linkplain EndpointProvider} for the client
+         *
+         * @param endpointProvider A {@linkplain EndpointProvider} to be set to the client
+         * @return A reference to the {@linkplain Builder} object
+         * @throws IllegalArgumentException on a null {@linkplain EndpointProvider} argument
+         */
+        public Builder endpointProvider(EndpointProvider endpointProvider) {
+            if (endpointProvider == null) {
+                throw new IllegalArgumentException("EndpointProvider cannot be null.");
+            }
+            this.endpointProvider = endpointProvider;
             return this;
         }
 

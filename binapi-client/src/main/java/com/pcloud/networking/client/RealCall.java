@@ -178,7 +178,9 @@ class RealCall implements Call {
             throw new IOException("Cancelled.");
         }
 
-        Connection connection = connectionProvider.obtainConnection(request.endpoint());
+        Connection connection = request.endpoint() != null ?
+                connectionProvider.obtainConnection(request.endpoint()) :
+                connectionProvider.obtainConnection();
         this.connection = connection;
         boolean success = false;
         try {
