@@ -19,7 +19,6 @@ package com.pcloud.networking.api;
 import com.pcloud.networking.client.PCloudAPIClient;
 import com.pcloud.networking.serialization.Transformer;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
