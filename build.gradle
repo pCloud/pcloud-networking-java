@@ -4,6 +4,9 @@ repositories {
 }
 
 buildscript {
+
+    apply from: rootProject.file('dependencies.gradle')
+
     repositories {
         jcenter()
         maven {

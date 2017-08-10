@@ -1,6 +1,12 @@
 package com.pcloud.networking.protocol;
 
-import okio.*;
+
+import okio.Buffer;
+import okio.BufferedSource;
+import okio.ByteString;
+import okio.Options;
+import okio.Sink;
+import okio.Timeout;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +19,7 @@ public class DummyBufferedSource implements BufferedSource {
 
     private BufferedSource sourceDelegate;
 
-    DummyBufferedSource(BufferedSource sourceDelegate) {
+    public DummyBufferedSource(BufferedSource sourceDelegate) {
 
         this.sourceDelegate = sourceDelegate;
     }

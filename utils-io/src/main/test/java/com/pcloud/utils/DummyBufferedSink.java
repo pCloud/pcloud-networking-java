@@ -1,6 +1,10 @@
-package com.pcloud.networking.protocol;
+package com.pcloud.networking.client;
 
-import okio.*;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.ByteString;
+import okio.Source;
+import okio.Timeout;
 
 import java.io.IOException;
 import java.io.OutputStream;

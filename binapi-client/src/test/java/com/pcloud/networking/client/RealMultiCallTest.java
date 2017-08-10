@@ -147,7 +147,7 @@ public class RealMultiCallTest {
 
         multiCall.enqueueAndWait();
 
-        verify(connectionProvider).obtainConnection(connection.endpoint());
+        verify(connectionProvider).obtainConnection();
         verify(connectionProvider).recycleConnection(connection);
         verify(connection, never()).close();
     }
@@ -399,7 +399,7 @@ public class RealMultiCallTest {
     }
 
     private void retrofitConnectionProvider(Connection connection) throws IOException {
-        when(connectionProvider.obtainConnection(connection.endpoint()))
+        when(connectionProvider.obtainConnection())
                 .thenReturn(connection);
     }
 
