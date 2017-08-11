@@ -75,6 +75,19 @@ public class RealCallTest {
     }
 
     @Test
+    public void testCallExecutesOnSpecifiedRequestEndpoint() throws Exception {
+        Endpoint endpoint = new Endpoint("test.pcloud.com", 443);
+        Request request = RequestUtils.getUserInfoRequest(endpoint);
+        mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));
+
+        RealCall call = getMockRealCall(request, executor);
+
+        call.execute();
+        assertTrue(call.isExecuted());
+        verify(connectionProvider).obtainConnection(endpoint);
+    }
+
+    @Test
     public void testExecutingTwiceThrowsIllegalStateException() throws Exception {
         Request request = RequestUtils.getUserInfoRequest(Endpoint.DEFAULT);
         mockConnection(createDummyConnection(request.endpoint(), MOCK_EMPTY_ARRAY_RESPONSE));

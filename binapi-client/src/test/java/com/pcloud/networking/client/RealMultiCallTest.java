@@ -74,6 +74,19 @@ public class RealMultiCallTest {
     }
 
     @Test
+    public void testCallExecutesOnSpecifiedEndpoint() throws Exception {
+        Endpoint endpoint = new Endpoint("test.pcloud.com", 443);
+        Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
+        when(connectionProvider.obtainConnection(endpoint)).thenReturn(connection);
+        MultiCall multiCall = createMultiCall(connection, executor, endpoint);
+
+        multiCall.execute();
+
+        assertTrue(multiCall.isExecuted());
+        verify(connectionProvider).obtainConnection(endpoint);
+    }
+
+    @Test
     public void testSuccessfulResponseRecyclesTheConnection() throws Exception {
         Connection connection = createDummyConnection(Endpoint.DEFAULT, getMockByteDataResponse(1));
         retrofitConnectionProvider(connection);
@@ -395,7 +408,13 @@ public class RealMultiCallTest {
     private MultiCall createMultiCall(Connection connection, ExecutorService executor) {
         return createMultiCall(
                 Collections.singletonList(RequestUtils.getUserInfoRequest(connection.endpoint()))
-                , executor);
+                , executor, null);
+    }
+
+    private MultiCall createMultiCall(Connection connection, ExecutorService executor, Endpoint endpoint) {
+        return createMultiCall(
+                Collections.singletonList(RequestUtils.getUserInfoRequest(connection.endpoint()))
+                , executor, endpoint);
     }
 
     private void retrofitConnectionProvider(Connection connection) throws IOException {
@@ -408,16 +427,16 @@ public class RealMultiCallTest {
     }
 
     private MultiCall createMultiCall(Request... requests) {
-        return createMultiCall(Arrays.asList(requests), executor);
-    }
-
-    private MultiCall createMultiCall(ExecutorService executor, Request... requests) {
-        return createMultiCall(Arrays.asList(requests), executor);
+        return createMultiCall(Arrays.asList(requests), executor, null);
     }
 
     private MultiCall createMultiCall(List<Request> requests, ExecutorService executor) {
+        return createMultiCall(requests, executor, null);
+    }
+
+    private MultiCall createMultiCall(List<Request> requests, ExecutorService executor, Endpoint endpoint) {
         return spy(new RealMultiCall(requests,
-                executor, new ArrayList<RequestInterceptor>(), connectionProvider));
+                executor, new ArrayList<RequestInterceptor>(), connectionProvider, endpoint));
     }
 
     @AfterClass

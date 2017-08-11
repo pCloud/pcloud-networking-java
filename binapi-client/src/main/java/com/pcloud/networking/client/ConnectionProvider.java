@@ -61,7 +61,12 @@ class ConnectionProvider {
 
         if (connection == null) {
             // No pooled connections available, just build a new one.
-            connection = connectionFactory.openConnection(endpoint, connectTimeout, TimeUnit.MILLISECONDS);
+            try {
+                connection = connectionFactory.openConnection(endpoint, connectTimeout, TimeUnit.MILLISECONDS);
+            } catch (IOException e) {
+                endpointProvider.endpointConnectionError(endpoint, e);
+                throw e;
+            }
         }
 
         ForwardingConnection forwardingConnection = new ForwardingConnection(connection, endpointProvider);

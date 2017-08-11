@@ -60,11 +60,6 @@ class RealMultiCall implements MultiCall {
     private Endpoint endpoint;
 
     RealMultiCall(List<Request> requests, ExecutorService callExecutor,
-                  List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
-        this(requests, callExecutor, interceptors, connectionProvider, null);
-    }
-
-    RealMultiCall(List<Request> requests, ExecutorService callExecutor,
                   List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider, Endpoint endpoint) {
         this.requests = requests;
         this.callExecutor = callExecutor;
@@ -244,7 +239,7 @@ class RealMultiCall implements MultiCall {
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public MultiCall clone() {
-        return new RealMultiCall(requests, callExecutor, interceptors, connectionProvider);
+        return new RealMultiCall(requests, callExecutor, interceptors, connectionProvider, endpoint);
     }
 
     private void initializeResponseMap(Map<Integer, Response> responseMap, int expectedCount) {

@@ -148,7 +148,7 @@ public class PCloudAPIClient {
         }
 
         return new RealMultiCall(new ArrayList<>(requests), callExecutor, interceptors,
-                connectionProvider);
+                connectionProvider, null);
     }
 
     /**
