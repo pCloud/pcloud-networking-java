@@ -108,7 +108,7 @@ public class Request {
         private String methodName;
         private RequestBody body;
         private DataSource dataSource;
-        private Endpoint endpoint = Endpoint.DEFAULT;
+        private Endpoint endpoint;
 
         private Builder() {
         }
