@@ -16,7 +16,6 @@
 
 package com.pcloud.networking.client;
 
-
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
@@ -33,9 +32,6 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-/**
- * Created by Sajuuk-khar on 13.4.2017 г..
- */
 public class DummyConnection implements Connection {
 
     private Buffer readBuffer;

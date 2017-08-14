@@ -8,6 +8,7 @@ repositories {
 
 dependencies {
     compileOnly deps.okio
+    testCompile deps.okio
 }
 
 ext {

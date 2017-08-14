@@ -1,23 +1,35 @@
+/*
+ * Copyright (c) 2017 pCloud AG
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.pcloud.networking.client;
 
-import com.pcloud.networking.protocol.DummyBufferedSink;
-import com.pcloud.networking.protocol.DummyBufferedSource;
+import com.pcloud.utils.DummyBufferedSink;
+import com.pcloud.utils.DummyBufferedSource;
 import okio.Buffer;
 import okio.Sink;
 import okio.Source;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.*;
 
-/**
- * Created by Dimitard on 10.8.2017 г..
- */
+
 public class ForwardingConnectionTest {
 
     private static final byte[] MOCK_EMPTY_ARRAY_RESPONSE = new byte[] {2, 0, 0, 0, 16, -1};
@@ -34,7 +46,7 @@ public class ForwardingConnectionTest {
 
         Connection dummyConnection = createDummyConnection(Endpoint.DEFAULT, MOCK_EMPTY_ARRAY_RESPONSE);
 
-        Source source = Mockito.spy(new DummyBufferedSource(dummyConnection.source()));
+        Source source = spy(new DummyBufferedSource(dummyConnection.source()));
         Source wrappingSource = spy(new ForwardingConnection.ReportingSource(source, endpointProvider, dummyConnection.endpoint()));
         doThrow(new IOException("Endpoint connection error")).when(source).read(any(Buffer.class), anyLong());
         try {
@@ -50,7 +62,7 @@ public class ForwardingConnectionTest {
 
         Connection dummyConnection = createDummyConnection(Endpoint.DEFAULT, MOCK_EMPTY_ARRAY_RESPONSE);
 
-        Sink sink = Mockito.spy(new DummyBufferedSink(dummyConnection.sink()));
+        Sink sink = spy(new DummyBufferedSink(dummyConnection.sink()));
         Sink wrappingSource = spy(new ForwardingConnection.ReportingSink(sink, endpointProvider, dummyConnection.endpoint()));
         doThrow(new IOException("Endpoint connection error")).when(sink).write(any(Buffer.class), anyLong());
         try {
@@ -66,7 +78,7 @@ public class ForwardingConnectionTest {
 
         Connection dummyConnection = createDummyConnection(Endpoint.DEFAULT, MOCK_EMPTY_ARRAY_RESPONSE);
 
-        Sink sink = Mockito.spy(new DummyBufferedSink(dummyConnection.sink()));
+        Sink sink = spy(new DummyBufferedSink(dummyConnection.sink()));
         Sink wrappingSource = spy(new ForwardingConnection.ReportingSink(sink, endpointProvider, dummyConnection.endpoint()));
         doThrow(new IOException("Endpoint connection error")).when(sink).flush();
         try {
