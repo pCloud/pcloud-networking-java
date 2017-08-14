@@ -50,19 +50,16 @@ class RealConnection extends BaseConnection {
 
     private long idleAtNanos;
     private Endpoint endpoint;
+    private boolean connected;
 
-    RealConnection(SocketFactory socketFactory, SSLSocketFactory sslSocketFactory, HostnameVerifier hostnameVerifier) {
+    RealConnection(SocketFactory socketFactory,
+                   SSLSocketFactory sslSocketFactory,
+                   HostnameVerifier hostnameVerifier,
+                   Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
-    }
-
-    void connect(Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
-
-        if (socket != null) {
-            throw new IllegalStateException("Already connected.");
-        }
-        boolean success = false;
+        this.endpoint = endpoint;
         try {
             this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
             this.socket = upgradeSocket(rawSocket, endpoint);
@@ -70,26 +67,31 @@ class RealConnection extends BaseConnection {
             this.outputStream = socket.getOutputStream();
             this.source = Okio.buffer(Okio.source(inputStream));
             this.sink = Okio.buffer(Okio.sink(outputStream));
-            this.endpoint = endpoint;
             socket.setSoTimeout(0);
             source.timeout().timeout(readTimeout(), TimeUnit.MILLISECONDS);
             sink.timeout().timeout(writeTimeout(), TimeUnit.MILLISECONDS);
-            success = true;
+            connected = true;
         } finally {
-            if (!success) {
+            if (!connected) {
                 close();
             }
         }
     }
 
     @Override
-    public InputStream inputStream() {
-        return inputStream;
+    public InputStream inputStream() throws IOException {
+        synchronized (this) {
+            checkNotClosed();
+            return inputStream;
+        }
     }
 
     @Override
-    public OutputStream outputStream() {
-        return outputStream;
+    public OutputStream outputStream() throws IOException {
+        synchronized (this) {
+            checkNotClosed();
+            return outputStream;
+        }
     }
 
     @Override
@@ -98,17 +100,37 @@ class RealConnection extends BaseConnection {
     }
 
     @Override
-    public BufferedSource source() {
-        return source;
+    public BufferedSource source() throws IOException {
+        synchronized (this) {
+            checkNotClosed();
+            return source;
+        }
     }
 
     @Override
-    public BufferedSink sink() {
-        return sink;
+    public BufferedSink sink() throws IOException {
+        synchronized (this) {
+            checkNotClosed();
+            return sink;
+        }
     }
 
     boolean isHealthy(boolean doExtensiveChecks) {
-        if (socket.isClosed() || socket.isInputShutdown() || socket.isOutputShutdown()) {
+        if (!connected) {
+            return false;
+        }
+
+        Socket socket;
+        BufferedSource source;
+        synchronized (this) {
+            socket = this.socket;
+            source = this.source;
+        }
+        if (socket == null
+                || source == null
+                || socket.isClosed()
+                || socket.isInputShutdown()
+                || socket.isOutputShutdown()) {
             return false;
         }
 
@@ -133,11 +155,15 @@ class RealConnection extends BaseConnection {
     }
 
     void setIdle(long nowNanos) {
-        idleAtNanos = nowNanos;
+        synchronized (this) {
+            idleAtNanos = nowNanos;
+        }
     }
 
     long idleAtNanos() {
-        return idleAtNanos;
+        synchronized (this) {
+            return idleAtNanos;
+        }
     }
 
     @Override
@@ -150,14 +176,17 @@ class RealConnection extends BaseConnection {
         * some synchronous IO in SSLSocket.close() based on
         * the underlying implementation (namely OpenSSL on Android).
         * */
-        closeQuietly(rawSocket);
-        inputStream = null;
-        outputStream = null;
-        rawSocket = null;
-        socket = null;
-        source = null;
-        sink = null;
-        endpoint = null;
+        synchronized (this) {
+            connected = false;
+            closeQuietly(rawSocket);
+            inputStream = null;
+            outputStream = null;
+            rawSocket = null;
+            socket = null;
+            source = null;
+            sink = null;
+            endpoint = null;
+        }
     }
 
     private Socket createSocket(Endpoint endpoint, int connectTimeout) throws IOException {
@@ -203,6 +232,12 @@ class RealConnection extends BaseConnection {
             if (!connectionSucceeded) {
                 closeQuietly(socket);
             }
+        }
+    }
+
+    private void checkNotClosed() throws IOException {
+        if (!connected) {
+            throw new IOException("Connection is closed.");
         }
     }
 }
