@@ -26,6 +26,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import static com.pcloud.utils.IOUtils.closeQuietly;
 import static com.pcloud.utils.IOUtils.isAndroidGetsocknameError;
 
-class RealConnection implements Connection {
+class RealConnection extends BaseConnection {
 
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
@@ -43,9 +45,8 @@ class RealConnection implements Connection {
     private SSLSocket socket;
     private BufferedSource source;
     private BufferedSink sink;
-
-    private int readTimeout;
-    private int writeTimeout;
+    private InputStream inputStream;
+    private OutputStream outputStream;
 
     private long idleAtNanos;
     private Endpoint endpoint;
@@ -65,18 +66,30 @@ class RealConnection implements Connection {
         try {
             this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
             this.socket = upgradeSocket(rawSocket, endpoint);
-            this.source = Okio.buffer(Okio.source(socket));
-            this.sink = Okio.buffer(Okio.sink(socket));
+            this.inputStream = socket.getInputStream();
+            this.outputStream = socket.getOutputStream();
+            this.source = Okio.buffer(Okio.source(inputStream));
+            this.sink = Okio.buffer(Okio.sink(outputStream));
             this.endpoint = endpoint;
             socket.setSoTimeout(0);
-            source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
-            sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
+            source.timeout().timeout(readTimeout(), TimeUnit.MILLISECONDS);
+            sink.timeout().timeout(writeTimeout(), TimeUnit.MILLISECONDS);
             success = true;
         } finally {
             if (!success) {
                 close();
             }
         }
+    }
+
+    @Override
+    public InputStream inputStream() {
+        return inputStream;
+    }
+
+    @Override
+    public OutputStream outputStream() {
+        return outputStream;
     }
 
     @Override
@@ -92,34 +105,6 @@ class RealConnection implements Connection {
     @Override
     public BufferedSink sink() {
         return sink;
-    }
-
-    @Override
-    public void readTimeout(long timeout, TimeUnit timeUnit) {
-        readTimeout = (int) timeUnit.toMillis(timeout);
-        BufferedSource source = this.source;
-        if (source != null) {
-            source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    @Override
-    public void writeTimeout(long timeout, TimeUnit timeUnit) {
-        writeTimeout = (int) timeUnit.toMillis(timeout);
-        BufferedSink sink = this.sink;
-        if (sink != null) {
-            sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
-        }
-    }
-
-    @Override
-    public int readTimeout() {
-        return 0;
-    }
-
-    @Override
-    public int writeTimeout() {
-        return 0;
     }
 
     boolean isHealthy(boolean doExtensiveChecks) {
@@ -166,6 +151,8 @@ class RealConnection implements Connection {
         * the underlying implementation (namely OpenSSL on Android).
         * */
         closeQuietly(rawSocket);
+        inputStream = null;
+        outputStream = null;
         rawSocket = null;
         socket = null;
         source = null;

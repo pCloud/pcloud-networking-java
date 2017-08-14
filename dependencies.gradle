@@ -1,0 +1,10 @@
+ext {
+
+    okioVersion = '1.12.0'
+
+    deps = [
+        okio : "com.squareup.okio:okio:$okioVersion"
+    ]
+
+    isCi = "true".equals(System.getenv('CI'))
+}

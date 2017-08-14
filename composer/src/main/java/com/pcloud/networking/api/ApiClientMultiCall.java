@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
@@ -52,12 +51,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
 
     @Override
     public List<R> execute() throws IOException {
-        try {
-            return adapt(rawCall.execute());
-        } catch (IOException e) {
-            apiComposer.notifyIOError(rawCall.requests().get(0).endpoint(), e);
-            throw e;
-        }
+        return adapt(rawCall.execute());
     }
 
     @Override
@@ -86,7 +80,6 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
             @Override
             public void onFailure(com.pcloud.networking.client.MultiCall call, IOException e,
                                   List<Response> completedResponses) {
-                apiComposer.notifyIOError(rawCall.requests().get(0).endpoint(), e);
                 if (!isCancelled()) {
                     callback.onFailure(ApiClientMultiCall.this, e, Collections.unmodifiableList(results));
                 }
@@ -101,7 +94,6 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
                         results.set(key, result);
                         callback.onResponse(ApiClientMultiCall.this, key, result);
                     } catch (IOException e) {
-                        apiComposer.notifyIOError(call.requests().get(key).endpoint(), e);
                         callback.onFailure(ApiClientMultiCall.this, e, results);
                         // Cancel the wrapped MultiCall to stop receiving other responses.
                         rawCall.cancel();

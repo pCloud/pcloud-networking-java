@@ -16,10 +16,13 @@
 
 package com.pcloud.networking.client;
 
-
-import okio.*;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.BufferedSource;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,14 +32,13 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
-/**
- * Created by Sajuuk-khar on 13.4.2017 г..
- */
 public class DummyConnection implements Connection {
 
     private Buffer readBuffer;
     private Buffer writeBuffer;
     private Endpoint endpoint;
+    private InputStream inputStream;
+    private OutputStream outputStream;
 
 
     public DummyConnection() {
@@ -47,6 +49,8 @@ public class DummyConnection implements Connection {
         this.endpoint = endpoint;
         this.readBuffer = new Buffer();
         this.writeBuffer = new Buffer();
+        this.inputStream = readBuffer.inputStream();
+        this.outputStream = writeBuffer.outputStream();
     }
 
     public DummyConnection(Endpoint endpoint, byte[] data) {
@@ -60,6 +64,16 @@ public class DummyConnection implements Connection {
 
     public Buffer writeBuffer() {
         return writeBuffer;
+    }
+
+    @Override
+    public InputStream inputStream() {
+        return inputStream;
+    }
+
+    @Override
+    public OutputStream outputStream() {
+        return outputStream;
     }
 
     @Override

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class ApiClientCall<T> implements Call<T> {
@@ -40,12 +39,7 @@ class ApiClientCall<T> implements Call<T> {
 
     @Override
     public T execute() throws IOException {
-        try {
-            return adapt(rawCall.execute());
-        } catch (IOException e) {
-            apiComposer.notifyIOError(rawCall.request().endpoint(), e);
-            throw e;
-        }
+        return adapt(rawCall.execute());
     }
 
     @Override
@@ -57,7 +51,6 @@ class ApiClientCall<T> implements Call<T> {
         rawCall.enqueue(new com.pcloud.networking.client.Callback() {
             @Override
             public void onFailure(com.pcloud.networking.client.Call call, IOException e) {
-                apiComposer.notifyIOError(call.request().endpoint(), e);
                 if (!isCancelled()) {
                     callback.onFailure(ApiClientCall.this, e);
                 }
@@ -69,7 +62,6 @@ class ApiClientCall<T> implements Call<T> {
                     try {
                         callback.onResponse(ApiClientCall.this, adapt(response));
                     } catch (IOException e) {
-                        apiComposer.notifyIOError(call.request().endpoint(), e);
                         callback.onFailure(ApiClientCall.this, e);
                     }
                 }

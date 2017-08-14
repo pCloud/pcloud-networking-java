@@ -79,7 +79,8 @@ public class Request {
     /**
      * Returns the {@linkplain Endpoint} of this {@linkplain Request}
      *
-     * @return A reference to the {@linkplain Endpoint} of this {@linkplain Request}
+     * @return A reference to the {@linkplain Endpoint} of this {@linkplain Request},
+     * or {@code null}, if none has been set.
      */
     public Endpoint endpoint() {
         return endpoint;
@@ -107,7 +108,7 @@ public class Request {
         private String methodName;
         private RequestBody body;
         private DataSource dataSource;
-        private Endpoint endpoint = Endpoint.DEFAULT;
+        private Endpoint endpoint;
 
         private Builder() {
         }
@@ -167,12 +168,8 @@ public class Request {
          *
          * @param endpoint The {@linkplain Endpoint} to be set to the {@linkplain Request}
          * @return A reference to the {@linkplain Builder} object
-         * @throws IllegalArgumentException on a null {@linkplain Endpoint} argument
          */
         public Builder endpoint(Endpoint endpoint) {
-            if (endpoint == null) {
-                throw new IllegalArgumentException("Endpoint argument cannot be null.");
-            }
             this.endpoint = endpoint;
             return this;
         }

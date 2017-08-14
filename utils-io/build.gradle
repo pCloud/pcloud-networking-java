@@ -7,7 +7,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'com.squareup.okio:okio:1.11.0'
+    compileOnly deps.okio
+    testCompile deps.okio
 }
 
 ext {

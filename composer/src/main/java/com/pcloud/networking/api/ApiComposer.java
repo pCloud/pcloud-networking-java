@@ -16,11 +16,9 @@
 
 package com.pcloud.networking.api;
 
-import com.pcloud.networking.client.Endpoint;
 import com.pcloud.networking.client.PCloudAPIClient;
 import com.pcloud.networking.serialization.Transformer;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -37,7 +35,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Composes implementations for interfaces in which you have provided methods that describe your network calls
  *
- * @see EndpointProvider
  * @see PCloudAPIClient
  * @see ResponseInterceptor
  */
@@ -73,7 +70,6 @@ public class ApiComposer {
             DirectCallAdapter.FACTORY
     );
 
-    private EndpointProvider endpointProvider;
     private PCloudAPIClient apiClient;
     private Transformer transformer;
     private List<ResponseInterceptor> interceptors;
@@ -88,7 +84,6 @@ public class ApiComposer {
             throw new IllegalArgumentException("PCloudAPIClient instance cannot be null.");
         }
 
-        this.endpointProvider = builder.endpointProvider != null ? builder.endpointProvider : EndpointProvider.DEFAULT;
         this.apiClient = builder.apiClient;
         this.transformer = builder.transformer != null ? builder.transformer : Transformer.create().build();
         this.interceptors = new ArrayList<>(builder.interceptors);
@@ -103,15 +98,6 @@ public class ApiComposer {
      */
     public Transformer transformer() {
         return transformer;
-    }
-
-    /**
-     * Returns the {@linkplain EndpointProvider} you provided in the {@linkplain Builder}
-     *
-     * @return The {@linkplain EndpointProvider} you provided in the {@linkplain Builder}
-     */
-    public EndpointProvider endpointProvider() {
-        return endpointProvider;
     }
 
     /**
@@ -182,10 +168,6 @@ public class ApiComposer {
         return callAdapter;
     }
 
-    void notifyIOError(Endpoint endpoint, IOException error) {
-        endpointProvider.endpointConnectionError(endpoint, error);
-    }
-
     private ApiMethod<?> loadApiMethod(Method javaMethod) {
         ApiMethod<?> apiMethod = apiMethodsCache.get(javaMethod);
         if (apiMethod == null) {
@@ -239,7 +221,6 @@ public class ApiComposer {
      */
     public static class Builder {
 
-        private EndpointProvider endpointProvider;
         private PCloudAPIClient apiClient;
         private Transformer transformer;
         private List<ResponseInterceptor> interceptors = new LinkedList<>();
@@ -250,26 +231,10 @@ public class ApiComposer {
         }
 
         private Builder(ApiComposer composer) {
-            this.endpointProvider = composer.endpointProvider;
             this.apiClient = composer.apiClient;
             this.transformer = composer.transformer;
             this.interceptors = new ArrayList<>(composer.interceptors);
             this.callAdapterFactories = new ArrayList<>(composer.callAdapterFactories);
-        }
-
-        /**
-         * Sets the {@linkplain EndpointProvider} for the {@linkplain ApiComposer}
-         *
-         * @param endpointProvider The {@linkplain EndpointProvider} to be set to the {@linkplain ApiComposer}
-         * @return A reference to the {@linkplain Builder} object
-         * @throws IllegalArgumentException on a null {@linkplain EndpointProvider} argument
-         */
-        public Builder endpointProvider(EndpointProvider endpointProvider) {
-            if (endpointProvider == null) {
-                throw new IllegalArgumentException("EndpointProvider argument cannot be null.");
-            }
-            this.endpointProvider = endpointProvider;
-            return this;
         }
 
         /**

@@ -4,6 +4,9 @@ repositories {
 }
 
 buildscript {
+
+    apply from: rootProject.file('dependencies.gradle')
+
     repositories {
         jcenter()
         maven {
@@ -17,8 +20,15 @@ buildscript {
     }
 }
 
+subprojects {
+    plugins.withType(JavaPlugin) {
+        project.apply plugin: 'com.github.hauner.jarTest'
+    }
+}
+
 allprojects {
     apply plugin: 'checkstyle'
+
     checkstyle {
         configFile file("${rootDir}/checkstyle.xml")
         showViolations true
