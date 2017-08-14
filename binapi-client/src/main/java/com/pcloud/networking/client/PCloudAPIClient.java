@@ -301,8 +301,8 @@ public class PCloudAPIClient {
      */
     public static Builder newClient() {
         return new Builder()
-                .setConnectTimeoutMs(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
-                .setWriteTimeoutMs(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
+                .setConnectTimeout(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
+                .setWriteTimeout(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
                 .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
     }
 
@@ -398,7 +398,7 @@ public class PCloudAPIClient {
          *                                  0 or a negative value for the duration argument
          *                                  or a duration argument greater than {@linkplain Integer#MAX_VALUE}
          */
-        public Builder setConnectTimeoutMs(int timeout, TimeUnit timeUnit) {
+        public Builder setConnectTimeout(int timeout, TimeUnit timeUnit) {
             this.connectTimeoutMs = convertTimeValue(timeout, timeUnit);
             return this;
         }
@@ -413,7 +413,7 @@ public class PCloudAPIClient {
          *                                  0 or a negative value for the duration argument
          *                                  or a duration argument greater than {@linkplain Integer#MAX_VALUE}
          */
-        public Builder setWriteTimeoutMs(int timeout, TimeUnit timeUnit) {
+        public Builder setWriteTimeout(int timeout, TimeUnit timeUnit) {
             this.writeTimeoutMs = convertTimeValue(timeout, timeUnit);
             return this;
         }
