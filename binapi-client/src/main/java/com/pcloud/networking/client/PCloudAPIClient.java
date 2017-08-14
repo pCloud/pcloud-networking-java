@@ -108,6 +108,10 @@ public class PCloudAPIClient {
 
     /**
      * Produces a new instance of a {@linkplain Call} object to make a network call
+     *<p>
+     * The returned {@linkplain Call} object will send the request to the  {@link Endpoint} returned by
+     * {@linkplain Request#endpoint()} or if null, it will send to the endpoint returned from this
+     *  {@linkplain PCloudAPIClient} instance's {@linkplain EndpointProvider} at the time of execution.
      *
      * @param request A {@linkplain Request} for this call
      * @return A new instance of a {@linkplain Call} object with the specified {@linkplain Request}
@@ -121,12 +125,15 @@ public class PCloudAPIClient {
     }
 
     /**
-     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls
+     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls efficiently.
      * <p>
-     * Note that all requests you wish to execute with this {@linkplain MultiCall}
-     * will be executed on the {@linkplain EndpointProvider} currently set {@linkplain Endpoint}.
+     * The returned {@linkplain MultiCall} instance will batch the provided {@linkplain Request} objects
+     * and will send them over a single connection, reducing the round-trips and response times.
+     * <p>
+     *  The batched calls will be sent to the {@linkplain Endpoint} returned from this
+     *  {@linkplain PCloudAPIClient} instance's {@linkplain EndpointProvider} at the time of execution.
      *
-     * @param requests A {@linkplain Collection} of {@linkplain Request} objects for this call
+     * @param requests A non-null {@linkplain Collection} of {@linkplain Request}
      * @return A new instance of a {@linkplain MultiCall} object with the specified requests
      * @throws IllegalArgumentException on a null {@linkplain Collection},
      *                                  on an empty {@linkplain Collection},
@@ -152,13 +159,15 @@ public class PCloudAPIClient {
     }
 
     /**
-     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls
+     * Produces a new instance of a {@linkplain MultiCall} object to make multiple network calls efficiently.
      * <p>
-     * Note that all requests you execute with this {@linkplain MultiCall}
-     * will be opted from the provided {@linkplain Endpoint}.
+     * The returned {@linkplain MultiCall} instance will batch the provided {@linkplain Request} objects
+     * and will send them over a single connection, reducing the round-trips and response times.
+     * <p>
+     *  The batched calls will be sent to the provided  {@linkplain Endpoint}.
      *
-     * @param requests A {@linkplain Collection} of {@linkplain Request} objects for this call
-     * @param endpoint A {@linkplain Endpoint} object for the {@linkplain MultiCall}
+     * @param requests A non-null {@linkplain Collection} of {@linkplain Request}
+     * @param endpoint A target {@linkplain Endpoint} for the {@linkplain MultiCall}
      * @return A new instance of a {@linkplain MultiCall} object with the specified requests
      * @throws IllegalArgumentException on a null {@linkplain Collection},
      *                                  on an empty {@linkplain Collection},
