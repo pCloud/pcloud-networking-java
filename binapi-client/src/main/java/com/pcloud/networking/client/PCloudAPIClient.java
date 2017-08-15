@@ -275,13 +275,24 @@ public class PCloudAPIClient {
     }
 
     /**
+     * Get the {@linkplain EndpointProvider} set for this client instance
+     * <p>
+     *  This will return the {@linkplain EndpointProvider} instance given in {@linkplain Builder#endpointProvider()}
+     *  or {@linkplain EndpointProvider#DEFAULT} if none has been set.
+     *
+     * @return A non-null {@linkplain EndpointProvider} object
+     */
+    public EndpointProvider endpointProvider() {
+        return endpointProvider;
+    }
+
+    /**
      * Shuts down the client clearing up resources such as idle connections
      */
     public void shutdown() {
         callExecutor.shutdownNow();
         connectionPool.evictAll();
     }
-
 
     /**
      * Returns a new {@linkplain Builder} to construct the {@linkplain PCloudAPIClient}
