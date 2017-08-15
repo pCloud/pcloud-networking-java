@@ -1,6 +1,48 @@
 Changelog
 ==========
 
+Version 1.2.0 (15.08.2017)
+--------------------------
+
+#### Client
+
+* The ability ot set an `EndpointProvider` has been moved one level below in the abstraction layers and now can be set to a `PCloudAPIClient` instance via the `PCloudAPIClient.Builder.endpointProvider()` method.
+See the example below on how to migrate from the previous version:
+
+```java
+
+EndpointProvider myEndpointProvider = new ...;
+
+// Building an ApiComposer instance with custom EndpointProvider as of version 1.1.0 and below:
+ApiComposer composer = new APiComposer.Builder()
+	.endpointProvider(myEndpointProvider)
+    .build();
+
+
+// Setting a custom EndpointProvider for version 1.2.0 and above:
+PCloudAPIClient client = PCloudAPIClient.newClient()
+	.endpointProvider(myEndpointProvider)
+    .create();
+
+ApiComposer composer = new APiComposer.Builder()
+	.apiClient(client)
+    .build();
+```
+* `EndpointProvider.endpointConnectionError()` will now be properly called for errors during connection initiation and for all reads/writes.
+
+
+* `Request.endpoint()` can now return a null `Endpoint` if none or null has been set via `Request.Builder.endpoint(Endpoint)`.
+
+* `Call` instances created via `PCloudAPIClient.newCall(Request)` for `Request` objects without an explictly set `Endpoint`, will be done to an endpoint returned by the supplied or default `EndpointProiver` instance.
+
+* `MultiCall` instances can now created for a user-specified `Endpoint` via the `PCloudAPIClient.newCall(List<Request>, Endpoint)` method. Previous behavior was to pick up the `Endpoint` set to the first `Request` instance from the request list.
+
+* Fixes for potential race conditions leading to NPEs when cancelling/closing `Call` and `MultiCall` instances too early.
+
+#### Composer
+
+* The ApiComposer.Builder.endpointProvider() method has been removed (see the related changes in the `Client` module).
+
 Version 1.1.0 (24.07.2017)
 --------------------------
 
