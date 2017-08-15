@@ -19,6 +19,7 @@ package com.pcloud.networking.client;
 import okio.BufferedSink;
 import okio.BufferedSource;
 
+import java.io.IOException;
 import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +32,7 @@ public abstract class BaseConnection implements Connection {
     private int writeTimeout;
 
     @Override
-    public void readTimeout(long timeout, TimeUnit timeUnit) throws SocketException {
+    public void readTimeout(long timeout, TimeUnit timeUnit) throws IOException {
         readTimeout = (int) timeUnit.toMillis(timeout);
         BufferedSource source = source();
         if (source != null) {
@@ -40,7 +41,7 @@ public abstract class BaseConnection implements Connection {
     }
 
     @Override
-    public void writeTimeout(long timeout, TimeUnit timeUnit) {
+    public void writeTimeout(long timeout, TimeUnit timeUnit) throws IOException {
         writeTimeout = (int) timeUnit.toMillis(timeout);
         BufferedSink sink = sink();
         if (sink != null) {

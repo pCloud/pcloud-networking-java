@@ -29,16 +29,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by Dimitard on 9.8.2017 г..
- */
 public class ForwardingConnection extends BaseConnection {
 
     private Connection wrappedConnection;
     private BufferedSource source;
     private BufferedSink sink;
 
-    ForwardingConnection(Connection wrappedConnection, EndpointProvider endpointProvider) {
+    ForwardingConnection(Connection wrappedConnection, EndpointProvider endpointProvider) throws IOException {
         this.wrappedConnection = wrappedConnection;
         this.source = Okio.buffer(new ReportingSource(Okio.source(inputStream()), endpointProvider, endpoint()));
         this.sink = Okio.buffer(new ReportingSink(Okio.sink(outputStream()), endpointProvider, endpoint()));
@@ -51,12 +48,12 @@ public class ForwardingConnection extends BaseConnection {
     }
 
     @Override
-    public InputStream inputStream() {
+    public InputStream inputStream() throws IOException {
         return wrappedConnection.inputStream();
     }
 
     @Override
-    public OutputStream outputStream() {
+    public OutputStream outputStream() throws IOException {
         return wrappedConnection.outputStream();
     }
 

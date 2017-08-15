@@ -38,20 +38,13 @@ class ConnectionFactory {
 
     RealConnection openConnection(Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
         if (endpoint == null) {
-            throw new AssertionError("null endpoint argument.");
+            throw new AssertionError("Null endpoint argument.");
         }
 
-        RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier);
-        boolean connected = false;
-        try {
-            connection.connect(endpoint, connectTimeout, timeUnit);
-            connected = true;
-        } finally {
-            if (!connected) {
-                connection.close();
-            }
-        }
-
-        return connection;
+        return new RealConnection(socketFactory,
+                sslSocketFactory,
+                hostnameVerifier,
+                endpoint,
+                connectTimeout, timeUnit);
     }
 }

@@ -20,6 +20,7 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.SocketException;
@@ -29,17 +30,17 @@ interface Connection extends Closeable {
 
     Endpoint endpoint();
 
-    BufferedSource source();
+    BufferedSource source() throws IOException;
 
-    BufferedSink sink();
+    BufferedSink sink() throws IOException;
 
-    InputStream inputStream();
+    InputStream inputStream() throws IOException;
 
-    OutputStream outputStream();
+    OutputStream outputStream() throws IOException;
 
-    void readTimeout(long timeout, TimeUnit timeUnit) throws SocketException;
+    void readTimeout(long timeout, TimeUnit timeUnit) throws IOException;
 
-    void writeTimeout(long timeout, TimeUnit timeUnit);
+    void writeTimeout(long timeout, TimeUnit timeUnit) throws IOException;
 
     int readTimeout();
 
