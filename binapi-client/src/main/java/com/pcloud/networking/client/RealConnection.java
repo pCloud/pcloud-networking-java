@@ -126,11 +126,11 @@ class RealConnection extends BaseConnection {
             socket = this.socket;
             source = this.source;
         }
-        if (socket == null
-                || source == null
-                || socket.isClosed()
-                || socket.isInputShutdown()
-                || socket.isOutputShutdown()) {
+        if (socket == null ||
+                source == null ||
+                socket.isClosed() ||
+                socket.isInputShutdown() ||
+                socket.isOutputShutdown()) {
             return false;
         }
 

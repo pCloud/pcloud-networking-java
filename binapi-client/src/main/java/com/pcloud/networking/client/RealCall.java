@@ -293,7 +293,9 @@ class RealCall implements Call {
         private ConnectionProvider connectionPool;
         private Connection connection;
 
-        private RecyclingFixedLengthSource(ConnectionProvider pool, Connection connection, long contentLength) throws IOException {
+        private RecyclingFixedLengthSource(ConnectionProvider pool,
+                                           Connection connection,
+                                           long contentLength) throws IOException {
             super(connection.source(), contentLength);
             this.connection = connection;
             this.connectionPool = pool;

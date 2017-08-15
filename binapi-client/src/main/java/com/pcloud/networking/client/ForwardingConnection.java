@@ -29,7 +29,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.TimeUnit;
 
-public class ForwardingConnection extends BaseConnection {
+class ForwardingConnection extends BaseConnection {
 
     private Connection wrappedConnection;
     private BufferedSource source;

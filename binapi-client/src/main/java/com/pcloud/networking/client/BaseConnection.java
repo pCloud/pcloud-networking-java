@@ -20,13 +20,9 @@ import okio.BufferedSink;
 import okio.BufferedSource;
 
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by Dimitard on 9.8.2017 г..
- */
-public abstract class BaseConnection implements Connection {
+abstract class BaseConnection implements Connection {
 
     private int readTimeout;
     private int writeTimeout;
