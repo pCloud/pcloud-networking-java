@@ -1,6 +1,12 @@
 Changelog
 ==========
 
+Version 1.2.1 (15.08.2017)
+--------------------------
+
+#### Client
+* Add a missing getter in `PCloudAPIClient` for the `EndpointProvider` supplied by `PCloudAPIClient.Builder.endpointProvider(EndpointProvider)` method.
+
 Version 1.2.0 (15.08.2017)
 --------------------------
 
