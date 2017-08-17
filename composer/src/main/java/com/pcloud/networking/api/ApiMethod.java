@@ -29,6 +29,8 @@ import java.util.List;
 
 abstract class ApiMethod<T> {
 
+    protected static final Object[] EMPTY_ARGS = new Object[0];
+
     abstract T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
 
     @SuppressWarnings({"WeakerAccess", "unused"})

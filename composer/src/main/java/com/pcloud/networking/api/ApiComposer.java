@@ -152,6 +152,9 @@ public class ApiComposer {
                         if (method.getDeclaringClass() == Object.class) {
                             return method.invoke(this, args);
                         }
+                        if (args == null) {
+                            args = ApiMethod.EMPTY_ARGS;
+                        }
                         ApiMethod<Object> apiMethod = (ApiMethod<Object>) loadApiMethod(method);
                         return apiMethod.invoke(ApiComposer.this, args);
                     }
