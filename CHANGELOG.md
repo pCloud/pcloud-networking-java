@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 1.2.2 (17.08.2017)
+--------------------------
+
+#### Composer
+* Fix a bug leading to `NullPointerException` errors when calling no-arg methods of objects returned by `ApiComposer.compose()`.
+
+
 Version 1.2.1 (15.08.2017)
 --------------------------
 

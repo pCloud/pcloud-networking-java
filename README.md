@@ -59,13 +59,13 @@ api.copy(...)
 <dependency>
   <groupId>pcloud-networking-java</groupId>
   <artifactId>composer</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:composer:1.2.1'
+compile 'pcloud-networking-java:composer:1.2.2'
 ```
 
 ### Client
@@ -87,13 +87,13 @@ The `binapi-client` module contains a network client for composing and executing
 <dependency>
   <groupId>pcloud-networking-java</groupId>
   <artifactId>binapi-client</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:binapi-client:1.2.1'
+compile 'pcloud-networking-java:binapi-client:1.2.2'
 ```
 
 --------------------------------------------------------------------------------
@@ -115,13 +115,13 @@ The `serialization` module contains a library for serializing Java objects to bi
 <dependency>
   <groupId>pcloud-networking-java</groupId>
   <artifactId>serialization</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:serialization:1.2.1'
+compile 'pcloud-networking-java:serialization:1.2.2'
 ```
 --------------------------------------------------------------------------------
 ### Protocol
@@ -142,13 +142,13 @@ The `protocol` module contains the core logic for writing/reading data in the fo
 <dependency>
   <groupId>pcloud-networking-java</groupId>
   <artifactId>protocol</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:protocol:1.2.1'
+compile 'pcloud-networking-java:protocol:1.2.2'
 ```
 
 
