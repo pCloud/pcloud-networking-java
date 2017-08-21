@@ -4,7 +4,7 @@ Changelog
 Version 1.2.3 (21.08.2017)
 --------------------------
 
-* The only change is the change of the Maven `groupId` property from `pcloud-networking-java` to `com.pcloud.pcloud-networking-java`. Users wanting to use this version or any other futures will need to update their dependencies list.
+* The only modification is the change of the Maven `groupId` property from `pcloud-networking-java` to `com.pcloud.pcloud-networking-java`. Users wanting to use this version or any other futures will need to update their dependencies list.
 
 For Gradle users
 
