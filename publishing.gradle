@@ -1,10 +1,10 @@
 ext {
     isCi = "true".equals(System.getenv('CI'))
 
-    versionName = "1.2.2"
-    versionCode = 10
+    versionName = "1.2.3"
+    versionCode = 11
     libraryName = "pcloud-networking-java"
-    groupId = "pcloud-networking-java"
+    groupId = "com.pcloud.pcloud-networking-java"
     description = "A Network Stack for pCloud's API written in Java"
     siteUrl = 'https://github.com/pCloud/pcloud-networking-java'
     vcsUrl = 'https://github.com/pCloud/pcloud-networking-java'

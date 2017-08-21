@@ -57,15 +57,15 @@ api.copy(...)
 
 ```xml
 <dependency>
-  <groupId>pcloud-networking-java</groupId>
+  <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>composer</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:composer:1.2.2'
+compile 'com.pcloud.pcloud-networking-java:composer:1.2.3'
 ```
 
 ### Client
@@ -85,15 +85,15 @@ The `binapi-client` module contains a network client for composing and executing
 
 ```xml
 <dependency>
-  <groupId>pcloud-networking-java</groupId>
+  <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>binapi-client</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:binapi-client:1.2.2'
+compile 'com.pcloud.pcloud-networking-java:binapi-client:1.2.3'
 ```
 
 --------------------------------------------------------------------------------
@@ -113,15 +113,15 @@ The `serialization` module contains a library for serializing Java objects to bi
 
 ```xml
 <dependency>
-  <groupId>pcloud-networking-java</groupId>
+  <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>serialization</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:serialization:1.2.2'
+compile 'com.pcloud.pcloud-networking-java:serialization:1.2.3'
 ```
 --------------------------------------------------------------------------------
 ### Protocol
@@ -140,15 +140,15 @@ The `protocol` module contains the core logic for writing/reading data in the fo
 
 ```xml
 <dependency>
-  <groupId>pcloud-networking-java</groupId>
+  <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>protocol</artifactId>
-  <version>1.2.2</version>
+  <version>1.2.3</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'pcloud-networking-java:protocol:1.2.2'
+compile 'com.pcloud.pcloud-networking-java:protocol:1.2.3'
 ```
 
 
