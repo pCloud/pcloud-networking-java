@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 1.3.0 (04.10.2017)
+--------------------------
+
+#### Serialization
+
+* Enums can now be deserialized from both `NUMBER` and `STRING` protocol types.
+
+
 Version 1.2.3 (21.08.2017)
 --------------------------
 
