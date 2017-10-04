@@ -77,4 +77,12 @@ public class ApiResponse {
     public boolean isSuccessful() {
         return resultCode == RESULT_SUCCESS;
     }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "{" +
+                "result=" + resultCode +
+                ", error='" + message + '\'' +
+                '}';
+    }
 }

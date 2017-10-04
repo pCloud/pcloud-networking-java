@@ -54,4 +54,9 @@ abstract class BaseConnection implements Connection {
     public int writeTimeout() {
         return readTimeout;
     }
+
+    @Override
+    public String toString() {
+        return "Connection(\"" + endpoint() + "\")";
+    }
 }
