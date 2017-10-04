@@ -1,6 +1,6 @@
 ext {
 
-    okioVersion = '1.12.0'
+    okioVersion = '1.13.0'
 
     deps = [
         okio : "com.squareup.okio:okio:$okioVersion"
