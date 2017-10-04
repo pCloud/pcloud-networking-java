@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-package com.pcloud.networking.client;
+package com.pcloud.networking.protocol;
 
-import com.pcloud.networking.protocol.ValueReader;
-import com.pcloud.networking.protocol.BytesReader;
-import com.pcloud.networking.protocol.ProtocolResponseReader;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.ByteString;
@@ -27,14 +24,14 @@ import java.io.IOException;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess,unused")
-public class ResponseBytes {
+public class ResponseBytesWriter {
 
-    public static ResponseBytes empty(){
-        return new ResponseBytes();
+    public static ResponseBytesWriter empty(){
+        return new ResponseBytesWriter();
     }
 
-    public static ResponseBytes from(Map<String, ?> values) {
-        ResponseBytes bytesBuilder = new ResponseBytes();
+    public static ResponseBytesWriter from(Map<String, ?> values) {
+        ResponseBytesWriter bytesBuilder = new ResponseBytesWriter();
         try {
             for (Map.Entry<String, ?> pair : values.entrySet()) {
                 bytesBuilder.writeValue(pair.getKey(), pair);
@@ -45,11 +42,11 @@ public class ResponseBytes {
         return bytesBuilder;
     }
 
-    private ResponseBytes(ResponseBytes responseBytes) {
-        this.valuesBuffer = responseBytes.valuesBuffer.clone();
+    private ResponseBytesWriter(ResponseBytesWriter responseBytesWriter) {
+        this.valuesBuffer = responseBytesWriter.valuesBuffer.clone();
     }
 
-    public ResponseBytes() {
+    public ResponseBytesWriter() {
         this.valuesBuffer = new Buffer();
     }
 
@@ -62,7 +59,7 @@ public class ResponseBytes {
 
         ArrayWriter write(boolean value) throws IOException;
 
-        ResponseBytes endArray() throws IOException;
+        ResponseBytesWriter endArray() throws IOException;
     }
 
     private Buffer valuesBuffer;
@@ -70,40 +67,40 @@ public class ResponseBytes {
     private final ArrayWriter arrayWriter = new ArrayWriter() {
         @Override
         public ArrayWriter write(Object value) throws IOException {
-            ResponseBytes.this.write(value);
+            ResponseBytesWriter.this.write(value);
             return this;
         }
 
         @Override
         public ArrayWriter write(String value) throws IOException {
-            ResponseBytes.this.write(value);
+            ResponseBytesWriter.this.write(value);
             return this;
         }
 
         @Override
         public ArrayWriter write(long value) throws IOException {
-            ResponseBytes.this.write(value);
+            ResponseBytesWriter.this.write(value);
             return this;
         }
 
         @Override
         public ArrayWriter write(boolean value) throws IOException {
-            ResponseBytes.this.write(value);
+            ResponseBytesWriter.this.write(value);
             return this;
         }
 
         @Override
-        public ResponseBytes endArray() throws IOException {
-            return ResponseBytes.this.endArray();
+        public ResponseBytesWriter endArray() throws IOException {
+            return ResponseBytesWriter.this.endArray();
         }
     };
 
-    public ResponseBytes beginObject() throws IOException {
+    public ResponseBytesWriter beginObject() throws IOException {
         valuesBuffer.writeByte(16);
         return this;
     }
 
-    public ResponseBytes endObject() throws IOException {
+    public ResponseBytesWriter endObject() throws IOException {
         valuesBuffer.writeByte(0xFF);
         return this;
     }
@@ -113,27 +110,27 @@ public class ResponseBytes {
         return arrayWriter;
     }
 
-    public ResponseBytes endArray() throws IOException {
+    public ResponseBytesWriter endArray() throws IOException {
         return endObject();
     }
 
-    public ResponseBytes writeValue(String key, String value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, String value) throws IOException {
         return write(key).write(value);
     }
 
-    public ResponseBytes writeValue(String key, long value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, long value) throws IOException {
         return write(key).write(value);
     }
 
-    public ResponseBytes writeValue(String key, boolean value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, boolean value) throws IOException {
         return write(key).write(value);
     }
 
-    public ResponseBytes writeValue(String key, Object value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, Object value) throws IOException {
         return write(key).write(value);
     }
 
-    private ResponseBytes write(Object value) throws IOException {
+    private ResponseBytesWriter write(Object value) throws IOException {
         final Class valueType = value.getClass();
         if (valueType == String.class) {
             return write((String) value);
@@ -173,29 +170,29 @@ public class ResponseBytes {
         }
     }
 
-    private ResponseBytes write(String value) throws IOException {
+    private ResponseBytesWriter write(String value) throws IOException {
         valuesBuffer.writeByte(3);
         valuesBuffer.writeIntLe(value.length());
         valuesBuffer.writeUtf8(value);
         return this;
     }
 
-    private ResponseBytes write(long value) throws IOException {
+    private ResponseBytesWriter write(long value) throws IOException {
         valuesBuffer.writeByte(15);
         valuesBuffer.writeLongLe(value);
         return this;
     }
 
-    private ResponseBytes write(boolean value) throws IOException {
+    private ResponseBytesWriter write(boolean value) throws IOException {
         valuesBuffer.writeByte(value ? 19 : 18);
         return this;
     }
 
-    public ResponseBytes clone(){
-        return new ResponseBytes(this);
+    public ResponseBytesWriter clone(){
+        return new ResponseBytesWriter(this);
     }
 
-    public ResponseBytes clear() {
+    public ResponseBytesWriter clear() {
         valuesBuffer.clear();
         return this;
     }

@@ -16,6 +16,7 @@
 
 package com.pcloud.networking.client;
 
+import com.pcloud.networking.protocol.ResponseBytesWriter;
 import org.assertj.core.api.ThrowableAssert;
 import org.hamcrest.Matchers;
 import org.junit.*;
@@ -303,12 +304,12 @@ public class RealMultiCallTest {
         MultiCall call = createMultiCall(request1, request2);
         Interactor interactor = call.start();
 
-        RequestWriter requestWriter = new RequestWriter();
+        RequestBytesWriter requestBytesWriter = new RequestBytesWriter();
         assertEquals(interactor.submitRequests(1), 1);
-        assertEquals(connection.sink().buffer().readByteString(), requestWriter.bytes(expectedRequest1));
+        assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest1));
 
         assertEquals(interactor.submitRequests(1), 1);
-        assertEquals(connection.sink().buffer().readByteString(), requestWriter.bytes(expectedRequest2));
+        assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest2));
 
         assertFalse(interactor.hasMoreRequests());
         assertEquals(interactor.submitRequests(Integer.MAX_VALUE), 0);
@@ -348,15 +349,15 @@ public class RealMultiCallTest {
                 .body(RequestBody.EMPTY)
                 .build();
 
-        List<ResponseBytes> expectedResponses = Arrays.asList(
-                new ResponseBytes()
+        List<ResponseBytesWriter> expectedResponses = Arrays.asList(
+                new ResponseBytesWriter()
                         .writeValue("id", 0)
                         .writeValue("result", 0),
-                new ResponseBytes()
+                new ResponseBytesWriter()
                         .writeValue("id", 1)
                         .writeValue("result", 5000)
                         .writeValue("error", "Something went ka-boom."),
-                new ResponseBytes()
+                new ResponseBytesWriter()
                         .writeValue("id", 2)
                         .writeValue("result", 2000)
                         .writeValue("error", "Token went ka-boom."));
@@ -378,11 +379,11 @@ public class RealMultiCallTest {
         interactor.nextResponse();
     }
 
-    private static void assertContainsResponse(Collection<ResponseBytes> responses, Response response) throws IOException {
+    private static void assertContainsResponse(Collection<ResponseBytesWriter> responses, Response response) throws IOException {
         Map<String,?> responseValues = response.responseBody().toValues();
 
         Collection<Map<String,?>> expectedValues = new ArrayList<>(responses.size());
-        for (ResponseBytes bytes : responses){
+        for (ResponseBytesWriter bytes : responses){
             expectedValues.add(bytes.toValues());
         }
 

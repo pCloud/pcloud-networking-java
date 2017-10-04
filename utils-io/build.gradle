@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'com.github.hauner.jarTest'
 
 sourceCompatibility = 1.7
 
