@@ -16,6 +16,7 @@
 
 package com.pcloud.networking.client;
 
+import com.pcloud.networking.protocol.ResponseBytesWriter;
 import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
@@ -117,22 +118,22 @@ public class DummyConnection implements Connection {
         writeBuffer.close();
     }
 
-    public static Connection withResponses(ResponseBytes... responses) throws IOException {
+    public static Connection withResponses(ResponseBytesWriter... responses) throws IOException {
         return withResponses(Arrays.asList(responses));
     }
 
     public static  Connection withResponsesFromValues(Collection<Map<String, ?>> responseValues) throws IOException {
         Connection connection = new DummyConnection();
         for (Map<String, ?> values : responseValues) {
-            ResponseBytes.from(values).writeTo(connection.source().buffer());
+            ResponseBytesWriter.from(values).writeTo(connection.source().buffer());
         }
         return connection;
     }
 
-    public static  Connection withResponses(Collection<ResponseBytes> responses) throws IOException {
+    public static  Connection withResponses(Collection<ResponseBytesWriter> responses) throws IOException {
         Connection connection = new DummyConnection();
 
-        for (ResponseBytes b : responses) {
+        for (ResponseBytesWriter b : responses) {
             b.writeTo(connection.source().buffer());
         }
         return connection;

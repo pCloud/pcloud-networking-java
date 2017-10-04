@@ -11,6 +11,7 @@ dependencies {
     compile project(':protocol')
     compile project(':utils-reflection')
     testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile project(':utils-io')
 }
 ext {
     bintrayPackage = 'serialization'

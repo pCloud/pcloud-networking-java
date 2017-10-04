@@ -19,6 +19,7 @@ package com.pcloud.networking.serialization;
 import com.pcloud.networking.protocol.SerializationException;
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolWriter;
+import com.pcloud.networking.protocol.TypeToken;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,8 +40,13 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
                 T constant = constants[i];
                 ParameterValue annotation = enumType.getField(constant.name()).getAnnotation(ParameterValue.class);
                 String name = annotation != null && !annotation.value().equals(ParameterValue.DEFAULT_NAME) ?
-                                      annotation.value() : constant.name();
-                nameToConstantMap.put(name, constant);
+                        annotation.value() : constant.name();
+                if (nameToConstantMap.put(name, constant) != null) {
+                    throw new IllegalStateException("Cannot create a " + TypeAdapter.class.getSimpleName() + "" +
+                            " for enumeration '" + enumType.getName() + "'. Duplicate " +
+                            "serialization name " +
+                            "'" + name + "'.");
+                }
                 constantToNameMap.put(constant, name);
             }
         } catch (NoSuchFieldException e) {
@@ -48,21 +54,36 @@ class EnumTypeAdapter<T extends Enum<T>> extends TypeAdapter<T> {
         }
     }
 
-
     @Override
     public T deserialize(ProtocolReader reader) throws IOException {
-        String name = reader.readString();
+        TypeToken typeToken = reader.peek();
+        String name;
+        switch (typeToken) {
+            case NUMBER:
+                name = String.valueOf(reader.readNumber());
+                break;
+            case STRING:
+                name = reader.readString();
+                break;
+            default:
+                throw new SerializationException("Cannot deserialize '" +
+                        enumType.getName() +
+                        "':Only " + TypeToken.STRING + " and " +
+                        TypeToken.NUMBER + " types are allowed," +
+                        " but was " + typeToken + ".");
+
+        }
         T enumConstant = nameToConstantMap.get(name);
         if (enumConstant != null) {
             return enumConstant;
         } else {
             throw new SerializationException("Cannot deserialize '" +
-                                                     enumType.getName() +
-                                                     "':\nExpected one of " +
-                                                     nameToConstantMap.keySet() +
-                                                     " but was '" +
-                                                     name +
-                                                     "'.");
+                    enumType.getName() +
+                    "':\nExpected one of " +
+                    nameToConstantMap.keySet() +
+                    " but was '" +
+                    name +
+                    "'.");
         }
     }
 
