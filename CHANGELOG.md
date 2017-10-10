@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 1.3.1 (10.10.2017)
+--------------------------
+
+#### Composer
+
+* Fix a bug where a call to `Call<T>.clone()` or to `MultiCall<T>.clone()` was causing an `IllegalStateException`.
+
+
 Version 1.3.0 (04.10.2017)
 --------------------------
 
