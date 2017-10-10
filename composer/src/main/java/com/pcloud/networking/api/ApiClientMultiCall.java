@@ -160,7 +160,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public MultiCall<T, R> clone() {
-        return new ApiClientMultiCall<>(apiComposer, rawCall, responseAdapter, requests);
+        return new ApiClientMultiCall<>(apiComposer, rawCall.clone(), responseAdapter, requests);
     }
 
     private List<R> adapt(MultiResponse multiResponse) throws IOException {

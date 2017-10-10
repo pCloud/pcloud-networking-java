@@ -98,7 +98,7 @@ class ApiClientCall<T> implements Call<T> {
     @SuppressWarnings("CloneDoesntCallSuperClone")
     @Override
     public Call<T> clone() {
-        return new ApiClientCall<>(apiComposer, rawCall, responseAdapter);
+        return new ApiClientCall<>(apiComposer, rawCall.clone(), responseAdapter);
     }
 
     protected T adapt(Response response) throws IOException {
