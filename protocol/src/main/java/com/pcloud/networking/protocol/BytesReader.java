@@ -17,10 +17,12 @@
 package com.pcloud.networking.protocol;
 
 import com.pcloud.utils.IOUtils;
+import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.ProtocolException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -30,11 +32,15 @@ import java.util.Locale;
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 /**
- * Reads bytes from source
+ * A reader for pCloud's binary data protocol
  * <p>
- * An implementation of {@linkplain ProtocolResponseReader} which is able to read bytes from a {@linkplain BufferedSource}
+ * An implementation of {@linkplain ProtocolResponseReader} which can read data
+ * encoded in pCloud's binary protocol from a stream of bytes in pull-based fashion
+ * with minimal overhead.
  * <p>
- * Generally used to read the bytes of a network response into serialized data
+ *
+ * The implementation can be reused for reading multiple responses from a byte source,
+ * as long as they are read completely.
  *
  * @see ProtocolReader
  * @see ProtocolResponseReader
@@ -121,18 +127,17 @@ public class BytesReader implements ProtocolResponseReader {
             lastStringId = 0;
             return pullNumber(RESPONSE_LENGTH_BYTESIZE);
         }
-
-        throw new SerializationException("Trying to start reading a response, which has already been started.");
+        throw new IllegalStateException("An already started response or data after it has not been fully read.");
     }
 
     @Override
-    public long endResponse() throws IOException {
+    public boolean endResponse() throws IOException {
         if (currentScope != SCOPE_RESPONSE) {
             if (currentScope == SCOPE_NONE) {
-                throw new SerializationException("Trying to end a response " +
+                throw new IllegalStateException("Trying to end a response " +
                         "but none is being read, first call beginResponse()");
             } else {
-                throw new SerializationException("Trying to end a response, " +
+                throw new IllegalStateException("Trying to end a response, " +
                         "but current scope is " + scopeName(currentScope));
             }
         }
@@ -146,11 +151,12 @@ public class BytesReader implements ProtocolResponseReader {
         popScope();
         stringCache = null;
 
-        if (dataLength == UNKNOWN_SIZE) {
-            dataLength = 0;
+        boolean dataAvailable = dataLength != UNKNOWN_SIZE;
+        if (dataAvailable) {
+            pushScope(SCOPE_DATA);
         }
 
-        return dataLength;
+        return dataAvailable;
     }
 
     @Override
@@ -274,7 +280,28 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long dataContentLength() {
+        if (currentScope == SCOPE_NONE) {
+            throw new IllegalStateException("No response or data after it are being read.");
+        }
         return dataLength;
+    }
+
+    @Override
+    public void readData(OutputStream outputStream) throws IOException {
+        readData(Okio.buffer(Okio.sink(outputStream)));
+    }
+
+    @Override
+    public void readData(BufferedSink sink) throws IOException {
+        if (currentScope != SCOPE_DATA) {
+            throw new IllegalStateException("Cannot read data," +
+                    " either the response is not read fully or no data is following.");
+        }
+
+        long length = dataLength;
+        sink.write(bufferedSource, length);
+        dataLength = UNKNOWN_SIZE;
+        popScope();
     }
 
     @Override
@@ -297,10 +324,9 @@ public class BytesReader implements ProtocolResponseReader {
     @Override
     public void skipValue() throws IOException {
 
-        if (currentScope == SCOPE_NONE) {
+        if (currentScope == SCOPE_NONE || currentScope == SCOPE_DATA) {
             throw new IllegalStateException("Trying to skipValue, but currentScope is " +
-                                                    currentScope +
-                                                    ". You must call beginResponse() first.");
+                    scopeName(currentScope) + ".");
         }
 
         final int type = peekType();
@@ -508,6 +534,16 @@ public class BytesReader implements ProtocolResponseReader {
         @Override
         public ProtocolResponseReader newPeekingReader() {
             throw new IllegalStateException("Cannot call newPeekingReader(), this reader is already non-consuming.");
+        }
+
+        @Override
+        public void readData(OutputStream outputStream) throws IOException {
+            throw new UnsupportedOperationException("Data cannot be peeked.");
+        }
+
+        @Override
+        public void readData(BufferedSink sink) throws IOException {
+            throw new UnsupportedOperationException("Data cannot be peeked.");
         }
     }
 }
