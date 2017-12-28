@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.pcloud.networking.protocol;
+package com.pcloud.networking.serialization;
+
+import com.pcloud.networking.protocol.SerializationException;
 
 import java.lang.reflect.Type;
 

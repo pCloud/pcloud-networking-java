@@ -18,7 +18,6 @@ package com.pcloud.networking.serialization;
 
 import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.protocol.ProtocolReader;
-import com.pcloud.networking.protocol.UnserializableTypeException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
