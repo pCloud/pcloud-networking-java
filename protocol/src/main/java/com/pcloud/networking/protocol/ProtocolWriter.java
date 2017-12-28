@@ -17,7 +17,6 @@
 package com.pcloud.networking.protocol;
 
 import java.io.Closeable;
-import java.io.Flushable;
 import java.io.IOException;
 
 /**

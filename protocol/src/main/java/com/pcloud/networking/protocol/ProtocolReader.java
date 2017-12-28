@@ -36,12 +36,12 @@ public interface ProtocolReader extends AutoCloseable, Closeable {
     /**
      * Indicates the reader is currently reading an object from the data source
      */
-    int SCOPE_OBJECT = 2;
+    int SCOPE_OBJECT = 10;
 
     /**
      * Indicates the reader is currently reading an array from the data source
      */
-    int SCOPE_ARRAY = 3;
+    int SCOPE_ARRAY = 20;
 
     /**
      * Get the current scope of the reader

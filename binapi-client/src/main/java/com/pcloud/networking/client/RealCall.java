@@ -16,11 +16,11 @@
 
 package com.pcloud.networking.client;
 
-import com.pcloud.utils.IOUtils;
-import com.pcloud.networking.protocol.BytesReader;
 import com.pcloud.networking.protocol.BytesWriter;
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolRequestWriter;
+import com.pcloud.networking.protocol.ProtocolResponseReader;
+import com.pcloud.utils.IOUtils;
 import okio.BufferedSource;
 import okio.ByteString;
 import okio.Okio;
@@ -198,12 +198,12 @@ class RealCall implements Call {
             request.body().writeTo(writer);
 
             writer.endRequest();
-            writer.flush();
+            connection.sink().flush();
 
             Response response = Response.create()
-                                        .request(request)
-                                        .responseBody(createResponseBody(connection))
-                                        .build();
+                    .request(request)
+                    .responseBody(createResponseBody(connection))
+                    .build();
             success = true;
             return response;
         } finally {
@@ -217,8 +217,8 @@ class RealCall implements Call {
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
-        final FixedLengthSource responseParametersSource =
-                new FixedLengthSource(connection.source(), responseLength + RESPONSE_LENGTH) {
+        final FixedLengthSource responseParametersSource = new FixedLengthSource(
+                connection.source(), responseLength + RESPONSE_LENGTH) {
             @Override
             protected void exhausted(boolean reuseSource) {
                 if (!reuseSource) {
@@ -228,7 +228,7 @@ class RealCall implements Call {
         };
 
         final BufferedSource source = Okio.buffer(responseParametersSource);
-        final BytesReader reader = new SelfEndingBytesReader(source);
+        final ProtocolResponseReader reader = new SelfEndingBytesReader(source);
         reader.beginResponse();
         return new ResponseBody() {
 
@@ -252,32 +252,33 @@ class RealCall implements Call {
 
             @Override
             public ResponseData data() throws IOException {
-                {
-                    long dataLength = reader.dataContentLength();
-                    if (dataLength == -1) {
-                        throw new IOException("Cannot access data content before " +
-                                                      "the response body has been completely read.");
-                    } else if (dataLength > 0) {
-                        synchronized (reader) {
-                            if (data == null) {
-                                dataSource = new RecyclingFixedLengthSource(connectionProvider, connection, dataLength);
-                                data = new ResponseData(Okio.buffer(dataSource), dataLength);
-                            }
-                        }
-                    }
-                    return data;
+                int scope = reader.currentScope();
+                if (scope == ProtocolResponseReader.SCOPE_NONE) {
+                    return null;
+                } else if (scope != ProtocolResponseReader.SCOPE_DATA) {
+                    throw new IOException("Cannot access data content before " +
+                            "the response body has been completely read.");
                 }
+                long dataLength = reader.dataContentLength();
+                synchronized (reader) {
+                    if (data == null) {
+                        dataSource = new RecyclingFixedLengthSource(connectionProvider, connection, dataLength);
+                        data = new ResponseData(Okio.buffer(dataSource), dataLength);
+                    }
+                }
+                return data;
             }
 
             @Override
             public void close() throws IOException {
-                final long dataContentLength;
+                final int currentScope;
                 final FixedLengthSource dataSource;
                 synchronized (reader) {
-                    dataContentLength = reader.dataContentLength();
+                    currentScope = reader.currentScope();
                     dataSource = this.dataSource;
                 }
-                if (dataContentLength == 0L || (dataSource != null && dataSource.bytesRemaining() == 0L)) {
+                boolean responseReadFully = currentScope == ProtocolResponseReader.SCOPE_NONE;
+                if (responseReadFully || (dataSource != null && dataSource.bytesRemaining() == 0L)) {
                     // All possible data has been read, safe to reuse the connection.
                     connectionProvider.recycleConnection(connection);
                 } else {

@@ -88,7 +88,7 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int NUMBER_NON_COMPRESSED = 7;
     private static final int NEXT_BYTE_POSITION = 256;
 
-    private int currentScope = SCOPE_NONE;
+    private volatile int currentScope = SCOPE_NONE;
     private int previousScope = SCOPE_NONE;
     private Deque<Integer> scopeStack = new ArrayDeque<>(SCOPE_STACK_INITIAL_CAPACITY);
     private BufferedSource bufferedSource;
@@ -280,8 +280,8 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long dataContentLength() {
-        if (currentScope == SCOPE_NONE) {
-            throw new IllegalStateException("No response or data after it are being read.");
+        if (currentScope != SCOPE_DATA) {
+            throw new IllegalStateException("No byte data is being read.");
         }
         return dataLength;
     }

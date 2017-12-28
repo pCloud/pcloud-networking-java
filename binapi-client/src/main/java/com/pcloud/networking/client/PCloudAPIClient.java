@@ -21,6 +21,7 @@ import com.pcloud.networking.client.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -193,6 +194,37 @@ public class PCloudAPIClient {
     }
 
     /**
+     * Create a new {@linkplain ApiChannel} for a given {@linkplain Endpoint}.
+     *<p>
+     * Same as calling {@linkplain #newChannel(Endpoint)} with the endpoint returned
+     * by this client's {@linkplain EndpointProvider} instance.
+     *
+     * @see ApiChannel
+     * @see #newChannel(Endpoint)
+     * @see EndpointProvider
+     * @return a non-null {@linkplain ApiChannel} instance
+     * @throws IOException on a connection error
+     */
+    public ApiChannel newChannel() throws IOException {
+        return new RealApiChannel(connectionProvider, endpointProvider.endpoint());
+    }
+
+    /**
+     * Create a new {@linkplain ApiChannel} for a given {@linkplain Endpoint}.
+     *<p>
+     * The call will create and initialize an {@linkplain ApiChannel} instance to a given endpoint,
+     * or throw an {@linkplain IOException} on error.
+     *
+     * @see ApiChannel
+     * @param endpoint a target {@linkplain Endpoint}
+     * @return a non-null {@linkplain ApiChannel} instance
+     * @throws IOException on a connection error
+     */
+    public ApiChannel newChannel(Endpoint endpoint) throws IOException {
+        return new RealApiChannel(connectionProvider, endpoint);
+    }
+
+    /**
      * Returns the maximum amount of time a connection should take to establish itself in milliseconds as an int
      *
      * @return The maximum amount of time a connection should take to establish itself in milliseconds as an int
@@ -254,7 +286,6 @@ public class PCloudAPIClient {
     public ConnectionPool connectionPool() {
         return connectionPool;
     }
-
 
     /**
      * Returns the {@linkplain ExecutorService} for this client

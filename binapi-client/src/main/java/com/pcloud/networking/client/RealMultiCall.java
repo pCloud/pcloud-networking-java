@@ -16,12 +16,12 @@
 
 package com.pcloud.networking.client;
 
-import com.pcloud.utils.IOUtils;
 import com.pcloud.networking.protocol.BytesReader;
 import com.pcloud.networking.protocol.BytesWriter;
+import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolRequestWriter;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
-import com.pcloud.networking.protocol.ProtocolReader;
+import com.pcloud.utils.IOUtils;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ByteString;
@@ -280,7 +280,7 @@ class RealMultiCall implements MultiCall {
         // Add the key at the end to avoid overwriting.
         writer.writeName("id").writeValue(requestKey);
         writer.endRequest();
-        writer.flush();
+        connection.sink().flush();
     }
 
     private void checkAndMarkExecuted() {
@@ -397,13 +397,13 @@ class RealMultiCall implements MultiCall {
         }
 
         @Override
-        public long endResponse() throws IOException {
-            long dataSize = super.endResponse();
-            if (dataSize > 0) {
+        public boolean endResponse() throws IOException {
+            boolean hasData = super.endResponse();
+            if (hasData) {
                 throw new IOException("MultiCalls do not support calls that return data.");
             }
 
-            return dataSize;
+            return hasData;
         }
     }
 

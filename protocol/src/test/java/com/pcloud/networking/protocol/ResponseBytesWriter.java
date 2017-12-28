@@ -26,18 +26,14 @@ import java.util.Map;
 @SuppressWarnings("WeakerAccess,unused")
 public class ResponseBytesWriter {
 
-    public static ResponseBytesWriter empty(){
+    public static ResponseBytesWriter empty() {
         return new ResponseBytesWriter();
     }
 
     public static ResponseBytesWriter from(Map<String, ?> values) {
         ResponseBytesWriter bytesBuilder = new ResponseBytesWriter();
-        try {
-            for (Map.Entry<String, ?> pair : values.entrySet()) {
-                bytesBuilder.writeValue(pair.getKey(), pair);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        for (Map.Entry<String, ?> pair : values.entrySet()) {
+            bytesBuilder.writeValue(pair.getKey(), pair);
         }
         return bytesBuilder;
     }
@@ -63,6 +59,7 @@ public class ResponseBytesWriter {
     }
 
     private Buffer valuesBuffer;
+    private ByteString data;
 
     private final ArrayWriter arrayWriter = new ArrayWriter() {
         @Override
@@ -95,42 +92,50 @@ public class ResponseBytesWriter {
         }
     };
 
-    public ResponseBytesWriter beginObject() throws IOException {
+    public ResponseBytesWriter beginObject() {
         valuesBuffer.writeByte(16);
         return this;
     }
 
-    public ResponseBytesWriter endObject() throws IOException {
+    public ResponseBytesWriter endObject() {
         valuesBuffer.writeByte(0xFF);
         return this;
     }
 
-    public ArrayWriter beginArray() throws IOException {
+    public ArrayWriter beginArray() {
         valuesBuffer.writeByte(17);
         return arrayWriter;
     }
 
-    public ResponseBytesWriter endArray() throws IOException {
+    public ResponseBytesWriter endArray() {
         return endObject();
     }
 
-    public ResponseBytesWriter writeValue(String key, String value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, String value) {
         return write(key).write(value);
     }
 
-    public ResponseBytesWriter writeValue(String key, long value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, long value) {
         return write(key).write(value);
     }
 
-    public ResponseBytesWriter writeValue(String key, boolean value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, boolean value) {
         return write(key).write(value);
     }
 
-    public ResponseBytesWriter writeValue(String key, Object value) throws IOException {
+    public ResponseBytesWriter writeValue(String key, Object value) {
         return write(key).write(value);
     }
 
-    private ResponseBytesWriter write(Object value) throws IOException {
+    public ResponseBytesWriter setData(ByteString data) {
+        if (data == null) {
+            throw new IllegalStateException("setData() already called.");
+        }
+        this.data = data;
+        return write("data").writeDataSize(data.size());
+    }
+
+    private ResponseBytesWriter write(Object value) {
         final Class valueType = value.getClass();
         if (valueType == String.class) {
             return write((String) value);
@@ -170,25 +175,31 @@ public class ResponseBytesWriter {
         }
     }
 
-    private ResponseBytesWriter write(String value) throws IOException {
+    private ResponseBytesWriter write(String value) {
         valuesBuffer.writeByte(3);
         valuesBuffer.writeIntLe(value.length());
         valuesBuffer.writeUtf8(value);
         return this;
     }
 
-    private ResponseBytesWriter write(long value) throws IOException {
+    private ResponseBytesWriter write(long value) {
         valuesBuffer.writeByte(15);
         valuesBuffer.writeLongLe(value);
         return this;
     }
 
-    private ResponseBytesWriter write(boolean value) throws IOException {
+    private ResponseBytesWriter write(boolean value) {
         valuesBuffer.writeByte(value ? 19 : 18);
         return this;
     }
 
-    public ResponseBytesWriter clone(){
+    private ResponseBytesWriter writeDataSize(long size) {
+        valuesBuffer.writeByte(20);
+        valuesBuffer.writeLongLe(size);
+        return this;
+    }
+
+    public ResponseBytesWriter clone() {
         return new ResponseBytesWriter(this);
     }
 
@@ -214,14 +225,21 @@ public class ResponseBytesWriter {
         }
         sink.writeByte(0XFF); // End object
 
+        if (data != null) {
+            sink.write(data);
+        }
     }
 
-    public Map<String, ?> toValues() throws IOException {
+    public Map<String, ?> toValues() {
         Buffer buffer = new Buffer();
-        writeTo(buffer);
-        ProtocolResponseReader responseReader = new BytesReader(buffer);
-        responseReader.beginResponse();
-        return new ValueReader().readObject(responseReader);
+        try {
+            writeTo(buffer);
+            ProtocolResponseReader responseReader = new BytesReader(buffer);
+            responseReader.beginResponse();
+            return new ValueReader().readObject(responseReader);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public ByteString bytes() {

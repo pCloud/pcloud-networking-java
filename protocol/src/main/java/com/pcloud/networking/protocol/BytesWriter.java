@@ -49,6 +49,8 @@ public class BytesWriter implements ProtocolRequestWriter {
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
     private static final int MAX_METHOD_LENGTH = 127;
     private static final int BITWISE_SHIFT_SIX = 6;
+    public static final int DATA_LENGTH_SIZE = 8;
+    public static final int METHOD_NAME_LENGTH_SIZE = 2;
 
     private final BufferedSink sink;
     private final Buffer paramsBuffer;
@@ -63,6 +65,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     /**
      * Create a {@linkplain BytesReader} instance
      * <p>
+     *
      * @param sink a {@linkplain BufferedSink} to house the bytes
      * @throws IllegalArgumentException on a null {@linkplain BufferedSink} argument
      */
@@ -125,13 +128,14 @@ public class BytesWriter implements ProtocolRequestWriter {
         boolean hasData = dataSourceLength > 0;
 
         final long requestSize =
-                (hasData ? 8 : 0) + // Data length, if any (8 bytes)
-                        2 + // Method name length + data flag (1 byte) + Parameter count (1 byte)
+                (hasData ? DATA_LENGTH_SIZE : 0) + // Data length, if any (8 bytes)
+                        1 + // Method name length + data flag (1 byte)
+                        1 + // + Parameter count (1 byte)
                         methodNameLength +
                         +paramsBuffer.size();
         if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
             throw new SerializationException("The maximum allowed request size is 65535 bytes," +
-                                                     " current is " + requestSize + " bytes.");
+                    " current is " + requestSize + " bytes.");
         }
 
         if (hasData) {
