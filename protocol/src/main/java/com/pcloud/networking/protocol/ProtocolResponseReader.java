@@ -57,7 +57,7 @@ public interface ProtocolResponseReader extends ProtocolReader {
      * End reading a response from the data source
      * <p>
      *
-     * @return the length of the data after the response
+     * @return the boolean which indicates if the response has ended
      * @throws IOException if the source has been exhausted prior to this operation
      */
     boolean endResponse() throws IOException;
