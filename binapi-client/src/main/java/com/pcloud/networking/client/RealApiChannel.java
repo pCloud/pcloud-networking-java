@@ -10,7 +10,7 @@ import okio.BufferedSink;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.concurrent.atomic.AtomicLong;
+import java.nio.channels.ClosedChannelException;
 
 class RealApiChannel implements ApiChannel {
 
@@ -19,9 +19,11 @@ class RealApiChannel implements ApiChannel {
     private ProtocolRequestWriter writer;
     private ProtocolResponseReader reader;
     private final Endpoint endpoint;
-    private final AtomicLong completedRequests = new AtomicLong(0);
-    private final AtomicLong completedResponses = new AtomicLong(0);
+    private volatile long completedRequests;
+    private volatile long completedResponses;
     private volatile boolean closed;
+
+    private final Object counterLock = new Object();
 
     RealApiChannel(ConnectionProvider connectionProvider, Endpoint endpoint) throws IOException {
         this.connectionProvider = connectionProvider;
@@ -52,6 +54,13 @@ class RealApiChannel implements ApiChannel {
     }
 
     @Override
+    public boolean isIdle() {
+        synchronized (counterLock) {
+            return completedRequests == completedResponses;
+        }
+    }
+
+    @Override
     public void close() {
         if (!closed) {
             // Lock to avoid recycling the same connection twice
@@ -59,7 +68,7 @@ class RealApiChannel implements ApiChannel {
             synchronized (this) {
                 if (!closed) {
                     closed = true;
-                    if (completedRequests.get() == completedResponses.get()) {
+                    if (isIdle()) {
                         connectionProvider.recycleConnection(connection);
                     } else {
                         connection.close();
@@ -70,18 +79,22 @@ class RealApiChannel implements ApiChannel {
         }
     }
 
-    private void checkNotClosed() throws IOException {
+    private void checkNotClosed() throws ClosedChannelException {
         if (closed) {
-            throw new IOException("Already closed.");
+            throw new ClosedChannelException();
         }
     }
 
     private void completeResponse() {
-        completedRequests.incrementAndGet();
+        synchronized (counterLock) {
+            completedResponses++;
+        }
     }
 
     private void completeRequest() {
-        completedResponses.incrementAndGet();
+        synchronized (counterLock) {
+            completedRequests++;
+        }
     }
 
     private static class CountingProtocolRequestWriter implements ProtocolRequestWriter {
@@ -235,6 +248,7 @@ class RealApiChannel implements ApiChannel {
 
         @Override
         public TypeToken peek() throws IOException {
+            apiChannel.checkNotClosed();
             return delegate.peek();
         }
 
@@ -287,6 +301,7 @@ class RealApiChannel implements ApiChannel {
 
         @Override
         public boolean hasNext() throws IOException {
+            apiChannel.checkNotClosed();
             return delegate.hasNext();
         }
 

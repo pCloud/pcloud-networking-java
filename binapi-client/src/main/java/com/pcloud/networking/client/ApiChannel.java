@@ -4,7 +4,7 @@ import com.pcloud.networking.protocol.ProtocolRequestWriter;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
 import okio.BufferedSink;
 
-import java.io.Closeable;
+import java.nio.channels.Channel;
 
 /**
  * A low-level contract for interfacing with an pCloud API Host via
@@ -38,7 +38,7 @@ import java.io.Closeable;
  * Instances can be obtained via the {@linkplain PCloudAPIClient#newChannel(Endpoint)} and
  * {@linkplain PCloudAPIClient#newChannel()} methods.
  */
-public interface ApiChannel extends Closeable, AutoCloseable {
+public interface ApiChannel extends Channel, AutoCloseable {
     /**
      * @return the non-null {@linkplain Endpoint} to which this channel is connected.
      */
@@ -55,9 +55,18 @@ public interface ApiChannel extends Closeable, AutoCloseable {
     ProtocolRequestWriter writer();
 
     /**
-     * @return {@code true} if the channel is not closed, {@code false} otherwise.
+     * Check whether the channel is idle
+     * <p>
+     * An {@linkplain ApiChannel} is idle when the number of completed requests
+     * equals the number of completely read responses.
+     * <p>
+     *  A fresh {@linkplain ApiChannel} instance will always be idle.
+     *  <p>
+     *  The return value for already closed {@linkplain ApiChannel} instances is undetermined.
+     *
+     * @return {@code true} if channel is idle, {@code false} otherwise.
      */
-    boolean isOpen();
+    boolean isIdle();
 
     @Override
     void close();
