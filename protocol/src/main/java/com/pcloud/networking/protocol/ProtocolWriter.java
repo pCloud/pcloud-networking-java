@@ -17,7 +17,6 @@
 package com.pcloud.networking.protocol;
 
 import java.io.Closeable;
-import java.io.Flushable;
 import java.io.IOException;
 
 /**
@@ -25,7 +24,7 @@ import java.io.IOException;
  * @see BytesWriter
  * @see ValueWriter
  */
-public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
+public interface ProtocolWriter extends AutoCloseable, Closeable {
 
     /**
      * Write a key for a data pair
@@ -111,11 +110,4 @@ public interface ProtocolWriter extends AutoCloseable, Closeable, Flushable {
      */
     @Override
     void close();
-
-    /**
-     *  Flush the data source
-     *  @throws IOException on failed IO operations
-     */
-    @Override
-    void flush() throws IOException;
 }

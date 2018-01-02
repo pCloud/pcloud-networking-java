@@ -49,9 +49,11 @@ public class BytesWriter implements ProtocolRequestWriter {
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
     private static final int MAX_METHOD_LENGTH = 127;
     private static final int BITWISE_SHIFT_SIX = 6;
+    public static final int DATA_LENGTH_SIZE = 8;
+    public static final int METHOD_NAME_LENGTH_SIZE = 2;
 
-    private BufferedSink sink;
-    private Buffer paramsBuffer;
+    private final BufferedSink sink;
+    private final Buffer paramsBuffer;
     private DataSource dataSource;
 
     private String methodName;
@@ -106,50 +108,57 @@ public class BytesWriter implements ProtocolRequestWriter {
         checkWriteValueFinished();
 
         if (methodName == null) {
-            throw new IllegalArgumentException("Cannot end request, writeMethodName() has not been called.");
+            throw new IllegalArgumentException("Cannot end request, " +
+                    "writeMethodName() has not been called.");
         }
-
-
-        Buffer metadataBuffer = new Buffer();
 
         int methodNameLength = (int) Utf8.size(methodName);
         if (methodNameLength > MAX_METHOD_LENGTH) {
-            throw new SerializationException("Method name cannot be larger than 127 bytes.");
+            throw new SerializationException(
+                    "Invalid method name '%s', " +
+                            "value cannot be larger than 127 bytes in UTF-8 encoding.", methodName);
         }
 
         final long dataSourceLength = dataSource != null ? dataSource.contentLength() : 0;
         if (dataSourceLength < 0L) {
-            throw new SerializationException("Unknown or invalid DataSource content length '" +
-                                                     dataSourceLength +
-                                                     "'.");
+            throw new SerializationException(
+                    "Unknown or invalid DataSource content length '%d'.", dataSourceLength);
         }
 
         boolean hasData = dataSourceLength > 0;
+
+        final long requestSize =
+                (hasData ? DATA_LENGTH_SIZE : 0) + // Data length, if any (8 bytes)
+                        1 + // Method name length + data flag (1 byte)
+                        1 + // + Parameter count (1 byte)
+                        methodNameLength +
+                        +paramsBuffer.size();
+        if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
+            throw new SerializationException("The maximum allowed request size is 65535 bytes," +
+                    " current is " + requestSize + " bytes.");
+        }
+
         if (hasData) {
             methodNameLength = methodNameLength | (1 << REQUEST_BINARY_DATA_FLAG_POSITION);
         }
-        metadataBuffer.writeByte(methodNameLength);
 
+        sink.writeShortLe((int) requestSize); // Request size, 2 bytes
+        sink.writeByte(methodNameLength);
         if (hasData) {
-            metadataBuffer.writeLongLe(dataSourceLength);
+            sink.writeLongLe(dataSourceLength); // Size of data after response, 8 bytes
         }
-
-        metadataBuffer.writeUtf8(methodName);
-        metadataBuffer.writeByte(parameterCount);
-
-        final long requestSize = metadataBuffer.size() + paramsBuffer.size();
-        if (requestSize > REQUEST_SIZE_LIMIT_BYTES) {
-            throw new SerializationException("The maximum allowed request size is 65535 bytes," +
-                                                     " current is " + requestSize + " bytes.");
-        }
-
-        sink.writeShortLe((int) requestSize);
-        sink.write(metadataBuffer, metadataBuffer.size());
+        sink.writeUtf8(methodName);
+        sink.writeByte(parameterCount);
         sink.write(this.paramsBuffer, paramsBuffer.size());
         if (hasData) {
             dataSource.writeTo(sink);
         }
 
+        sink.emit();
+        dataSource = null;
+        methodName = null;
+        requestStarted = false;
+        parameterCount = 0;
         return this;
     }
 
@@ -295,16 +304,6 @@ public class BytesWriter implements ProtocolRequestWriter {
         closeQuietly(sink);
         closeQuietly(paramsBuffer);
         dataSource = null;
-    }
-
-    /**
-     * Flush the {@linkplain BufferedSink}
-     *
-     * @throws IOException on failed IO operations
-     */
-    @Override
-    public void flush() throws IOException {
-        sink.flush();
     }
 
     private void checkRequestStarted() {

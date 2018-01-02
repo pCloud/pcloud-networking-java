@@ -20,12 +20,12 @@ import com.pcloud.utils.DummyBufferedSource;
 import okio.Buffer;
 import okio.BufferedSource;
 import okio.ByteString;
+import okio.Okio;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
-
 
 import static org.junit.Assert.*;
 
@@ -35,24 +35,29 @@ public class BytesReaderTest {
     private BufferedSource source;
     private Buffer buffer;
 
-    //an actual getthumb response as a hex
-    private final byte[] bytes = ByteString.decodeHex("18000000106a726573756c74c86864617461144303000000000000ff").toByteArray();
-    // the actual contentDataLength of this response
-    private static final long CONTENT_DATA_LENGTH = 835;
+    private static final ByteString MOCK_RESPONSE = new ResponseBytesWriter()
+            .writeValue("result", 0L)
+            .bytes();
+    private static final ByteString MOCK_DATA = ByteString.encodeUtf8("some data");
+    private static final ByteString MOCK_DATA_RESPONSE = new ResponseBytesWriter()
+            .writeValue("result", 0L)
+            .writeValue("somefield", "someData")
+            .setData(MOCK_DATA)
+            .bytes();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void setUp() {
-        buffer = new Buffer().write(bytes);
+        buffer = new Buffer();
         source = Mockito.spy(new DummyBufferedSource(buffer));
         reader = new BytesReader(source);
+        setIncomingResponse(MOCK_RESPONSE);
     }
 
     @Test
     public void constructor_Throws_On_Null_Argument() throws Exception {
-
         expectedException.expect(IllegalArgumentException.class);
         reader = new BytesReader(null);
     }
@@ -66,16 +71,14 @@ public class BytesReaderTest {
 
     @Test
     public void beginResponse_Throws_If_Called_Twice_In_A_Row() throws Exception {
-
-        expectedException.expect(SerializationException.class);
+        expectedException.expect(IllegalStateException.class);
         reader.beginResponse();
         reader.beginResponse();
     }
 
     @Test
     public void endResponse_Throws_If_Called_Before_beginResponse() throws Exception {
-
-        expectedException.expect(SerializationException.class);
+        expectedException.expect(IllegalStateException.class);
         reader.endResponse();
     }
 
@@ -137,7 +140,7 @@ public class BytesReaderTest {
 
     @Test
     public void dataContentLength_Should_Be_Equal_To_Actual_Length_Of_Data() throws Exception {
-
+        setIncomingResponse(MOCK_DATA_RESPONSE);
         reader.beginResponse();
 
         while (reader.hasNext()) {
@@ -145,7 +148,7 @@ public class BytesReaderTest {
         }
 
         reader.endResponse();
-        assertTrue(reader.dataContentLength() == CONTENT_DATA_LENGTH);
+        assertTrue(reader.dataContentLength() == MOCK_DATA.size());
     }
 
     @Test
@@ -158,11 +161,10 @@ public class BytesReaderTest {
 
     @Test
     public void readNumber_ShouldNotFail() throws Exception {
-
         reader.beginResponse();
         reader.beginObject();
         reader.readString();
-        assertNotNull(reader.readNumber());
+        reader.readNumber();
     }
 
     @Test
@@ -183,6 +185,11 @@ public class BytesReaderTest {
         reader.peek();
         long sizeAfter = buffer.size();
         assertEquals(sizeBefore, sizeAfter);
+    }
+
+    private void setIncomingResponse(ByteString responseBytes) {
+        buffer.clear();
+        buffer.write(responseBytes);
     }
 
     @Test
@@ -254,6 +261,21 @@ public class BytesReaderTest {
     }
 
     @Test
+    public void scope_Should_Be_SCOPE_DATA_After_endResponse_When_Reading_Data_Response() throws Exception {
+        setIncomingResponse(MOCK_DATA_RESPONSE);
+        reader.beginResponse();
+
+        //reading the whole response
+        while (reader.hasNext()) {
+            reader.skipValue();
+        }
+
+        reader.endResponse();
+        //we have read the whole response and called endResponse() so we should be at SCOPE_NONE
+        assertEquals(reader.currentScope(), ProtocolResponseReader.SCOPE_DATA);
+    }
+
+    @Test
     public void peekingReader_Should_Not_Return_Null() throws Exception {
 
         assertNotNull(reader.newPeekingReader());
@@ -312,6 +334,20 @@ public class BytesReaderTest {
                     break;
             }
         }
+    }
+
+    @Test
+    public void peekingReader_readData_Should_Fail_1() throws Exception {
+        setIncomingResponse(MOCK_DATA_RESPONSE);
+        expectedException.expect(UnsupportedOperationException.class);
+        reader.newPeekingReader().readData(Okio.buffer(Okio.blackhole()));
+    }
+
+    @Test
+    public void peekingReader_readData_Should_Fail_2() throws Exception {
+        setIncomingResponse(MOCK_DATA_RESPONSE);
+        expectedException.expect(UnsupportedOperationException.class);
+        reader.newPeekingReader().readData(Okio.buffer(Okio.blackhole()).outputStream());
     }
 
     @Test

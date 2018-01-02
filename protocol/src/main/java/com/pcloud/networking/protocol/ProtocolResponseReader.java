@@ -16,7 +16,10 @@
 
 package com.pcloud.networking.protocol;
 
+import okio.BufferedSink;
+
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * A contract for a reader which can read data from a response
@@ -30,7 +33,11 @@ public interface ProtocolResponseReader extends ProtocolReader {
     /**
      * Indicates the reader has begun reading a response
      */
-    int SCOPE_RESPONSE = 1;
+    int SCOPE_RESPONSE = 2;
+    /**
+     * Indicated the reading is at the beginning of a response's attached byte data.
+     */
+    int SCOPE_DATA = 1;
 
     /**
      * A value to indicate the data content length is unknown
@@ -53,7 +60,7 @@ public interface ProtocolResponseReader extends ProtocolReader {
      * @return the length of the data after the response
      * @throws IOException if the source has been exhausted prior to this operation
      */
-    long endResponse() throws IOException;
+    boolean endResponse() throws IOException;
 
     /**
      * Get the length of the data that follows the response
@@ -62,6 +69,33 @@ public interface ProtocolResponseReader extends ProtocolReader {
      * @return a long representing the data length
      */
     long dataContentLength();
+
+    /**
+     * Read the data after a response.
+     * <p>
+     * Use this method to red the data after reading a data-enriched response.
+     * Calling this method when the scope returned by {@linkplain #currentScope()} is not
+     * {@linkplain #SCOPE_DATA} will result in a {@linkplain IllegalStateException} error.
+     *
+     * @param sink the non-null recipient of data
+     * @throws IOException           or read or write errors.
+     * @throws IllegalStateException if called in scope other than @{@linkplain #SCOPE_DATA}
+     */
+    void readData(BufferedSink sink) throws IOException;
+
+
+    /**
+     * Read the data after a response.
+     * <p>
+     * Use this method to red the data after reading a data-enriched response.
+     * Calling this method when the scope returned by {@linkplain #currentScope()} is not
+     * {@linkplain #SCOPE_DATA} will result in a {@linkplain IllegalStateException} error.
+     *
+     * @param outputStream the non-null recipient of data
+     * @throws IOException           or read or write errors.
+     * @throws IllegalStateException if called in scope other than @{@linkplain #SCOPE_DATA}
+     */
+    void readData(OutputStream outputStream) throws IOException;
 
     /**
      * {@inheritDoc}

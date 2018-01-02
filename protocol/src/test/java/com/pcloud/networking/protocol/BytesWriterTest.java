@@ -25,13 +25,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static org.mockito.Matchers.any;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
@@ -40,14 +39,12 @@ public class BytesWriterTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
-
     private ProtocolRequestWriter writer;
     private BufferedSink dataSink;
-    private BufferedSink buffer;
 
     @Before
     public void setUp() {
-        buffer = new Buffer();
+        BufferedSink buffer = new Buffer();
         dataSink = spy(new DummyBufferedSink(buffer));
         writer = new BytesWriter(dataSink);
     }
@@ -88,12 +85,6 @@ public class BytesWriterTest {
     }
 
     @Test
-    public void flush_Flushes_Wrapped_Sink() throws Exception {
-        writer.flush();
-        verify(dataSink).flush();
-    }
-
-    @Test
     public void beginRequest_Throws_If_Request_Already_Started() throws Exception {
         writer.beginRequest();
         exception.expect(IllegalStateException.class);
@@ -102,7 +93,6 @@ public class BytesWriterTest {
 
     @Test
     public void endRequest_Throws_If_WriteName_Was_Not_Called() throws Exception {
-
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest();
         writer.endRequest();
@@ -110,7 +100,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeMethodName_Throws_If_Called_Twice() throws Exception {
-
         exception.expect(IllegalStateException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -118,8 +107,7 @@ public class BytesWriterTest {
     }
 
     @Test
-    public void endRequest_Throws_If_MethodName_Longer_Than_128() throws Exception {
-
+    public void endRequest_Throws_If_MethodName_Longer_Than_127_Bytes() throws Exception {
         exception.expect(SerializationException.class);
         writer.beginRequest()
                 .writeMethodName("Lorem ipsum dolor sit amet, " +
@@ -132,7 +120,6 @@ public class BytesWriterTest {
 
     @Test
     public void endRequest_Throws_If_DataSource_Length_Is_0() throws Exception {
-
         exception.expect(SerializationException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -146,7 +133,6 @@ public class BytesWriterTest {
 
     @Test
     public void endRequest_Throws_On_Request_Longer_Than_65k_Bytes() throws Exception {
-
         exception.expect(SerializationException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod");
@@ -159,7 +145,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeName_Throws_If_Called_Twice_Without_writeValue() throws Exception {
-
         exception.expect(IllegalStateException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -170,7 +155,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeName_Throws_On_More_Than_225_Arguments() throws Exception {
-
         exception.expect(SerializationException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod");
@@ -184,7 +168,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeValue_Throws_If_Param_Name_Exceeds_63() throws Exception {
-
         exception.expect(SerializationException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -199,7 +182,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeValue_Throws_On_Null_Value() throws Exception {
-
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -210,7 +192,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeValue_Throws_If_Called_Twice_In_A_Row_Without_Calling_WriteName_First() throws Exception {
-
         exception.expect(IllegalStateException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -222,8 +203,7 @@ public class BytesWriterTest {
 
     @Test
     public void writeData_Throws_If_Called_Twice() throws Exception {
-
-        DataSource source =  DataSource.create(ByteString.encodeUtf8("abc"));
+        DataSource source = DataSource.create(ByteString.encodeUtf8("abc"));
         exception.expect(IllegalStateException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -234,7 +214,6 @@ public class BytesWriterTest {
 
     @Test
     public void writeValue_Throws_If_Passed_Argument_Cannot_Be_Serialized() throws Exception {
-
         exception.expect(IllegalArgumentException.class);
         writer.beginRequest()
                 .writeMethodName("somemethod")
@@ -244,20 +223,65 @@ public class BytesWriterTest {
     }
 
     @Test
-    public void endRequest_Calls_Write_On_Sink_Twice() throws Exception {
-
+    public void endRequest_Calls_Emit_On_Sink() throws Exception {
         writer.beginRequest()
                 .writeMethodName("somemethod")
                 .writeName("somename")
                 .writeValue("somevalue")
                 .endRequest();
-        verify(dataSink, times(2)).write(any(Buffer.class), any(Long.class));
-        verify(dataSink).writeShortLe(any(Integer.class));
+        verify(dataSink, times(1)).emit();
     }
 
+    private static final ByteString TEST_REQUEST_BYTES = ByteString.decodeHex(
+            "69000a736f6d656d6574686f6406446c6f6e67010000000000000087626f6f6c65616e010673" +
+                    "7472696e6709000000736f6d657468696e6705666c6f617403000000322e3306646f" +
+                    "75626c6504000000322e3035106e6567617469766520696e7465676572020000002d31");
+    private static final ByteString TEST_REQUEST_WITH_DATA_BYTES = ByteString.decodeHex(
+            "71008a0300000000000000736f6d656d6574686f6406446c6f6e67010000000000000087626f" +
+                    "6f6c65616e0106737472696e6709000000736f6d657468696e6705666c6f61740300" +
+                    "0000322e3306646f75626c6504000000322e3035106e6567617469766520696e7465" +
+                    "676572020000002d31616263");
 
     @Test
-    public void bytes_In_Data_Sink_Test_With_All_Possible_Values_And_No_Data() throws Exception {
+    public void protocolWriter_writes_Complete_Request_Correctly() throws Exception {
+        writeRequestWithoutData(writer);
+        ByteString sentBytes = dataSink.buffer().readByteString();
+        assertEquals(TEST_REQUEST_BYTES, sentBytes);
+    }
+
+    @Test
+    public void protocolWriter_writes_Complete_Request_With_Data_Correctly() throws Exception {
+
+        writeRequestWithData(writer);
+        ByteString sentBytes = dataSink.buffer().readByteString();
+        assertEquals(TEST_REQUEST_WITH_DATA_BYTES, sentBytes);
+    }
+
+    @Test
+    public void protocolWriter_Writes_Multiple_Requests_Correctly() throws Exception {
+        writeRequestWithoutData(writer);
+        writeRequestWithData(writer);
+        writeRequestWithData(writer);
+        writeRequestWithoutData(writer);
+        writeRequestWithData(writer);
+
+        dataSink.flush();
+        ByteString sentBytes = dataSink.buffer().readByteString();
+        ByteString expectedBytes = new Buffer()
+                .write(TEST_REQUEST_BYTES)
+                .write(TEST_REQUEST_WITH_DATA_BYTES)
+                .write(TEST_REQUEST_WITH_DATA_BYTES)
+                .write(TEST_REQUEST_BYTES)
+                .write(TEST_REQUEST_WITH_DATA_BYTES)
+                .readByteString();
+        assertTrue(String.format("Expected and sent bytes are different." +
+                        "\nExpected: (%d bytes) [%s]" +
+                        "\n  Actual: (%d bytes) [%s]", expectedBytes.size(), expectedBytes.hex(),
+                sentBytes.size(), sentBytes.hex()),
+                sentBytes.equals(expectedBytes));
+    }
+
+    private static void writeRequestWithoutData(ProtocolRequestWriter writer) throws IOException {
         writer.beginRequest()
                 .writeMethodName("somemethod")
                 .writeName("long").writeValue(1)
@@ -265,21 +289,11 @@ public class BytesWriterTest {
                 .writeName("string").writeValue("something")
                 .writeName("float").writeValue(2.3f)
                 .writeName("double").writeValue(2.05d)
+                .writeName("negative integer").writeValue(-1L)
                 .endRequest();
-        //these are the bytes from the request itself
-        byte[] bytes = dataSink.buffer().readByteString().toByteArray();
-        writer.flush();
-        //This is a string representation of what the hex from the request above should look like
-        String string = "52000a736f6d656d6574686f6405446c6f6e67010000000000000087626f6f6c65616e0106737472696e6709000000736f6d657468696e6705666c6f617403000000322e3306646f75626c6504000000322e3035";
-        //these are the bytes as they should be if the writer is working as expected
-        byte[] expectedBytes = ByteString.decodeHex(string).toByteArray();
-        //the two arrays should contain identical bytes
-        assertArrayEquals(expectedBytes, bytes);
     }
 
-    @Test
-    public void bytes_In_Data_Sink_Test_With_All_Possible_Values_And_Data() throws Exception {
-
+    private static void writeRequestWithData(ProtocolRequestWriter writer) throws IOException {
         writer.beginRequest()
                 .writeMethodName("somemethod")
                 .writeName("long").writeValue(1)
@@ -287,17 +301,8 @@ public class BytesWriterTest {
                 .writeName("string").writeValue("something")
                 .writeName("float").writeValue(2.3f)
                 .writeName("double").writeValue(2.05d)
+                .writeName("negative integer").writeValue(-1L)
                 .writeData(DataSource.create(ByteString.encodeUtf8("abc")))
                 .endRequest();
-
-        //these are the bytes from the request itself
-        byte[] bytes = dataSink.buffer().readByteString().toByteArray();
-        writer.flush();
-        //This is a string representation of what the hex from the request above should look like
-        String string = "5a008a0300000000000000736f6d656d6574686f6405446c6f6e67010000000000000087626f6f6c65616e0106737472696e6709000000736f6d657468696e6705666c6f617403000000322e3306646f75626c6504000000322e3035616263";
-        //these are the bytes as they should be if the writer is working as expected
-        byte[] expectedBytes = ByteString.decodeHex(string).toByteArray();
-        //the two arrays should contain identical bytes
-        assertArrayEquals(expectedBytes, bytes);
     }
 }
