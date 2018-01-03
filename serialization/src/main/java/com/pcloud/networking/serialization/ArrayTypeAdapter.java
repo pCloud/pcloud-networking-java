@@ -51,7 +51,17 @@ class ArrayTypeAdapter extends TypeAdapter<Object>  {
 
     @Override
     public void serialize(ProtocolWriter writer, Object value) throws IOException {
-        throw new UnserializableTypeException(value.getClass());
+        int arrayLength = Array.getLength(value);
+        StringJoiner joiner = new StringJoiner(",");
+        for (int i = 0; i < arrayLength; i++) {
+            Object item = Array.get(value, i);
+            if (item != null) {
+                joiner.join(item.toString());
+            }
+
+        }
+
+        writer.writeValue(joiner.result());
     }
 
     @Override public String toString() {
