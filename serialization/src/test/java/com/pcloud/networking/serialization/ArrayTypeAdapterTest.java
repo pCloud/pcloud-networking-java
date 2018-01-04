@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 
 /**
@@ -36,6 +37,13 @@ public class ArrayTypeAdapterTest {
     @After
     public void tearDown() {
         writer = null;
+    }
+
+    @Test
+    public void skips_Writing_When_Serializing_Null_Array() throws Exception {
+        ArrayTypeAdapter typeAdapter = new ArrayTypeAdapter(int.class, null);
+        typeAdapter.serialize(writer, null);
+        verifyZeroInteractions(writer);
     }
 
     @Test

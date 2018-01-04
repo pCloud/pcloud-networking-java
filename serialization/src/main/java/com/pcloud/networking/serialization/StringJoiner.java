@@ -38,8 +38,8 @@ class StringJoiner {
         return builder;
     }
 
-    String result() {
-        return builder.toString();
+    @Override
+    public String toString() {
+        return builder != null ? builder.toString() : "";
     }
-
 }

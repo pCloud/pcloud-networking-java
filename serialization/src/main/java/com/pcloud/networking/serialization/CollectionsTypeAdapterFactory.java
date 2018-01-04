@@ -49,7 +49,7 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
 
     static <T> TypeAdapter<Collection<T>> newArrayListAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
-        TypeAdapter<T> elementAdapter = transformer.getTypeAdapter(elementType);
+        TypeAdapter<T> elementAdapter = getTypeAdapter(transformer, elementType);
         return new CollectionTypeAdapter<Collection<T>, T>(elementAdapter) {
             @Override
             protected Collection<T> instantiateCollection() {
@@ -60,7 +60,7 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
 
     static <T> TypeAdapter<Set<T>> newLinkedHashSetAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
-        TypeAdapter<T> elementAdapter = transformer.getTypeAdapter(elementType);
+        TypeAdapter<T> elementAdapter = getTypeAdapter(transformer, elementType);
         return new CollectionTypeAdapter<Set<T>, T>(elementAdapter) {
 
             @Override
@@ -81,5 +81,13 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
                 return new TreeMap<>();
             }
         };
+    }
+
+    static <T> TypeAdapter<T> getTypeAdapter(Transformer transformer, Type type) {
+        TypeAdapter<T> typeAdapter = transformer.getTypeAdapter(type);
+        if (!Utils.typeIsSafeToSerialize(type)) {
+            typeAdapter = new GuardedSerializationTypeAdapter<>(typeAdapter);
+        }
+        return typeAdapter;
     }
 }

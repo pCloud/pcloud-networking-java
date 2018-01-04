@@ -21,12 +21,18 @@ import java.io.IOException;
 /**
  * A {@linkplain ProtocolReader} which forwards calls to another.
  * <p>
- * Useful for wrapping subclassing without inheritance.
+ * Useful for wrapping and subclassing without inheritance.
  */
 public abstract class ForwardingProtocolReader implements ProtocolReader {
 
     private ProtocolReader delegate;
 
+    /**
+     * Construct a new {@linkplain ForwardingProtocolReader} instance
+     * @param delegate a non-null {@linkplain ProtocolReader} to be guarded.
+     *
+     * @throws IllegalArgumentException on a null {@linkplain ProtocolReader} argument.
+     */
     protected ForwardingProtocolReader(ProtocolReader delegate) {
         if (delegate == null) {
             throw new IllegalArgumentException("ProtocolReader argument cannot be null.");

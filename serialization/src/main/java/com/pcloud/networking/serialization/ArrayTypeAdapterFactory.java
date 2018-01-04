@@ -27,6 +27,9 @@ class ArrayTypeAdapterFactory implements TypeAdapterFactory {
         if (elementType != null) {
             Class<?> elementClass = Types.getRawType(elementType);
             TypeAdapter<Object> elementAdapter = transformer.getTypeAdapter(elementType);
+            if (!Utils.typeIsSafeToSerialize(elementClass)) {
+                elementAdapter = new GuardedSerializationTypeAdapter<>(elementAdapter);
+            }
             return new ArrayTypeAdapter(elementClass, elementAdapter);
         }
 

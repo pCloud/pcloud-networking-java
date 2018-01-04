@@ -43,14 +43,16 @@ abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAda
 
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
-        StringJoiner joiner = new StringJoiner(",");
-        for (E item : value) {
-            if (item != null) {
-                joiner.join(item.toString());
+        if (value != null && value.size() > 0) {
+            StringJoiner joiner = new StringJoiner(",");
+            for (E item : value) {
+                if (item != null) {
+                    joiner.join(item.toString());
+                }
             }
-        }
 
-        writer.writeValue(joiner.result());
+            writer.writeValue(joiner.toString());
+        }
     }
 
     protected abstract T instantiateCollection();

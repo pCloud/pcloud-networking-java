@@ -21,7 +21,7 @@ class Utils {
                 type == String.class;
     }
 
-    static boolean fieldTypeIsSerializable(Type type) {
+    static boolean typeIsSafeToSerialize(Type type) {
         return type == Long.class || type == long.class ||
                 type == Integer.class || type == int.class ||
                 type == Short.class || type == short.class ||

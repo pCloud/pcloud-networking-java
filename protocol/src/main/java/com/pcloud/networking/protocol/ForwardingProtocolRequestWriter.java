@@ -21,12 +21,18 @@ import java.io.IOException;
 /**
  * A {@linkplain ProtocolRequestWriter} which forwards calls to another.
  * <p>
- * Useful for wrapping subclassing without inheritance.
+ * Useful for wrapping and subclassing without inheritance.
  */
 public abstract class ForwardingProtocolRequestWriter implements ProtocolRequestWriter {
 
     private ProtocolRequestWriter delegate;
 
+    /**
+     * Construct a new {@linkplain ForwardingProtocolRequestWriter} instance
+     * @param delegate a non-null {@linkplain ProtocolRequestWriter} to be guarded.
+     *
+     * @throws IllegalArgumentException on a null {@linkplain ProtocolRequestWriter} argument.
+     */
     protected ForwardingProtocolRequestWriter(ProtocolRequestWriter delegate) {
         if (delegate == null) {
             throw new IllegalArgumentException("ProtocolRequestWriter argument cannot be null.");

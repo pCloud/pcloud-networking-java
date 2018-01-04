@@ -31,8 +31,8 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
         if (rawType.isInterface() || rawType.isEnum()) return null;
         if (isPlatformType(rawType) && !Utils.isAllowedPlatformType(rawType)) {
             throw new IllegalArgumentException("Platform type '" +
-                                                       type +
-                                                       "' requires explicit TypeAdapter to be registered");
+                    type +
+                    "' requires explicit TypeAdapter to be registered");
         }
 
         if (rawType.getEnclosingClass() != null && !Modifier.isStatic(rawType.getModifiers())) {
@@ -72,6 +72,9 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
 
             Type fieldType = Types.resolve(type, rawType, field.getGenericType());
             TypeAdapter<Object> adapter = transformer.getTypeAdapter(fieldType);
+            if (!Utils.typeIsSafeToSerialize(fieldType)) {
+                adapter = new GuardedSerializationTypeAdapter<>(adapter);
+            }
 
             field.setAccessible(true);
 
@@ -79,15 +82,15 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
             ClassTypeAdapter.Binding<Object> fieldBinding =
-                    new ClassTypeAdapter.Binding<>(name, field, adapter, Utils.fieldTypeIsSerializable(fieldType));
+                    new ClassTypeAdapter.Binding<>(name, field, adapter);
             ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n" +
-                                                           "    " +
-                                                           existing.field +
-                                                           "\n" +
-                                                           "    " +
-                                                           fieldBinding.field);
+                        "    " +
+                        existing.field +
+                        "\n" +
+                        "    " +
+                        fieldBinding.field);
             }
         }
     }
@@ -99,11 +102,11 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     private boolean isPlatformType(Class<?> rawType) {
         String name = rawType.getName();
         return name.startsWith("android.") ||
-                       name.startsWith("java.") ||
-                       name.startsWith("javax.") ||
-                       name.startsWith("kotlin.") ||
-                       name.startsWith("scala.") ||
-                       name.startsWith("groovy.");
+                name.startsWith("java.") ||
+                name.startsWith("javax.") ||
+                name.startsWith("kotlin.") ||
+                name.startsWith("scala.") ||
+                name.startsWith("groovy.");
     }
 
     /**
@@ -114,4 +117,5 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
         if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) return false;
         return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || !platformType;
     }
+
 }

@@ -24,12 +24,18 @@ import java.io.OutputStream;
 /**
  * A {@linkplain ProtocolResponseReader} which forwards calls to another.
  * <p>
- * Useful for wrapping subclassing without inheritance.
+ * Useful for wrapping and subclassing without inheritance.
  */
 public abstract class ForwardingProtocolResponseReader implements ProtocolResponseReader {
 
     private ProtocolResponseReader delegate;
 
+    /**
+     * Construct a new {@linkplain ForwardingProtocolResponseReader} instance
+     * @param delegate a non-null {@linkplain ProtocolResponseReader} to be guarded.
+     *
+     * @throws IllegalArgumentException on a null {@linkplain ProtocolResponseReader} argument.
+     */
     protected ForwardingProtocolResponseReader(ProtocolResponseReader delegate) {
         if (delegate == null) {
             throw new IllegalArgumentException("ProtocolResponseReader argument cannot be null.");
