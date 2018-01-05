@@ -1,6 +1,70 @@
 Changelog
 ==========
 
+Version 2.0.0 (05.01.2018)
+--------------------------
+
+#### Protocol
+
+* `ProtocolWriter` no longer implements `Flushable`
+* `BytesWriter` instances can be reused for writing multiple requests.
+* Internal optimizations in `BytesWriter` to minimize allocations
+* More unit tests for `BytesWriter`
+* ProtocolResponseReader can now directly read the data after data-enriched responses.
+* Added the `SCOPE_DATA` scope in `ProtocolResponseReader` will be entered after all the values of a data-enriched       response are read and the `ProtocolResponseReader` is at the begging of the attached data bytes.
+* Add delegating implementations for `ProtocolReader`, `ProtocolResponseReader`, `ProtocolRequestWriter`and `ProtocolWriter`.
+
+#### Client
+
+* Add the `ApiChannel` low-level interface for writing and reading binary-encoded data to an API connection.
+	- This addition exposes the lowest possible level of detail when writing/reading messages from the API by still   	abstracting away the details of connection establishment, TLS handshaking and so on.
+	- The interface allows for pipelining of requests and reading/writing on separate threads.
+	- Instances of the interface can be opened via `PCloudApiClient.newChannel()`.
+
+#### Serialization
+
+* Move the `UnserializableTypeException` to the serialization module (was in the `protocol` module).
+* Add built-in support for the `char` and `Character` primitive types.
+* Add logic for serializing objects of arbitrary types that get transformed to a single value. Serializing a collection or an array of such a type will produce a single comma-separated `String` object containing all the serialized values converted via `String.valueOf()` to a their string representation.
+
+> Previously it was not possible to serialize custom types due to the unability to force an object to be serialized to a single value (e.g with a single call to `ProtocolWriter.writeValue()`).
+
+Example:
+
+```java
+    // An adapter that serializes a custom type to a single int/long/float/double/.../String primitive value
+    TypeAdapter<MyType> adapter = new TypeAdapter<MyType>() {
+        ...
+        @Override
+        public void serialize(ProtocolWriter writer, MyType value) throws IOException {
+            if (value != null) {
+                writer.writeValue("some value");
+            }
+        }
+    };
+
+	// Get an adapter for a collection or an array
+    TypeAdapter<Collection<MyType>> collectionAdapter = ...
+
+    ProtocolWriter writer = ...
+    Collection<MyType> collection = ...
+```
+
+Calling:
+```java
+	collectionAdapter.serialize(writer, collection);
+```
+is equivalent to:
+```java
+    writer.writeValue("some value,some value,some value");
+```
+
+#### Composer
+
+* Allow `null` objects to be assigned as `@Parameter`-annotated method arguments.
+* Allow `@Parameter`-annotated method arguments of arbitrary types.
+* Disallow `null` objects to be assigned as `@ResponseData`-annotated method arguments.
+
 Version 1.3.1 (10.10.2017)
 --------------------------
 
