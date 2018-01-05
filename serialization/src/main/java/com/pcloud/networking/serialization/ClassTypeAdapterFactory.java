@@ -25,14 +25,19 @@ import java.util.Map;
 import java.util.TreeMap;
 
 class ClassTypeAdapterFactory implements TypeAdapterFactory {
+
+    static final TypeAdapterFactory INSTANCE = new ClassTypeAdapterFactory();
+
+    private ClassTypeAdapterFactory() {
+    }
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isInterface() || rawType.isEnum()) return null;
-        if (isPlatformType(rawType) && !Utils.isAllowedPlatformType(rawType)) {
-            throw new IllegalArgumentException("Platform type '" +
-                                                       type +
-                                                       "' requires explicit TypeAdapter to be registered");
+        if (isPlatformType(rawType) && !rawType.isPrimitive() && !rawType.isEnum()) {
+            throw new IllegalArgumentException("Platform type '" + type +
+                    "' requires explicit TypeAdapter to be registered");
         }
 
         if (rawType.getEnclosingClass() != null && !Modifier.isStatic(rawType.getModifiers())) {
@@ -73,21 +78,26 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             Type fieldType = Types.resolve(type, rawType, field.getGenericType());
             TypeAdapter<Object> adapter = transformer.getTypeAdapter(fieldType);
 
+            Class<?> fieldClass = Types.getRawType(fieldType);
+            if (!fieldClass.isPrimitive() || !fieldClass.isEnum()) {
+                adapter = new GuardedSerializationTypeAdapter<>(adapter);
+            }
+
             field.setAccessible(true);
 
             // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
             ClassTypeAdapter.Binding<Object> fieldBinding =
-                    new ClassTypeAdapter.Binding<>(name, field, adapter, Utils.fieldTypeIsSerializable(fieldType));
+                    new ClassTypeAdapter.Binding<>(name, field, adapter);
             ClassTypeAdapter.Binding<?> existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n" +
-                                                           "    " +
-                                                           existing.field +
-                                                           "\n" +
-                                                           "    " +
-                                                           fieldBinding.field);
+                        "    " +
+                        existing.field +
+                        "\n" +
+                        "    " +
+                        fieldBinding.field);
             }
         }
     }
@@ -99,11 +109,11 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
     private boolean isPlatformType(Class<?> rawType) {
         String name = rawType.getName();
         return name.startsWith("android.") ||
-                       name.startsWith("java.") ||
-                       name.startsWith("javax.") ||
-                       name.startsWith("kotlin.") ||
-                       name.startsWith("scala.") ||
-                       name.startsWith("groovy.");
+                name.startsWith("java.") ||
+                name.startsWith("javax.") ||
+                name.startsWith("kotlin.") ||
+                name.startsWith("scala.") ||
+                name.startsWith("groovy.");
     }
 
     /**
@@ -114,4 +124,5 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
         if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)) return false;
         return Modifier.isPublic(modifiers) || Modifier.isProtected(modifiers) || !platformType;
     }
+
 }

@@ -33,9 +33,7 @@ public class UserInfoTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void getUserInfo_ShouldFailOnNullParameters() throws Exception {
-
-        exception.expect(IllegalArgumentException.class);
+    public void getUserInfo_ShouldNotFailOnNullParameters() throws Exception {
         userApi.getUserInfo(null, "", true);
     }
 
@@ -63,9 +61,7 @@ public class UserInfoTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void getUserInfo2_ShouldFailOnNullParameters() throws Exception {
-
-        exception.expect(IllegalArgumentException.class);
+    public void getUserInfo2_ShouldNotFailOnNullParameters() throws Exception {
         Call<UserInfoResponse> call = userApi.getUserInfo2(null, null, false);
         call.execute();
     }

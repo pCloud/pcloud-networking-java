@@ -25,6 +25,7 @@ import java.util.Collection;
 abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAdapter<T> {
 
     private TypeAdapter<E> elementAdapter;
+    private final ObjectPool<StringJoinerProtocolWriter> joinerWriterPool = new ObjectPool<>(5);
 
     CollectionTypeAdapter(TypeAdapter<E> elementAdapter) {
         this.elementAdapter = elementAdapter;
@@ -43,7 +44,25 @@ abstract class CollectionTypeAdapter<T extends Collection<E>, E> extends TypeAda
 
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
-        throw new UnserializableTypeException(value.getClass());
+        if (value != null) {
+            if (!value.isEmpty()) {
+                StringJoinerProtocolWriter joinWriter = joinerWriterPool.acquire();
+                if (joinWriter == null) {
+                    joinWriter = new StringJoinerProtocolWriter(",");
+                }
+                try {
+                    for (E item : value) {
+                        elementAdapter.serialize(joinWriter, item);
+                    }
+                    writer.writeValue(joinWriter.result());
+                } finally {
+                    joinWriter.reset();
+                    joinerWriterPool.recycle(joinWriter);
+                }
+            } else {
+                writer.writeValue("");
+            }
+        }
     }
 
     protected abstract T instantiateCollection();

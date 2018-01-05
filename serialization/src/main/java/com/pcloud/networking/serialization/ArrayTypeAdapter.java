@@ -24,12 +24,14 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
-class ArrayTypeAdapter extends TypeAdapter<Object>  {
+class ArrayTypeAdapter extends TypeAdapter<Object> {
+
+    private final ObjectPool<StringJoinerProtocolWriter> joinerWriterPool = new ObjectPool<>(5);
 
     private Class<?> elementClass;
-    private TypeAdapter<Object> elementAdapter;
+    private TypeAdapter elementAdapter;
 
-    ArrayTypeAdapter(Class<?> elementClass, TypeAdapter<Object> elementAdapter) {
+    ArrayTypeAdapter(Class<?> elementClass, TypeAdapter elementAdapter) {
         this.elementClass = elementClass;
         this.elementAdapter = elementAdapter;
     }
@@ -49,12 +51,34 @@ class ArrayTypeAdapter extends TypeAdapter<Object>  {
         return array;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void serialize(ProtocolWriter writer, Object value) throws IOException {
-        throw new UnserializableTypeException(value.getClass());
+        if (value != null) {
+            final int arrayLength = Array.getLength(value);
+            if (arrayLength > 0) {
+                StringJoinerProtocolWriter joinerWriter = joinerWriterPool.acquire();
+                if (joinerWriter == null) {
+                    joinerWriter = new StringJoinerProtocolWriter(",");
+                }
+                try {
+                    for (int i = 0; i < arrayLength; i++) {
+                        elementAdapter.serialize(joinerWriter, Array.get(value, i));
+                    }
+                    writer.writeValue(joinerWriter.result());
+                } finally {
+                    joinerWriter.reset();
+                    joinerWriterPool.recycle(joinerWriter);
+                }
+            } else {
+                writer.writeValue("");
+            }
+        }
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return "TypeAdapter[" + elementClass.getName() + "[]]";
     }
+
 }

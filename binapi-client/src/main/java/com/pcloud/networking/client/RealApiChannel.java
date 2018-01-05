@@ -3,6 +3,8 @@ package com.pcloud.networking.client;
 import com.pcloud.networking.protocol.BytesReader;
 import com.pcloud.networking.protocol.BytesWriter;
 import com.pcloud.networking.protocol.DataSource;
+import com.pcloud.networking.protocol.ForwardingProtocolRequestWriter;
+import com.pcloud.networking.protocol.ForwardingProtocolResponseReader;
 import com.pcloud.networking.protocol.ProtocolRequestWriter;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
 import com.pcloud.networking.protocol.TypeToken;
@@ -97,83 +99,82 @@ class RealApiChannel implements ApiChannel {
         }
     }
 
-    private static class CountingProtocolRequestWriter implements ProtocolRequestWriter {
+    private static class CountingProtocolRequestWriter extends ForwardingProtocolRequestWriter {
 
-        private ProtocolRequestWriter delegate;
         private RealApiChannel apiChannel;
 
-        CountingProtocolRequestWriter(BytesWriter bytesWriter, RealApiChannel apiChannel) {
-            this.delegate = bytesWriter;
+        CountingProtocolRequestWriter(ProtocolRequestWriter delegate, RealApiChannel apiChannel) {
+            super(delegate);
             this.apiChannel = apiChannel;
         }
 
         @Override
         public ProtocolRequestWriter beginRequest() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.beginRequest();
+            super.beginRequest();
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeData(DataSource source) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeData(source);
+            super.writeData(source);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeMethodName(String name) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeMethodName(name);
+            super.writeMethodName(name);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeName(String name) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeName(name);
+            super.writeName(name);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(Object value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(String value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(double value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(float value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(long value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
         @Override
         public ProtocolRequestWriter writeValue(boolean value) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.writeValue(value);
+            super.writeValue(value);
             return this;
         }
 
@@ -191,31 +192,30 @@ class RealApiChannel implements ApiChannel {
             // the channel's connection will not be reused without being sure it's clean and
             // there aren't any unfinished request/response pairs.
             apiChannel.completeRequest();
-            delegate.endRequest();
+            super.endRequest();
             return this;
         }
     }
 
-    private static class CountingProtocolResponseReader implements ProtocolResponseReader {
+    private static class CountingProtocolResponseReader extends ForwardingProtocolResponseReader {
 
-        private ProtocolResponseReader delegate;
         private RealApiChannel apiChannel;
 
         CountingProtocolResponseReader(ProtocolResponseReader delegate, RealApiChannel apiChannel) {
-            this.delegate = delegate;
+            super(delegate);
             this.apiChannel = apiChannel;
         }
 
         @Override
         public long beginResponse() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.beginResponse();
+            return super.beginResponse();
         }
 
         @Override
         public boolean endResponse() throws IOException {
             apiChannel.checkNotClosed();
-            boolean hasData = delegate.endResponse();
+            boolean hasData = super.endResponse();
             if (!hasData) {
                 apiChannel.completeResponse();
             }
@@ -223,97 +223,88 @@ class RealApiChannel implements ApiChannel {
         }
 
         @Override
-        public long dataContentLength() {
-            return delegate.dataContentLength();
-        }
-
-        @Override
         public void readData(BufferedSink sink) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.readData(sink);
+            super.readData(sink);
             apiChannel.completeResponse();
         }
 
         @Override
         public void readData(OutputStream outputStream) throws IOException {
             apiChannel.checkNotClosed();
-            delegate.readData(outputStream);
+            super.readData(outputStream);
             apiChannel.completeResponse();
-        }
-
-        @Override
-        public int currentScope() {
-            return delegate.currentScope();
         }
 
         @Override
         public TypeToken peek() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.peek();
+            return super.peek();
         }
 
         @Override
         public void beginObject() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.beginObject();
+            super.beginObject();
         }
 
         @Override
         public void beginArray() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.beginArray();
+            super.beginArray();
         }
 
         @Override
         public void endArray() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.endArray();
+            super.endArray();
         }
 
         @Override
         public void endObject() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.endObject();
+            super.endObject();
         }
 
         @Override
         public boolean readBoolean() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.readBoolean();
+            return super.readBoolean();
         }
 
         @Override
         public String readString() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.readString();
+            return super.readString();
         }
 
         @Override
         public long readNumber() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.readNumber();
+            return super.readNumber();
         }
 
         @Override
         public void close() {
+            // Let the ApiChannel decide how to release held resources.
             apiChannel.close();
         }
 
         @Override
         public boolean hasNext() throws IOException {
             apiChannel.checkNotClosed();
-            return delegate.hasNext();
+            return super.hasNext();
         }
 
         @Override
         public void skipValue() throws IOException {
             apiChannel.checkNotClosed();
-            delegate.skipValue();
+            super.skipValue();
         }
 
         @Override
         public ProtocolResponseReader newPeekingReader() {
-            return new CountingProtocolResponseReader(delegate.newPeekingReader(), apiChannel);
+            return new CountingProtocolResponseReader(super.newPeekingReader(), apiChannel);
         }
     }
 }

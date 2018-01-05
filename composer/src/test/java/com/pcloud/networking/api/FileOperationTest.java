@@ -55,15 +55,12 @@ public class FileOperationTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void downloadFile_ShouldFailOnNullUrl() throws Exception {
-
-        exception.expect(IllegalArgumentException.class);
+    public void downloadFile_ShouldNotFailOnNullUrl() throws Exception {
         donwloadApi.downloadRemoteUrl(null, 0);
     }
 
     @Test
     public void downloadThumb_ShouldNotFailOnCorrectParameters() throws Exception {
-
         DataApiResponse response = donwloadApi.getThumb("/cat-happy-cat-e1329931204797.jpg", "64x64");
         assertNotNull(response);
         assertNotNull(response.responseData());
@@ -79,9 +76,7 @@ public class FileOperationTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void downloadThumb_ShouldFailOnNullParameters() throws Exception {
-
-        exception.expect(IllegalArgumentException.class);
+    public void downloadThumb_ShouldNotFailOnNullParameters() throws Exception {
         donwloadApi.getThumb(null, "64x64");
         donwloadApi.getThumb("", null);
     }
@@ -95,15 +90,14 @@ public class FileOperationTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void uploadFile_ShouldNotFailOnNullDataSource() throws Exception {
-
+    public void uploadFile_ShouldFailOnNullDataSource() throws Exception {
+        exception.expect(IllegalArgumentException.class);
         FileResponse response = donwloadApi.uploadFile(0, "someFile.txt", null);
         assertNotNull(response);
     }
 
     @Test
-    public void updateFile_ShouldFailOnNullFileName() throws Exception {
-
+    public void updateFile_ShouldFailOnNullDataSource() throws Exception {
         exception.expect(IllegalArgumentException.class);
         donwloadApi.uploadFile(0, null, null);
     }

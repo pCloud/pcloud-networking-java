@@ -19,6 +19,7 @@ package com.pcloud.networking.api;
 import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.client.Request;
 import com.pcloud.networking.protocol.DataSource;
+import com.pcloud.networking.serialization.GuardedSerializationTypeAdapter;
 import com.pcloud.networking.serialization.TypeAdapter;
 import com.pcloud.utils.Types;
 import okio.ByteString;
@@ -49,17 +50,17 @@ class ArgumentAdapters {
     }
 
     static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter) {
+
+        final TypeAdapter<T> guardedTypeAdapter = new GuardedSerializationTypeAdapter<>(adapter);
+
         return new BodyWritingArgumentAdapter<T>() {
 
             @Override
             public void adapt(ProtocolWriter writer, T argValue) throws IOException {
-
-                if (argValue == null) {
-                    throw new IllegalArgumentException("The parameter cannot be null.");
+                if (argValue != null) {
+                    writer.writeName(name);
+                    guardedTypeAdapter.serialize(writer, argValue);
                 }
-                writer.writeName(name);
-
-                adapter.serialize(writer, argValue);
             }
         };
     }
@@ -83,6 +84,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource((DataSource) argValue);
                 }
             };
@@ -90,6 +94,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((File) argValue));
                 }
             };
@@ -97,6 +104,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((ByteString) argValue));
                 }
             };
@@ -104,6 +114,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((byte[]) argValue));
                 }
             };

@@ -16,9 +16,9 @@
 
 package com.pcloud.networking.serialization;
 
-import com.pcloud.networking.protocol.SerializationException;
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolWriter;
+import com.pcloud.networking.protocol.SerializationException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -88,13 +88,11 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         final String name;
         final Field field;
         final TypeAdapter<T> adapter;
-        final boolean serializationAllowed;
 
-        Binding(String name, Field field, TypeAdapter<T> adapter, boolean serializationAllowed) {
+        Binding(String name, Field field, TypeAdapter<T> adapter) {
             this.name = name;
             this.field = field;
             this.adapter = adapter;
-            this.serializationAllowed = serializationAllowed;
         }
 
         void read(ProtocolReader reader, Object value) throws IOException, IllegalAccessException {
@@ -117,10 +115,6 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         @SuppressWarnings("unchecked")
             //Field's values are of type T.
         void write(ProtocolWriter writer, Object value) throws IllegalAccessException, IOException {
-            if (!serializationAllowed) {
-                throw new SerializationException("Cannot serialize object fields of type '%s'.", field.getType());
-            }
-
             T fieldValue = (T) field.get(value);
             if (fieldValue != null) {
                 writer.writeName(name);
