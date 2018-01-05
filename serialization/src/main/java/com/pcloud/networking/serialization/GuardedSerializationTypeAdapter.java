@@ -23,19 +23,19 @@ import com.pcloud.networking.protocol.SerializationException;
 import java.io.IOException;
 
 /**
- * А {@linkplain TypeAdapter} implementation that enforces a "one-parameter-from-object" serialization rule
+ * А {@linkplain TypeAdapter} implementation that enforces a "single" serialization rule
  * <p>
  * This implementation is useful for wrapping other {@linkplain TypeAdapter} instances and
- * ensuring that the objects supplied to the adapter will be serialized to no more than a single key-value parameter.
+ * ensuring that the objects supplied to the adapter will be serialized to a single value.
  *
  * @param <T> The type that this adapter can convert
  */
 public class GuardedSerializationTypeAdapter<T> extends TypeAdapter<T> {
 
-    private static final int GUARD_POOL_SIZE = 15;
+    private static final int GUARD_POOL_SIZE = 5;
 
     private TypeAdapter<T> delegate;
-    private ObjectPool<GuardedWriter> guardedWriterObjectPool = new ObjectPool<>(GUARD_POOL_SIZE);
+    private ObjectPool<SingleValueProtocolWriter> guardedWriterObjectPool = new ObjectPool<>(GUARD_POOL_SIZE);
 
     /**
      * Construct a new {@linkplain GuardedSerializationTypeAdapter} instance
@@ -57,70 +57,25 @@ public class GuardedSerializationTypeAdapter<T> extends TypeAdapter<T> {
 
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
-        GuardedWriter guardedWriter = guardedWriterObjectPool.acquire();
-        if (guardedWriter == null) {
-            guardedWriter = new GuardedWriter();
+        SingleValueProtocolWriter singleValueProtocolWriter = guardedWriterObjectPool.acquire();
+        if (singleValueProtocolWriter == null) {
+            singleValueProtocolWriter = new SingleValueProtocolWriter();
         }
-        guardedWriter.guard(writer);
+        singleValueProtocolWriter.guard(writer);
         try {
-            delegate.serialize(guardedWriter, value);
+            delegate.serialize(singleValueProtocolWriter, value);
         } finally {
-            guardedWriter.reset();
-            guardedWriterObjectPool.recycle(guardedWriter);
+            singleValueProtocolWriter.reset();
+            guardedWriterObjectPool.recycle(singleValueProtocolWriter);
         }
     }
 
-    private static class ObjectPool<T> {
-        private final Object[] pool;
-        private int mPoolSize;
+    private static class SingleValueProtocolWriter implements ProtocolWriter {
 
-        ObjectPool(int maxPoolSize) {
-            if (maxPoolSize <= 0) {
-                throw new IllegalArgumentException("The max pool size must be > 0");
-            }
-            pool = new Object[maxPoolSize];
-        }
-
-        @SuppressWarnings("unchecked")
-        public T acquire() {
-            synchronized (pool) {
-                if (mPoolSize > 0) {
-                    final int lastPooledIndex = mPoolSize - 1;
-                    T instance = (T) pool[lastPooledIndex];
-                    pool[lastPooledIndex] = null;
-                    mPoolSize--;
-                    return instance;
-                }
-                return null;
-            }
-        }
-
-        public boolean recycle(T instance) {
-            synchronized (pool) {
-                if (mPoolSize < pool.length) {
-                    pool[mPoolSize] = instance;
-                    mPoolSize++;
-                    return true;
-                }
-                return false;
-            }
-        }
-
-    }
-
-    private static class GuardedWriter implements ProtocolWriter {
-
-        private int parametersAdded;
         private ProtocolWriter delegate;
 
-        GuardedWriter() {
-            this.parametersAdded = 0;
-        }
-
-        ProtocolWriter guard(ProtocolWriter writer) {
+        void guard(ProtocolWriter writer) {
             delegate = writer;
-            parametersAdded = 0;
-            return this;
         }
 
         void reset() {
@@ -129,12 +84,7 @@ public class GuardedSerializationTypeAdapter<T> extends TypeAdapter<T> {
 
         @Override
         public ProtocolWriter writeName(String name) throws IOException {
-            if (parametersAdded != 0) {
-                throw new SerializationException("Object must serialize to a single parameter.");
-            }
-            delegate.writeName(name);
-            parametersAdded++;
-            return this;
+            throw new SerializationException("Object must serialize to a single value.");
         }
 
         @Override

@@ -21,13 +21,19 @@ import com.pcloud.utils.Types;
 import java.lang.reflect.Type;
 
 class ArrayTypeAdapterFactory implements TypeAdapterFactory {
+
+    static final TypeAdapterFactory INSTANCE = new ArrayTypeAdapterFactory();
+
+    private ArrayTypeAdapterFactory() {
+    }
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
         Type elementType = Types.arrayComponentType(type);
         if (elementType != null) {
             Class<?> elementClass = Types.getRawType(elementType);
             TypeAdapter<Object> elementAdapter = transformer.getTypeAdapter(elementType);
-            if (!Utils.typeIsSafeToSerialize(elementClass)) {
+            if (!elementClass.isPrimitive() || !elementClass.isEnum()) {
                 elementAdapter = new GuardedSerializationTypeAdapter<>(elementAdapter);
             }
             return new ArrayTypeAdapter(elementClass, elementAdapter);

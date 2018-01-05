@@ -25,13 +25,18 @@ import java.util.Map;
 import java.util.TreeMap;
 
 class ClassTypeAdapterFactory implements TypeAdapterFactory {
+
+    static final TypeAdapterFactory INSTANCE = new ClassTypeAdapterFactory();
+
+    private ClassTypeAdapterFactory() {
+    }
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isInterface() || rawType.isEnum()) return null;
-        if (isPlatformType(rawType) && !Utils.isAllowedPlatformType(rawType)) {
-            throw new IllegalArgumentException("Platform type '" +
-                    type +
+        if (isPlatformType(rawType) && !rawType.isPrimitive() && !rawType.isEnum()) {
+            throw new IllegalArgumentException("Platform type '" + type +
                     "' requires explicit TypeAdapter to be registered");
         }
 
@@ -72,7 +77,9 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
 
             Type fieldType = Types.resolve(type, rawType, field.getGenericType());
             TypeAdapter<Object> adapter = transformer.getTypeAdapter(fieldType);
-            if (!Utils.typeIsSafeToSerialize(fieldType)) {
+
+            Class<?> fieldClass = Types.getRawType(fieldType);
+            if (!fieldClass.isPrimitive() || !fieldClass.isEnum()) {
                 adapter = new GuardedSerializationTypeAdapter<>(adapter);
             }
 

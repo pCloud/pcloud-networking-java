@@ -43,10 +43,10 @@ public class Transformer {
     private static final int DEFAULT_FACTORIES_LIST_CAPACITY = 4;
     static {
         DEFAULT_FACTORIES = new ArrayList<>(DEFAULT_FACTORIES_LIST_CAPACITY);
-        DEFAULT_FACTORIES.add(new PrimitiveTypesAdapterFactory());
-        DEFAULT_FACTORIES.add(new CollectionsTypeAdapterFactory());
-        DEFAULT_FACTORIES.add(new ArrayTypeAdapterFactory());
-        DEFAULT_FACTORIES.add(new ClassTypeAdapterFactory());
+        DEFAULT_FACTORIES.add(PrimitiveTypesAdapterFactory.INSTANCE);
+        DEFAULT_FACTORIES.add(CollectionsTypeAdapterFactory.INSTANCE);
+        DEFAULT_FACTORIES.add(ArrayTypeAdapterFactory.INSTANCE);
+        DEFAULT_FACTORIES.add(ClassTypeAdapterFactory.INSTANCE);
     }
 
     /**

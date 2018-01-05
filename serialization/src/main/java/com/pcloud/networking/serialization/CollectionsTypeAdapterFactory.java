@@ -30,6 +30,11 @@ import java.util.TreeMap;
 
 class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
 
+    static final TypeAdapterFactory INSTANCE = new CollectionsTypeAdapterFactory();
+
+    private CollectionsTypeAdapterFactory() {
+    }
+
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
         if (!(type instanceof ParameterizedType)) {
@@ -47,7 +52,7 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
         return null;
     }
 
-    static <T> TypeAdapter<Collection<T>> newArrayListAdapter(Type type, Transformer transformer) {
+    private static <T> TypeAdapter<Collection<T>> newArrayListAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
         TypeAdapter<T> elementAdapter = getTypeAdapter(transformer, elementType);
         return new CollectionTypeAdapter<Collection<T>, T>(elementAdapter) {
@@ -58,7 +63,7 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
         };
     }
 
-    static <T> TypeAdapter<Set<T>> newLinkedHashSetAdapter(Type type, Transformer transformer) {
+    private static <T> TypeAdapter<Set<T>> newLinkedHashSetAdapter(Type type, Transformer transformer) {
         Type elementType = Types.collectionElementType(type, Collection.class);
         TypeAdapter<T> elementAdapter = getTypeAdapter(transformer, elementType);
         return new CollectionTypeAdapter<Set<T>, T>(elementAdapter) {
@@ -70,7 +75,7 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
         };
     }
 
-    static <K, V> TypeAdapter<Map<K, V>> newMapAdapter(ParameterizedType type, Transformer transformer) {
+    private static <K, V> TypeAdapter<Map<K, V>> newMapAdapter(ParameterizedType type, Transformer transformer) {
         Type keyElementType = Types.getParameterUpperBound(0, type);
         Type valueElementType = Types.getParameterUpperBound(1, type);
         TypeAdapter<K> keyAdapter = transformer.getTypeAdapter(keyElementType);
@@ -83,9 +88,11 @@ class CollectionsTypeAdapterFactory implements TypeAdapterFactory {
         };
     }
 
-    static <T> TypeAdapter<T> getTypeAdapter(Transformer transformer, Type type) {
+    private static <T> TypeAdapter<T> getTypeAdapter(Transformer transformer, Type type) {
         TypeAdapter<T> typeAdapter = transformer.getTypeAdapter(type);
-        if (!Utils.typeIsSafeToSerialize(type)) {
+
+        Class<?> rawType = Types.getRawType(type);
+        if (!rawType.isPrimitive() || !rawType.isEnum()) {
             typeAdapter = new GuardedSerializationTypeAdapter<>(typeAdapter);
         }
         return typeAdapter;
