@@ -49,8 +49,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     private static final int REQUEST_BINARY_DATA_FLAG_POSITION = 7;
     private static final int MAX_METHOD_LENGTH = 127;
     private static final int BITWISE_SHIFT_SIX = 6;
-    public static final int DATA_LENGTH_SIZE = 8;
-    public static final int METHOD_NAME_LENGTH_SIZE = 2;
+    private static final int DATA_LENGTH_SIZE = 8;
 
     private final BufferedSink sink;
     private final Buffer paramsBuffer;
@@ -215,7 +214,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     @Override
     public ProtocolRequestWriter writeValue(Object value) throws IOException {
         if (value == null) {
-            throw new IllegalArgumentException("Value argument cannot be null");
+            throw new IllegalArgumentException("Value argument cannot be null.");
         }
 
         final Type valueType = value.getClass();
@@ -235,8 +234,11 @@ public class BytesWriter implements ProtocolRequestWriter {
             writeValue((byte) value);
         } else if (valueType == Boolean.class) {
             writeValue((boolean) value);
+        } else if (valueType == Character.class) {
+            writeValue(String.valueOf(value));
         } else {
             throw new IllegalArgumentException("Cannot serialize value of type '" + valueType + "'.");
+
         }
         return this;
     }
@@ -245,7 +247,7 @@ public class BytesWriter implements ProtocolRequestWriter {
     public ProtocolRequestWriter writeValue(String value) throws IOException {
         checkWriteNameCalled();
         if (value == null) {
-            throw new IllegalArgumentException("Value argument cannot be null");
+            throw new IllegalArgumentException("Value argument cannot be null.");
         }
         writeNextValueTypeAndName(REQUEST_PARAM_TYPE_STRING);
         writeString(value);

@@ -16,6 +16,8 @@
 
 package com.pcloud.networking.serialization;
 
+import com.pcloud.networking.protocol.SerializationException;
+import com.pcloud.networking.protocol.TypeToken;
 import com.pcloud.utils.Types;
 import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.protocol.ProtocolReader;
@@ -27,7 +29,7 @@ import java.lang.reflect.Type;
  * A {@linkplain TypeAdapterFactory} implementation for the core Java language primitive types.
  */
 class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
-    private static final TypeAdapter<String> STRING_ADAPTER = new TypeAdapter<String>() {
+    static final TypeAdapter<String> STRING_ADAPTER = new TypeAdapter<String>() {
         @Override
         public String deserialize(ProtocolReader reader) throws IOException {
             return reader.readString();
@@ -41,7 +43,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Boolean> BOOLEAN_ADAPTER = new TypeAdapter<Boolean>() {
+    static final TypeAdapter<Boolean> BOOLEAN_ADAPTER = new TypeAdapter<Boolean>() {
         @Override
         public Boolean deserialize(ProtocolReader reader) throws IOException {
             return reader.readBoolean();
@@ -53,7 +55,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Integer> INTEGER_ADAPTER = new TypeAdapter<Integer>() {
+    static final TypeAdapter<Integer> INTEGER_ADAPTER = new TypeAdapter<Integer>() {
         @Override
         public Integer deserialize(ProtocolReader reader) throws IOException {
             return (int) reader.readNumber();
@@ -67,7 +69,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Long> LONG_ADAPTER = new TypeAdapter<Long>() {
+    static final TypeAdapter<Long> LONG_ADAPTER = new TypeAdapter<Long>() {
         @Override
         public Long deserialize(ProtocolReader reader) throws IOException {
             return reader.readNumber();
@@ -81,7 +83,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Double> DOUBLE_ADAPTER = new TypeAdapter<Double>() {
+    static final TypeAdapter<Double> DOUBLE_ADAPTER = new TypeAdapter<Double>() {
         @Override
         public Double deserialize(ProtocolReader reader) throws IOException {
             String numberString = reader.readString();
@@ -100,7 +102,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Float> FLOAT_ADAPTER = new TypeAdapter<Float>() {
+    static final TypeAdapter<Float> FLOAT_ADAPTER = new TypeAdapter<Float>() {
         @Override
         public Float deserialize(ProtocolReader reader) throws IOException {
             String numberString = reader.readString();
@@ -119,7 +121,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Short> SHORT_ADAPTER = new TypeAdapter<Short>() {
+    static final TypeAdapter<Short> SHORT_ADAPTER = new TypeAdapter<Short>() {
         @Override
         public Short deserialize(ProtocolReader reader) throws IOException {
             return (short) reader.readNumber();
@@ -133,7 +135,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
-    private static final TypeAdapter<Byte> BYTE_ADAPTER = new TypeAdapter<Byte>() {
+    static final TypeAdapter<Byte> BYTE_ADAPTER = new TypeAdapter<Byte>() {
         @Override
         public Byte deserialize(ProtocolReader reader) throws IOException {
             return (byte) reader.readNumber();
@@ -147,6 +149,30 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         }
     };
 
+    static final TypeAdapter<Character> CHAR_ADAPTER = new TypeAdapter<Character>() {
+        @Override
+        public Character deserialize(ProtocolReader reader) throws IOException {
+            String value = reader.readString();
+            if (value.length() != 1) {
+                throw new SerializationException("Cannot deserialize %s with value '%s' to a char.", TypeToken
+                        .STRING, value);
+            }
+            return value.charAt(0);
+        }
+
+        @Override
+        public void serialize(ProtocolWriter writer, Character value) throws IOException {
+            if (value != null) {
+                writer.writeValue(String.valueOf((char) value));
+            }
+        }
+    };
+
+    static final TypeAdapterFactory INSTANCE = new PrimitiveTypesAdapterFactory();
+
+    private PrimitiveTypesAdapterFactory() {
+    }
+
     @SuppressWarnings("unchecked")
     @Override
     public TypeAdapter<?> create(Type type, Transformer transformer) {
@@ -158,6 +184,7 @@ class PrimitiveTypesAdapterFactory implements TypeAdapterFactory {
         if (type == int.class || type == Integer.class) return INTEGER_ADAPTER;
         if (type == short.class || type == Short.class) return SHORT_ADAPTER;
         if (type == byte.class || type == Byte.class) return BYTE_ADAPTER;
+        if (type == char.class || type == Character.class) return CHAR_ADAPTER;
 
         Class<?> rawType = Types.getRawType(type);
         if (rawType.isEnum()) {
