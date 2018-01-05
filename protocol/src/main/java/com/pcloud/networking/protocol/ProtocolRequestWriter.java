@@ -19,40 +19,41 @@ package com.pcloud.networking.protocol;
 import java.io.IOException;
 
 /**
- * A contract for an object which can write data into a data sink
+ * A contract for serializing requests
  * <p>
- * Generally used to construct network requests
  *
  * @see BytesWriter
  */
 public interface ProtocolRequestWriter extends ProtocolWriter {
 
     /**
-     * Begin writing a request
+     * Start a request
      * <p>
      *
      * @return a reference to this object
-     * @throws IOException on failed IO operations
+     * @throws IOException on a failed IO operation
      */
     ProtocolRequestWriter beginRequest() throws IOException;
 
     /**
-     * Write an entire {@linkplain DataSource} into a data sink
+     * Set a {@linkplain DataSource} as request data
      * <p>
      *
-     * @param source the source to be written
+     * @param source a non-null {@linkplain DataSource} object
      * @return a reference to this object
-     * @throws IOException on failed IO operations
+     * @throws IOException              on a failed IO operation
+     * @throws IllegalArgumentException on a null argument
      */
     ProtocolRequestWriter writeData(DataSource source) throws IOException;
 
     /**
-     * Write the method name for the request
+     * Write the method name of the request
      * <p>
      *
-     * @param name A string for the name of the method this request will hit
+     * @param name a non-null string
      * @return a reference to this object
-     * @throws IOException on failed IO operations
+     * @throws IOException              on a failed IO operation
+     * @throws IllegalArgumentException on a null argument
      */
     ProtocolRequestWriter writeMethodName(String name) throws IOException;
 
@@ -78,11 +79,10 @@ public interface ProtocolRequestWriter extends ProtocolWriter {
     ProtocolRequestWriter writeValue(boolean value) throws IOException;
 
     /**
-     * End writing a request
-     * <p>
+     * Finish a request
      *
      * @return a reference to this object
-     * @throws IOException on failed IO operations
+     * @throws IOException on a failed IO operation
      */
     ProtocolRequestWriter endRequest() throws IOException;
 }
