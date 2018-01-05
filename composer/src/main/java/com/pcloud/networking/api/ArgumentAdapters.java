@@ -84,6 +84,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource((DataSource) argValue);
                 }
             };
@@ -91,6 +94,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((File) argValue));
                 }
             };
@@ -98,6 +104,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((ByteString) argValue));
                 }
             };
@@ -105,6 +114,9 @@ class ArgumentAdapters {
             return new BuilderArgumentAdapter<T>() {
                 @Override
                 public void adapt(Request.Builder builder, T argValue) throws IOException {
+                    if (argValue == null) {
+                        throw new IllegalArgumentException("The RequestData parameter cannot be null.");
+                    }
                     builder.dataSource(DataSource.create((byte[]) argValue));
                 }
             };
