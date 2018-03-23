@@ -25,7 +25,6 @@ import com.pcloud.utils.Types;
 import rx.Emitter;
 import rx.Observable;
 import rx.Observer;
-import rx.Single;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Action3;
@@ -48,14 +47,25 @@ import java.lang.reflect.Type;
  *
  * @param <T> the type of the response object
  */
-public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
+public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
-    @SuppressWarnings("unused")
-    public static final CallAdapter.Factory FACTORY = new RxCallAdapterFactory();
+    public static final Factory FACTORY = new Factory() {
+        @Override
+        public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
+            Type returnType = method.getGenericReturnType();
+            Class<?> rawType = Types.getRawType(returnType);
+            if (Observable.class.equals(rawType)) {
+                Type observableType = getParameterUpperBound(0, returnType);
+                return new RxObservableCallAdapter<>(observableType);
+            }
+            return null;
+        }
+    };
+
 
     private final Type responseType;
 
-    RxCallAdapter(Type responseType) {
+    RxObservableCallAdapter(Type responseType) {
         this.responseType = responseType;
     }
 
@@ -67,7 +77,7 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
     @Override
     public Observable<T> adapt(final Call<T> call) {
 
-        return Observable.<T>create(SyncOnSubscribe.createSingleState(new Func0<Call<T>>() {
+        return Observable.unsafeCreate(SyncOnSubscribe.createSingleState(new Func0<Call<T>>() {
             @Override
             public Call<T> call() {
                 return call.clone();
@@ -109,14 +119,13 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
                     return;
                 }
 
-                @SuppressWarnings("unchecked")
-                final Interactor<T> interactor = (Interactor<T>) o;
+                @SuppressWarnings("unchecked") final Interactor<T> interactor = (Interactor<T>) o;
 
                 if (!interactor.hasNextResponse()) {
                     observableObserver.onCompleted();
                     return;
                 }
-                observableObserver.onNext(Observable.fromEmitter(new Action1<Emitter<T>>() {
+                observableObserver.onNext(Observable.create(new Action1<Emitter<T>>() {
                     @Override
                     public void call(Emitter<T> emitter) {
                         try {
@@ -139,22 +148,5 @@ public class RxCallAdapter<T> implements CallAdapter<T, Observable<T>> {
                 }
             }
         }));
-    }
-
-    static class RxCallAdapterFactory extends CallAdapter.Factory {
-
-        @Override
-        public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
-            Type returnType = method.getGenericReturnType();
-            Class<?> rawType = Types.getRawType(returnType);
-            boolean isSingle = rawType == Single.class;
-            if (rawType != Observable.class && !isSingle) {
-                return null;
-            }
-
-            Type observableType = getParameterUpperBound(0, returnType);
-
-            return new RxCallAdapter(observableType);
-        }
     }
 }

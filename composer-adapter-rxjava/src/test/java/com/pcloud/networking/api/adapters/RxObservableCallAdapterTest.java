@@ -15,17 +15,17 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-public class RxCallAdapterTest {
+public class RxObservableCallAdapterTest {
 
     private Call<ApiResponse> mockCall;
     private MultiCall<Object, ApiResponse> mockMultiCall;
     private Interactor<ApiResponse> mockInteractor;
-    private RxCallAdapter<ApiResponse> callAdapter;
+    private RxObservableCallAdapter<ApiResponse> callAdapter;
     private TestSubscriber<ApiResponse> subscriber;
     
     @Before
     public void setUp() throws Exception {
-        callAdapter = new RxCallAdapter<>(ApiResponse.class);
+        callAdapter = new RxObservableCallAdapter<>(ApiResponse.class);
         mockCall = mock(Call.class);
         mockMultiCall = mock(MultiCall.class);
         mockInteractor = mock(Interactor.class);
