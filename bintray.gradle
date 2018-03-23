@@ -39,10 +39,24 @@ artifacts {
 Properties properties = new Properties()
 properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
-bintray {
-    user = properties.getProperty("bintray.user")
-    key = properties.getProperty("bintray.apikey")
+def bintrayUser = properties.getProperty("bintray.user")
+def bintrayKey = properties.getProperty("bintray.apikey")
 
+if (bintrayUser == null) {
+    bintrayUser = System.getenv("PCLOUD_BINTRAY_USER")
+}
+
+if (bintrayKey == null) {
+    bintrayKey = System.getenv("PCLOUD_BINTRAY_KEY")
+}
+
+if (bintrayUser == null  || bintrayKey == null) {
+    throw new GradleException("Missing bintray credentials.")
+}
+
+bintray {
+    user = bintrayUser
+    key = bintrayKey
     override = true
     configurations = ['archives']
     pkg {

@@ -51,48 +51,50 @@ public abstract class ApiIntegrationTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        resolveTestAccountCredentials();
+        synchronized (ApiIntegrationTest.class) {
+            resolveTestAccountCredentials();
 
-        apiClient = PCloudAPIClient.newClient()
-                .callExecutor(spy(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
-                        new SynchronousQueue<Runnable>(), new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "PCloud API Client");
-                    }
-                })))
-                .addInterceptor(new RequestInterceptor() {
-                    @Override
-                    public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                        writer.writeName("timeformat").writeValue("timestamp");
-                    }
-                })
-                .create();
-        transformer = Transformer.create().build();
+            apiClient = PCloudAPIClient.newClient()
+                    .callExecutor(spy(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                            new SynchronousQueue<Runnable>(), new ThreadFactory() {
+                        @Override
+                        public Thread newThread(Runnable r) {
+                            return new Thread(r, "PCloud API Client");
+                        }
+                    })))
+                    .addInterceptor(new RequestInterceptor() {
+                        @Override
+                        public void intercept(Request request, ProtocolWriter writer) throws IOException {
+                            writer.writeName("timeformat").writeValue("timestamp");
+                        }
+                    })
+                    .create();
+            transformer = Transformer.create().build();
 
-        final String token = getAuthToken(apiClient, transformer, username, password);
-        apiClient = apiClient.newBuilder().addInterceptor(new RequestInterceptor() {
-            @Override
-            public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                writer.writeName("auth").writeValue(token);
-            }
-        }).create();
+            final String token = getAuthToken(apiClient, transformer, username, password);
+            apiClient = apiClient.newBuilder().addInterceptor(new RequestInterceptor() {
+                @Override
+                public void intercept(Request request, ProtocolWriter writer) throws IOException {
+                    writer.writeName("auth").writeValue(token);
+                }
+            }).create();
 
-        apiComposer = ApiComposer.create()
-                .apiClient(apiClient)
-                .transformer(transformer)
-                .loadEagerly(true)
-                .create();
+            apiComposer = ApiComposer.create()
+                    .apiClient(apiClient)
+                    .transformer(transformer)
+                    .loadEagerly(true)
+                    .create();
 
-        donwloadApi = apiComposer.compose(FileOperationApi.class);
-        folderApi = apiComposer.compose(FolderApi.class);
-        userApi = apiComposer.compose(UserApi.class);
+            donwloadApi = apiComposer.compose(FileOperationApi.class);
+            folderApi = apiComposer.compose(FolderApi.class);
+            userApi = apiComposer.compose(UserApi.class);
+        }
     }
 
     private static void resolveTestAccountCredentials() {
         Map<String, String> env = System.getenv();
-        username = env.get("pcloud_username");
-        password = env.get("pcloud_password");
+        username = env.get("PCLOUD_TEST_USERNAME");
+        password = env.get("PCLOUD_TEST_PASSWORD");
 
         if (username == null) {
             throw new IllegalStateException("'pcloud_username' environment variable not set.");
