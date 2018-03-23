@@ -1,6 +1,19 @@
 Changelog
 ==========
 
+Version 2.1.0 (23.03.2018)
+--------------------------
+
+#### Serialization
+
+* Update Okio to v1.14.0
+
+#### RxJava 1.x Call Adapters
+
+* `RxCallAdapter` has been renamed to `RxObservableCallAdapter`
+* Add `RxSingleCallAdapter` to allow declaring methods that return `rx.Single<T>`
+* Update to the latest release of the 1.x branch of RxJava
+
 Version 2.0.0 (05.01.2018)
 --------------------------
 
