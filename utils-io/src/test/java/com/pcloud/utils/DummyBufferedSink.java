@@ -24,6 +24,7 @@ import okio.Timeout;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 public class DummyBufferedSink implements BufferedSink {
@@ -66,6 +67,11 @@ public class DummyBufferedSink implements BufferedSink {
     @Override
     public BufferedSink write(Source source, long byteCount) throws IOException {
         return bufferedSinkDelegate.write(source, byteCount);
+    }
+
+    @Override
+    public int write(ByteBuffer src) throws IOException {
+        return bufferedSinkDelegate.write(src);
     }
 
     @Override
@@ -151,6 +157,11 @@ public class DummyBufferedSink implements BufferedSink {
     @Override
     public Timeout timeout() {
         return bufferedSinkDelegate.timeout();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return false;
     }
 
     @Override

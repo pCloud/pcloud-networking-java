@@ -25,6 +25,7 @@ import okio.Timeout;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 public class DummyBufferedSource implements BufferedSource {
@@ -150,6 +151,11 @@ public class DummyBufferedSource implements BufferedSource {
     }
 
     @Override
+    public int read(ByteBuffer dst) throws IOException {
+        return sourceDelegate.read(dst);
+    }
+
+    @Override
     public void readFully(Buffer sink, long byteCount) throws IOException {
         sourceDelegate.readFully(sink, byteCount);
     }
@@ -257,6 +263,11 @@ public class DummyBufferedSource implements BufferedSource {
     @Override
     public Timeout timeout() {
         return sourceDelegate.timeout();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return false;
     }
 
     @Override

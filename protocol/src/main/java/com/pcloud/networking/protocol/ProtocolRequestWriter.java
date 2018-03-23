@@ -20,7 +20,6 @@ import java.io.IOException;
 
 /**
  * A contract for serializing requests
- * <p>
  *
  * @see BytesWriter
  */
