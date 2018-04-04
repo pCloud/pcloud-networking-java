@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 2.1.1 (23.03.2018)
+--------------------------
+
+#### Composer
+
+* Fix a `ConcurrentModificationException` when creating new `ApiComposer.Builder` instances. 
+
 Version 2.1.0 (23.03.2018)
 --------------------------
 
