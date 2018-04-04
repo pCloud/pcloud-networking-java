@@ -65,7 +65,7 @@ public class ApiComposer {
     /**
      * The built-in set of {@linkplain CallAdapter.Factory} implementations
      */
-    private static final List<CallAdapter.Factory> BUILD_IN_CALL_ADAPTER_FACTORIES = Arrays.asList(
+    private static final List<CallAdapter.Factory> BUILT_IN_CALL_ADAPTER_FACTORIES = Arrays.asList(
             CallWrappedCallAdapter.FACTORY,
             DirectCallAdapter.FACTORY
     );
@@ -75,9 +75,9 @@ public class ApiComposer {
     private List<ResponseInterceptor> interceptors;
 
     private boolean loadEagerly;
-    private Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
-    private List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_API_METHOD_FACTORIES);
-    private List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(BUILD_IN_CALL_ADAPTER_FACTORIES);
+    private final Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
+    private final List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_API_METHOD_FACTORIES);
+    private final List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(BUILT_IN_CALL_ADAPTER_FACTORIES);
 
     private ApiComposer(Builder builder) {
         if (builder.apiClient == null) {
@@ -215,7 +215,6 @@ public class ApiComposer {
      * @return A new instance of a {@linkplain Builder} to build a new {@linkplain ApiComposer}
      */
     public Builder newBuilder() {
-        this.callAdapterFactories.removeAll(BUILD_IN_CALL_ADAPTER_FACTORIES);
         return new Builder(this);
     }
 
@@ -238,6 +237,7 @@ public class ApiComposer {
             this.transformer = composer.transformer;
             this.interceptors = new ArrayList<>(composer.interceptors);
             this.callAdapterFactories = new ArrayList<>(composer.callAdapterFactories);
+            this.callAdapterFactories.removeAll(BUILT_IN_CALL_ADAPTER_FACTORIES);
         }
 
         /**
