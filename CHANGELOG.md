@@ -1,12 +1,24 @@
 Changelog
 ==========
 
+Version 2.2.0 (08.08.2018)
+--------------------------
+
+#### Serialization
+
+* Reduce the object allocation count by modifying `ClassTypeAdapter.Binding`'s API and introducing primitive-specific `LongBinding`, `IntBinding`, ...
+* Extract a new `serialization-annotations` artifact containing only serialization-related annotations.
+
+#### Protocol
+
+* Reduce the object allocation count in `BytesReader.readNumber()` and similar underlying number reading operations.
+
 Version 2.1.1 (04.04.2018)
 --------------------------
 
 #### Composer
 
-* Fix a `ConcurrentModificationException` when creating new `ApiComposer.Builder` instances. 
+* Fix a `ConcurrentModificationException` when creating new `ApiComposer.Builder` instances.
 
 Version 2.1.0 (23.03.2018)
 --------------------------
