@@ -7,4 +7,5 @@ include 'serialization-adapter-timestamp'
 include 'composer-adapter-rxjava'
 include 'utils-io'
 include 'utils-reflection'
+include 'serialization-annotations'
 
