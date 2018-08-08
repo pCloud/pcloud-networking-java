@@ -49,7 +49,7 @@ abstract class ClassFactory<T> {
     abstract T newInstance() throws
             InvocationTargetException, IllegalAccessException, InstantiationException;
 
-    static <T> ClassFactory<T> get(final Class<?> rawType) {
+    static <T> ClassFactory<T> get(final Class<T> rawType) {
         // Try to find a no-args constructor. May be any visibility including private.
         try {
             final Constructor<?> constructor = rawType.getDeclaredConstructor();

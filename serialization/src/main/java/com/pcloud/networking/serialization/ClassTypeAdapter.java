@@ -18,18 +18,18 @@ package com.pcloud.networking.serialization;
 
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolWriter;
-import com.pcloud.networking.protocol.SerializationException;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.Objects;
 
 class ClassTypeAdapter<T> extends TypeAdapter<T> {
     private final ClassFactory<T> classFactory;
-    private final Map<String, Binding<?>> nameToBindingMap;
+    private final Map<String, Binding> nameToBindingMap;
 
-    ClassTypeAdapter(ClassFactory<T> classFactory, Map<String, Binding<?>> fieldsMap) {
+    ClassTypeAdapter(ClassFactory<T> classFactory, Map<String, Binding> fieldsMap) {
         this.classFactory = classFactory;
         this.nameToBindingMap = fieldsMap;
     }
@@ -54,7 +54,7 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
             reader.beginObject();
             while (reader.hasNext()) {
                 String name = reader.readString();
-                Binding<?> binding = nameToBindingMap.get(name);
+                Binding binding = nameToBindingMap.get(name);
                 if (binding != null) {
                     binding.read(reader, result);
                 } else {
@@ -71,7 +71,7 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
     @Override
     public void serialize(ProtocolWriter writer, T value) throws IOException {
         try {
-            for (Binding<?> binding : nameToBindingMap.values()) {
+            for (Binding binding : nameToBindingMap.values()) {
                 binding.write(writer, value);
             }
         } catch (IllegalAccessException e) {
@@ -84,42 +84,30 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         return "TypeAdapter[" + classFactory.getClass().getName() + "]";
     }
 
-    static class Binding<T> {
+    static abstract class Binding {
         final String name;
         final Field field;
-        final TypeAdapter<T> adapter;
 
-        Binding(String name, Field field, TypeAdapter<T> adapter) {
+        Binding(String name, Field field) {
             this.name = name;
             this.field = field;
-            this.adapter = adapter;
         }
 
-        void read(ProtocolReader reader, Object value) throws IOException, IllegalAccessException {
-            try {
-                T fieldValue = adapter.deserialize(reader);
-                field.set(value, fieldValue);
-            } catch (SerializationException e) {
-                throw new SerializationException("Cannot deserialize field '" +
-                        field.getDeclaringClass().getName() +
-                        "." +
-                        field.getName() +
-                        "'" +
-                        " of type '" +
-                        field.getType().getName() +
-                        "'.",
-                        e);
-            }
+        abstract void read(ProtocolReader reader, Object target) throws IOException, IllegalAccessException;
+
+        abstract void write(ProtocolWriter writer, Object target) throws IllegalAccessException, IOException;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Binding)) return false;
+            Binding binding = (Binding) o;
+            return Objects.equals(name, binding.name);
         }
 
-        @SuppressWarnings("unchecked")
-            //Field's values are of type T.
-        void write(ProtocolWriter writer, Object value) throws IllegalAccessException, IOException {
-            T fieldValue = (T) field.get(value);
-            if (fieldValue != null) {
-                writer.writeName(name);
-                adapter.serialize(writer, fieldValue);
-            }
+        @Override
+        public int hashCode() {
+            return Objects.hash(name);
         }
     }
 }
