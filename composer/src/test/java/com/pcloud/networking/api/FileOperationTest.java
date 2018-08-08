@@ -17,6 +17,7 @@
 package com.pcloud.networking.api;
 
 import com.pcloud.networking.protocol.DataSource;
+import okio.Buffer;
 import okio.ByteString;
 import okio.Okio;
 import org.junit.Test;
@@ -64,7 +65,11 @@ public class FileOperationTest extends ApiIntegrationTest {
         DataApiResponse response = donwloadApi.getThumb("/cat-happy-cat-e1329931204797.jpg", "64x64");
         assertNotNull(response);
         assertNotNull(response.responseData());
-        response.responseData().writeTo(Okio.buffer(Okio.blackhole()));
+        assertEquals(response.responseData().contentLength(), 1966L);
+
+        Buffer buffer = new Buffer();
+        response.responseData().writeTo(buffer);
+        assertEquals(response.responseData().contentLength(), buffer.size());
     }
 
     @Test

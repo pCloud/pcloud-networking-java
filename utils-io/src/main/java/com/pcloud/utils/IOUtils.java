@@ -33,6 +33,8 @@ public class IOUtils {
 
     private static final int HEX_255 = 0xff;
     private static final int EIGHT_KB = 8192;
+    public static final int BITS_PER_BYTE = 8;
+    public static final long HEX_255_LONG = 0xffL;
 
     /**
      * Closes all {@linkplain Closeable} objects from an array
@@ -162,8 +164,8 @@ public class IOUtils {
         source.require(byteCount);
         if (byteCount > 1) {
             long value = 0;
-            for (int i = 0, shift = 0; i < byteCount; i++, shift += 8) {
-                value += ((long) source.readByte() & 0xffL) << shift;
+            for (int i = 0, shift = 0; i < byteCount; i++, shift += BITS_PER_BYTE) {
+                value += ((long) source.readByte() & HEX_255_LONG) << shift;
             }
             return value;
         } else {
@@ -185,8 +187,8 @@ public class IOUtils {
         Buffer buffer = source.buffer();
         if (byteCount > 1) {
             long value = 0;
-            for (int i = 0, shift = 0; i < byteCount; i++, shift += 8) {
-                value += ((long) buffer.getByte(offset + i) & 0xffL) << shift;
+            for (int i = 0, shift = 0; i < byteCount; i++, shift += BITS_PER_BYTE) {
+                value += ((long) buffer.getByte(offset + i) & HEX_255_LONG) << shift;
             }
             return value;
         } else {

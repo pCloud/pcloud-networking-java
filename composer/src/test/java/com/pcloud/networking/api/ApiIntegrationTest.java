@@ -97,11 +97,11 @@ public abstract class ApiIntegrationTest {
         password = env.get("PCLOUD_TEST_PASSWORD");
 
         if (username == null) {
-            throw new IllegalStateException("'pcloud_username' environment variable not set.");
+            throw new IllegalStateException("'PCLOUD_TEST_USERNAME' environment variable not set.");
         }
 
         if (password == null) {
-            throw new IllegalStateException("'pcloud_password' environment variable not set.");
+            throw new IllegalStateException("'PCLOUD_TEST_PASSWORD' environment variable not set.");
         }
     }
 
@@ -120,6 +120,9 @@ public abstract class ApiIntegrationTest {
                     .enqueueAndWait();
             UserInfoResponse apiResponse = transformer.getTypeAdapter(UserInfoResponse.class)
                     .deserialize(response.responseBody().reader());
+            if (!apiResponse.isSuccessful()){
+                throw new IOException(apiResponse.resultCode()+"-"+apiResponse.message());
+            }
             return apiResponse.authenticationToken();
         } finally {
             closeQuietly(response);

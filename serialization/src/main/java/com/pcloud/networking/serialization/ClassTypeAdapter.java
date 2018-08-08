@@ -84,7 +84,7 @@ class ClassTypeAdapter<T> extends TypeAdapter<T> {
         return "TypeAdapter[" + classFactory.getClass().getName() + "]";
     }
 
-    static abstract class Binding {
+    abstract static class Binding {
         final String name;
         final Field field;
 

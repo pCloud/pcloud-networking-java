@@ -21,17 +21,23 @@ import com.pcloud.networking.serialization.ParameterValue;
 public class UserInfoResponse extends ApiResponse {
 
     private boolean cryptosetup;
+
+    @ParameterValue("plan")
     private int plan;
     private boolean cryptosubscription;
     private String email;
     private boolean emailverified;
+    @ParameterValue("quota")
     private long quota;
     private long publiclinkquota;
     private boolean premium;
     private long userid;
+    @ParameterValue("usedquota")
     private long usedquota;
     @ParameterValue("auth")
     private String authenticationToken;
+
+    private UserInfoResponse() {}
 
     public UserInfoResponse(long result, String message) {
         super(result, message);
