@@ -33,7 +33,6 @@ public class IOUtils {
 
     private static final int HEX_255 = 0xff;
     private static final int EIGHT_KB = 8192;
-    private static final int NEXT_BYTE_POSITION = 256;
 
     /**
      * Closes all {@linkplain Closeable} objects from an array
@@ -102,7 +101,7 @@ public class IOUtils {
      */
     public static boolean isAndroidGetsocknameError(AssertionError e) {
         return e.getCause() != null && e.getMessage() != null &&
-                       e.getMessage().contains("getsockname failed");
+                e.getMessage().contains("getsockname failed");
     }
 
     /**
@@ -122,7 +121,7 @@ public class IOUtils {
      * Reads until {@code in} is exhausted or the deadline has been reached. This is careful to not
      * extend the deadline if one exists already.
      *
-     * @param source the target source to be exhausted
+     * @param source   the target source to be exhausted
      * @param duration the time available for exhaustion
      * @param timeUnit the time unit of exhaustion time
      * @return true if the source was exhausted without closing, false if time ran out
@@ -131,8 +130,8 @@ public class IOUtils {
     public static boolean skipAll(Source source, int duration, TimeUnit timeUnit) throws IOException {
         long now = System.nanoTime();
         long originalDuration = source.timeout().hasDeadline() ?
-                                        source.timeout().deadlineNanoTime() - now :
-                                        Long.MAX_VALUE;
+                source.timeout().deadlineNanoTime() - now :
+                Long.MAX_VALUE;
         source.timeout().deadlineNanoTime(now + Math.min(originalDuration, timeUnit.toNanos(duration)));
         try {
             Buffer skipBuffer = new Buffer();
@@ -162,12 +161,9 @@ public class IOUtils {
     public static long readNumberLe(BufferedSource source, int byteCount) throws IOException {
         source.require(byteCount);
         if (byteCount > 1) {
-            byte[] number = source.readByteArray(byteCount);
             long value = 0;
-            long m = 1;
-            for (int i = 0; i < byteCount; i++) {
-                value += m * (number[i] & HEX_255);
-                m *= NEXT_BYTE_POSITION;
+            for (int i = 0, shift = 0; i < byteCount; i++, shift += 8) {
+                value += ((long) source.readByte() & 0xffL) << shift;
             }
             return value;
         } else {
@@ -186,18 +182,15 @@ public class IOUtils {
      */
     public static long peekNumberLe(BufferedSource source, int offset, int byteCount) throws IOException {
         source.require(offset + byteCount);
+        Buffer buffer = source.buffer();
         if (byteCount > 1) {
-            Buffer numberBytes = new Buffer();
-            source.buffer().copyTo(numberBytes, offset, byteCount);
             long value = 0;
-            long m = 1;
-            for (int i = 0; i < byteCount; i++) {
-                value += m * (numberBytes.getByte(i) & HEX_255);
-                m *= NEXT_BYTE_POSITION;
+            for (int i = 0, shift = 0; i < byteCount; i++, shift += 8) {
+                value += ((long) buffer.getByte(offset + i) & 0xffL) << shift;
             }
             return value;
         } else {
-            return source.buffer().getByte(0) & HEX_255;
+            return buffer.getByte(offset) & HEX_255;
         }
     }
 

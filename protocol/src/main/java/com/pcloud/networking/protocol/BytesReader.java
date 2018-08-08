@@ -38,7 +38,7 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
  * encoded in pCloud's binary protocol from a stream of bytes in pull-based fashion
  * with minimal overhead.
  * <p>
- *
+ * <p>
  * The implementation can be reused for reading multiple responses from a byte source,
  * as long as they are read completely.
  *
@@ -86,7 +86,6 @@ public class BytesReader implements ProtocolResponseReader {
     private static final int READ_STRING_COMPRESSED_EXISTING_VALUE = 150;
     private static final int NUMBER_COMPRESSED = 200;
     private static final int NUMBER_NON_COMPRESSED = 7;
-    private static final int NEXT_BYTE_POSITION = 256;
 
     private volatile int currentScope = SCOPE_NONE;
     private int previousScope = SCOPE_NONE;
@@ -315,9 +314,9 @@ public class BytesReader implements ProtocolResponseReader {
         reader.dataLength = this.dataLength;
         reader.lastStringId = this.lastStringId;
         /*
-        * Swap the BufferedSource for an implementation that reads ahead the byte stream
-        * without consuming it.
-        * */
+         * Swap the BufferedSource for an implementation that reads ahead the byte stream
+         * without consuming it.
+         * */
         return reader;
     }
 
@@ -406,8 +405,7 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     private int peekType() throws IOException {
-        bufferedSource.require(1);
-        int type = bufferedSource.buffer().getByte(0) & HEX_255;
+        int type = (int) IOUtils.peekNumberLe(bufferedSource, 1);
         if (type == TYPE_DATA) {
             dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_BYTESIZE);
             return TYPE_NUMBER_END;
@@ -421,26 +419,14 @@ public class BytesReader implements ProtocolResponseReader {
         }
         int type = bufferedSource.readByte() & HEX_255;
         if (type == TYPE_DATA) {
-            dataLength = IOUtils.peekNumberLe(bufferedSource, 1, DATA_BYTESIZE);
+            dataLength = IOUtils.peekNumberLe(bufferedSource, DATA_BYTESIZE);
             return TYPE_NUMBER_END;
         }
         return type;
     }
 
     private long pullNumber(int byteCount) throws IOException {
-        bufferedSource.require(byteCount);
-        if (byteCount > 1) {
-            byte[] number = bufferedSource.readByteArray(byteCount);
-            long value = 0;
-            long m = 1;
-            for (int i = 0; i < byteCount; i++) {
-                value += m * (number[i] & HEX_255);
-                m *= NEXT_BYTE_POSITION;
-            }
-            return value;
-        } else {
-            return bufferedSource.readByte() & HEX_255;
-        }
+        return IOUtils.readNumberLe(bufferedSource, byteCount);
     }
 
     private SerializationException typeMismatchError(int expectedType, int actualType) {
