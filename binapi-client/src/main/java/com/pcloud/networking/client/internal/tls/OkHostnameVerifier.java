@@ -20,7 +20,6 @@ package com.pcloud.networking.client.internal.tls;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
-import javax.security.auth.x500.X500Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -78,24 +77,12 @@ final class OkHostnameVerifier implements HostnameVerifier {
      */
     private boolean verifyHostname(String hostname, X509Certificate certificate) {
         hostname = hostname.toLowerCase(Locale.US);
-        boolean hasDns = false;
         List<String> altNames = getSubjectAltNames(certificate, ALT_DNS_NAME);
-        for (int i = 0, size = altNames.size(); i < size; i++) {
-            hasDns = true;
-            if (verifyHostname(hostname, altNames.get(i))) {
+        for (String altName : altNames) {
+            if (verifyHostname(hostname, altName)) {
                 return true;
             }
         }
-
-        if (!hasDns) {
-            X500Principal principal = certificate.getSubjectX500Principal();
-            // RFC 2818 advises using the most specific name for matching.
-            String cn = new DistinguishedNameParser(principal).findMostSpecific("cn");
-            if (cn != null) {
-                return verifyHostname(hostname, cn);
-            }
-        }
-
         return false;
     }
 
