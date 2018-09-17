@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 2.2.1 (17.09.2018)
+--------------------------
+
+#### Client
+
+- Update the default `HostnameVerifier` implementation to the skip the fallback to the use of Common Name, which has been deprecated.
+- Update the socket connection establishing logic to properly honor read and connect timeouts.
+
 Version 2.2.0 (08.08.2018)
 --------------------------
 
