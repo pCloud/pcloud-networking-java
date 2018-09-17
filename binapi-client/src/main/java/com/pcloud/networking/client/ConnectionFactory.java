@@ -16,6 +16,8 @@
 
 package com.pcloud.networking.client;
 
+import com.pcloud.networking.client.internal.tls.DefaultHostnameVerifier;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
@@ -27,6 +29,18 @@ class ConnectionFactory {
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
+
+    public ConnectionFactory() {
+        this(SocketFactory.getDefault(),
+                (SSLSocketFactory) SSLSocketFactory.getDefault(),
+                DefaultHostnameVerifier.INSTANCE);
+    }
+
+    ConnectionFactory(HostnameVerifier hostnameVerifier) {
+        this(SocketFactory.getDefault(),
+                (SSLSocketFactory) SSLSocketFactory.getDefault(),
+                hostnameVerifier);
+    }
 
     ConnectionFactory(SocketFactory socketFactory,
                       SSLSocketFactory sslSocketFactory,

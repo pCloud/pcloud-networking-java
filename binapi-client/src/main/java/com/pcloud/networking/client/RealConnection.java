@@ -37,6 +37,21 @@ import static com.pcloud.utils.IOUtils.isAndroidGetsocknameError;
 
 class RealConnection extends BaseConnection {
 
+    private static final boolean RUNNING_ON_ANDROID;
+    private static final int VERSION_INT_OREO = 26;
+
+    static {
+        boolean isAndroid = false;
+        try {
+            Class.forName("android.os.Build");
+            isAndroid = true;
+        } catch (ClassNotFoundException e) {
+            // Not running on Android
+        } finally {
+            RUNNING_ON_ANDROID = isAndroid;
+        }
+    }
+
     private SocketFactory socketFactory;
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
@@ -63,10 +78,10 @@ class RealConnection extends BaseConnection {
         try {
             this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
             this.socket = upgradeSocket(rawSocket, endpoint);
-            this.inputStream = socket.getInputStream();
-            this.outputStream = socket.getOutputStream();
-            this.source = Okio.buffer(Okio.source(inputStream));
-            this.sink = Okio.buffer(Okio.sink(outputStream));
+            this.source = Okio.buffer(Okio.source(socket));
+            this.sink = Okio.buffer(Okio.sink(socket));
+            this.inputStream = source.inputStream();
+            this.outputStream = sink.outputStream();
             socket.setSoTimeout(0);
             source.timeout().timeout(readTimeout(), TimeUnit.MILLISECONDS);
             sink.timeout().timeout(writeTimeout(), TimeUnit.MILLISECONDS);
@@ -144,7 +159,6 @@ class RealConnection extends BaseConnection {
                     socket.setSoTimeout(readTimeout);
                 }
             } catch (SocketTimeoutException ignored) {
-                ignored.printStackTrace();
                 // Read timed out; socket is good.
             } catch (IOException e) {
                 return false; // Couldn't read; socket is closed.
@@ -169,13 +183,13 @@ class RealConnection extends BaseConnection {
     @Override
     public void close() {
         /*
-        * Close only the raw socket, all other Closeable
-        * properties wrap around it and would get closed too.
-        * Also closing the plain socket is non-blocking,
-        * while the SSL socket may block as it may be doing
-        * some synchronous IO in SSLSocket.close() based on
-        * the underlying implementation (namely OpenSSL on Android).
-        * */
+         * Close only the raw socket, all other Closeable
+         * properties wrap around it and would get closed too.
+         * Also closing the plain socket is non-blocking,
+         * while the SSL socket may block as it may be doing
+         * some synchronous IO in SSLSocket.close() based on
+         * the underlying implementation (namely OpenSSL on Android).
+         * */
         synchronized (this) {
             connected = false;
             closeQuietly(rawSocket);
@@ -194,16 +208,41 @@ class RealConnection extends BaseConnection {
         boolean connectionSucceeded = false;
         try {
             socket = socketFactory.createSocket();
-            socket.connect(endpoint.socketAddress(), connectTimeout);
+            if (RUNNING_ON_ANDROID) {
+                connectSocketAndroid(socket, endpoint, connectTimeout);
+            } else {
+                connectSocketJava(socket, endpoint, connectTimeout);
+            }
             connectionSucceeded = true;
             return socket;
-
-        } catch (AssertionError e) {
-            if (isAndroidGetsocknameError(e)) throw new IOException(e);
-            throw e;
         } finally {
             if (!connectionSucceeded) {
                 closeQuietly(socket);
+            }
+        }
+    }
+
+    private void connectSocketJava(Socket socket, Endpoint endpoint, int connectTimeout) throws IOException {
+        socket.setSoTimeout(readTimeout());
+        socket.connect(endpoint.socketAddress(), connectTimeout);
+    }
+
+    private void connectSocketAndroid(Socket socket, Endpoint endpoint, int connectTimeout) throws IOException {
+        try {
+            socket.setSoTimeout(readTimeout());
+            socket.connect(endpoint.socketAddress(), connectTimeout);
+        } catch (AssertionError e) {
+            if (isAndroidGetsocknameError(e)) {
+                throw new IOException(e);
+            } else {
+                throw e;
+            }
+        } catch (ClassCastException e) {
+            // Add a fix for https://issuetracker.google.com/issues/63649622
+            if (android.os.Build.VERSION.SDK_INT == VERSION_INT_OREO) {
+                throw new IOException("Exception in connect", e);
+            } else {
+                throw e;
             }
         }
     }
