@@ -111,6 +111,13 @@ public class ResponseBytesWriter {
         return endObject();
     }
 
+    public ResponseBytesWriter writeValues(Map<String,?> values) {
+        for (Map.Entry<String,?> entry : values.entrySet()) {
+            writeValue(entry.getKey(), entry.getValue());
+        }
+        return this;
+    }
+
     public ResponseBytesWriter writeValue(String key, String value) {
         return write(key).write(value);
     }
@@ -149,6 +156,9 @@ public class ResponseBytesWriter {
             return write((byte) value);
         } else if (valueType == Boolean.class || valueType == boolean.class) {
             return write((boolean) value);
+        } else if (valueType == Float.class || valueType == float.class ||
+                valueType == Double.class || valueType == double.class) {
+            return write(String.valueOf(value));
         } else if (valueType.isArray()) {
             beginArray();
             for (Object o : (Object[]) value) {
@@ -250,5 +260,15 @@ public class ResponseBytesWriter {
             throw new AssertionError(e);
         }
         return buffer.readByteString();
+    }
+
+    public ProtocolResponseReader createReader() {
+        Buffer values = new Buffer();
+        try {
+            writeTo(values);
+        } catch (IOException e) {
+            throw new AssertionError(e);
+        }
+        return new BytesReader(values);
     }
 }

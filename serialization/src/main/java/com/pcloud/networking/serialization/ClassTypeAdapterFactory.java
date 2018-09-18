@@ -85,7 +85,7 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
             // Determine the serialized parameter name, fail if the name is already used.
             String annotatedName = paramAnnotation.value();
             String name = annotatedName.equals(ParameterValue.DEFAULT_NAME) ? field.getName() : annotatedName;
-            ClassTypeAdapter.Binding fieldBinding = createBindingForField(transformer, annotatedName, field, fieldType);
+            ClassTypeAdapter.Binding fieldBinding = createBindingForField(transformer, name, field, fieldType);
             ClassTypeAdapter.Binding existing = fieldBindings.put(name, fieldBinding);
             if (existing != null) {
                 throw new IllegalArgumentException("Conflicting fields:\n" +
@@ -211,7 +211,9 @@ class ClassTypeAdapterFactory implements TypeAdapterFactory {
 
         @Override
         void write(ProtocolWriter writer, Object target) throws IllegalAccessException, IOException {
-
+            boolean fieldValue = field.getBoolean(target);
+            writer.writeName(name);
+            writer.writeValue(fieldValue);
         }
     }
 

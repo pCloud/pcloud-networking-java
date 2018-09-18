@@ -34,7 +34,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Documented
 public @interface ParameterValue {
 
-    String DEFAULT_NAME = "default";
+    String DEFAULT_NAME = " _%DEFAULT";
 
     /**
      * The parameter name to be used when serializing/deserializing from
