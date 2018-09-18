@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 2.2.2 (18.09.2018)
+--------------------------
+
+#### Serialization
+
+- Fix a bug where `boolean` primitive fields where not serialized.
+
 Version 2.2.1 (17.09.2018)
 --------------------------
 
