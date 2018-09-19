@@ -17,6 +17,11 @@
 package com.pcloud.utils;
 
 import okio.Buffer;
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.Okio;
+import okio.Sink;
+import okio.Source;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,8 +32,8 @@ import java.net.SocketException;
 
 public class DummySocket extends Socket {
 
-    private Buffer input;
-    private Buffer output;
+    private BufferedSource input;
+    private BufferedSink output;
     private int soTimeout;
     private boolean connected;
     private boolean closed;
@@ -37,17 +42,9 @@ public class DummySocket extends Socket {
         this(new Buffer(), new Buffer());
     }
 
-    public DummySocket(Buffer input, Buffer output) {
-        this.input = input;
-        this.output = output;
-    }
-
-    public Buffer input() {
-        return input;
-    }
-
-    public Buffer output() {
-        return output;
+    public DummySocket(BufferedSource input, BufferedSink output) {
+        this.input = Okio.buffer(input);
+        this.output = Okio.buffer(output);
     }
 
     @Override

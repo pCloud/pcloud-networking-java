@@ -32,6 +32,10 @@ public class DummyBufferedSource implements BufferedSource {
 
     private BufferedSource sourceDelegate;
 
+    public DummyBufferedSource() {
+        this(new Buffer());
+    }
+
     public DummyBufferedSource(BufferedSource sourceDelegate) {
         this.sourceDelegate = sourceDelegate;
     }

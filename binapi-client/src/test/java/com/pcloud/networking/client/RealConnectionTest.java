@@ -16,13 +16,22 @@
 
 package com.pcloud.networking.client;
 
+import com.pcloud.utils.DummyBufferedSink;
+import com.pcloud.utils.DummyBufferedSource;
 import com.pcloud.utils.DummySocket;
 import okio.Buffer;
+import okio.BufferedSink;
+import okio.BufferedSource;
 import okio.ByteString;
+import okio.Okio;
+import okio.Sink;
+import okio.Source;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -31,6 +40,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.Socket;
 import java.util.concurrent.TimeUnit;
 
@@ -44,15 +54,19 @@ public class RealConnectionTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private SocketFactory socketFactory;
-    private SSLSocketFactory sslSocketFactory;
-    private HostnameVerifier hostnameVerifier;
-    private SSLSocket sslSocket;
-    private Socket socket;
+    protected SocketFactory socketFactory;
+    protected SSLSocketFactory sslSocketFactory;
+    protected HostnameVerifier hostnameVerifier;
+    protected SSLSocket sslSocket;
+    protected DummySocket socket;
+    protected BufferedSource osSource;
+    protected BufferedSink osSink;
 
     @Before
     public void setUp() throws Exception {
-        DummySocket dummySocket = new DummySocket();
+        osSource = spy(new DummyBufferedSource());
+        osSink = spy(new DummyBufferedSink());
+        DummySocket dummySocket = new DummySocket(osSource, osSink);
         socket = spy(dummySocket);
         socketFactory = mock(SocketFactory.class);
         when(socketFactory.createSocket()).thenReturn(socket);
@@ -183,16 +197,59 @@ public class RealConnectionTest {
         assertEquals(data, connection.source().readByteString());
     }
 
-    private RealConnection createConnection(Endpoint endpoint, int timeoutMs) throws Exception {
-        return spy(new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint, timeoutMs, TimeUnit
-                .MILLISECONDS));
+    @Test(timeout = 3000)
+    public void source_Read_Throws_If_Read_Timeout_Passes() throws Exception {
+        Connection connection = createConnection();
+        connection.readTimeout(1, TimeUnit.MILLISECONDS);
+        Sink source = mock(Sink.class);
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                while (Thread.currentThread().isInterrupted()){
+                    //Block
+                }
+                return null;
+            }
+        }).when(source).write(any(Buffer.class), anyLong());
+
+        try {
+            connection.source().readAll(Okio.blackhole());
+        } catch (InterruptedIOException ignored) {
+        }
     }
 
-    private RealConnection createConnection(Endpoint endpoint) throws Exception {
+    @Test(timeout = 3000)
+    public void sink_Write_Throws_If_Write_Timeout_Passes() throws Exception {
+        Connection connection = createConnection();
+        connection.writeTimeout(1, TimeUnit.MILLISECONDS);
+        Source source = mock(Source.class);
+        when(source.read(any(Buffer.class), anyLong()))
+                .then(new Answer<Long>() {
+            @Override
+            public Long answer(InvocationOnMock invocation) throws Throwable {
+                while (Thread.currentThread().isInterrupted()){
+                    //Block
+                }
+                return -1L;
+            }
+        });
+        try {
+            connection.sink().writeAll(source);
+        } catch (InterruptedIOException ignored) {
+        }
+    }
+
+    protected RealConnection createConnection(Endpoint endpoint, int timeoutMs) throws Exception {
+        RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+        connection.connect(timeoutMs, TimeUnit.MILLISECONDS);
+        return spy(connection);
+    }
+
+    protected RealConnection createConnection(Endpoint endpoint) throws Exception {
         return createConnection(endpoint, Integer.MAX_VALUE);
     }
 
-    private RealConnection createConnection() throws Exception {
+    protected RealConnection createConnection() throws Exception {
         return createConnection(TEST_ENDPOINT, Integer.MAX_VALUE);
     }
 }

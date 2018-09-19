@@ -31,6 +31,10 @@ public class DummyBufferedSink implements BufferedSink {
 
     private BufferedSink bufferedSinkDelegate;
 
+    public DummyBufferedSink() {
+        this(new Buffer());
+    }
+
     public DummyBufferedSink(BufferedSink bufferedSinkDelegate) {
         this.bufferedSinkDelegate = bufferedSinkDelegate;
     }

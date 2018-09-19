@@ -72,7 +72,8 @@ public abstract class ApiIntegrationTest {
             transformer = Transformer.create().build();
 
             final String token = getAuthToken(apiClient, transformer, username, password);
-            apiClient = apiClient.newBuilder().addInterceptor(new RequestInterceptor() {
+            apiClient = apiClient.newBuilder()
+                    .addInterceptor(new RequestInterceptor() {
                 @Override
                 public void intercept(Request request, ProtocolWriter writer) throws IOException {
                     writer.writeName("auth").writeValue(token);
