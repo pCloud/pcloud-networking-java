@@ -16,6 +16,9 @@
 
 package com.pcloud.networking.client;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -25,19 +28,26 @@ class ConnectionProvider {
 
     private ConnectionPool connectionPool;
     private EndpointProvider endpointProvider;
-    private ConnectionFactory connectionFactory;
+    private SocketFactory socketFactory;
+    private SSLSocketFactory sslSocketFactory;
+    private HostnameVerifier hostnameVerifier;
     private int connectTimeout;
     private int readTimeout;
     private int writeTimeout;
     private boolean eagerlyCheckConnectivity;
 
-    ConnectionProvider(ConnectionPool connectionPool, EndpointProvider endpointProvider,
-                       ConnectionFactory connectionFactory,
+    ConnectionProvider(ConnectionPool connectionPool,
+                       EndpointProvider endpointProvider,
+                       SocketFactory socketFactory,
+                       SSLSocketFactory sslSocketFactory,
+                       HostnameVerifier hostnameVerifier,
                        int connectTimeout, int readTimeout, int writeTimeout,
                        boolean eagerlyCheckConnectivity) {
         this.connectionPool = connectionPool;
         this.endpointProvider = endpointProvider;
-        this.connectionFactory = connectionFactory;
+        this.socketFactory = socketFactory;
+        this.sslSocketFactory = sslSocketFactory;
+        this.hostnameVerifier = hostnameVerifier;
         this.connectTimeout = connectTimeout;
         this.readTimeout = readTimeout;
         this.writeTimeout = writeTimeout;
@@ -49,38 +59,30 @@ class ConnectionProvider {
     }
 
     Connection obtainConnection(Endpoint endpoint) throws IOException {
-        Connection connection;
-        while ((connection = connectionPool.get(endpoint)) != null) {
-            if (((RealConnection) connection).isHealthy(eagerlyCheckConnectivity)) {
+        RealConnection connection;
+        while ((connection = (RealConnection) connectionPool.get(endpoint)) != null) {
+            if (connection.isHealthy(eagerlyCheckConnectivity)) {
                 break;
             } else {
                 closeQuietly(connection);
-                connection = null;
             }
         }
 
         if (connection == null) {
             // No pooled connections available, just build a new one.
-            try {
-                connection = connectionFactory.openConnection(endpoint, connectTimeout, TimeUnit.MILLISECONDS);
-            } catch (IOException e) {
-                endpointProvider.endpointConnectionError(endpoint, e);
-                throw e;
-            }
+            connection = new ErrorReportingConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+            ((ErrorReportingConnection) connection).endpointProvider(endpointProvider);
+            connection.connect(connectTimeout, TimeUnit.MILLISECONDS);
+            connection.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+            connection.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
+            return connection;
         }
-
-        ForwardingConnection forwardingConnection = new ForwardingConnection(connection, endpointProvider);
-        forwardingConnection.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
-        forwardingConnection.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-
-
-        return forwardingConnection;
+        ((ErrorReportingConnection) connection).endpointProvider(endpointProvider);
+        return connection;
     }
 
     void recycleConnection(Connection connection) {
-        if (connection instanceof ForwardingConnection) {
-            connection = ((ForwardingConnection) connection).getWrappedConnection();
-        }
+        ((ErrorReportingConnection) connection).endpointProvider(null);
         connectionPool.recycle(connection);
     }
 }

@@ -21,8 +21,6 @@ import com.pcloud.networking.client.internal.tls.DefaultHostnameVerifier;
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 class ConnectionFactory {
 
@@ -50,7 +48,7 @@ class ConnectionFactory {
         this.hostnameVerifier = hostnameVerifier;
     }
 
-    RealConnection openConnection(Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
+    RealConnection createConnection(Endpoint endpoint) {
         if (endpoint == null) {
             throw new AssertionError("Null endpoint argument.");
         }
@@ -58,7 +56,6 @@ class ConnectionFactory {
         return new RealConnection(socketFactory,
                 sslSocketFactory,
                 hostnameVerifier,
-                endpoint,
-                connectTimeout, timeUnit);
+                endpoint);
     }
 }

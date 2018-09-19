@@ -19,6 +19,8 @@ package com.pcloud.networking.client;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
+import okio.Sink;
+import okio.Source;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HostnameVerifier;
@@ -70,21 +72,22 @@ class RealConnection extends BaseConnection {
     RealConnection(SocketFactory socketFactory,
                    SSLSocketFactory sslSocketFactory,
                    HostnameVerifier hostnameVerifier,
-                   Endpoint endpoint, int connectTimeout, TimeUnit timeUnit) throws IOException {
+                   Endpoint endpoint) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
         this.endpoint = endpoint;
+    }
+
+    void connect(int connectTimeout, TimeUnit timeUnit) throws IOException {
         try {
             this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
             this.socket = upgradeSocket(rawSocket, endpoint);
-            this.source = Okio.buffer(Okio.source(socket));
-            this.sink = Okio.buffer(Okio.sink(socket));
+            this.source = Okio.buffer(createSource(socket));
+            this.sink = Okio.buffer(createSink(socket));
             this.inputStream = source.inputStream();
             this.outputStream = sink.outputStream();
             socket.setSoTimeout(0);
-            source.timeout().timeout(readTimeout(), TimeUnit.MILLISECONDS);
-            sink.timeout().timeout(writeTimeout(), TimeUnit.MILLISECONDS);
             connected = true;
         } finally {
             if (!connected) {
@@ -93,10 +96,18 @@ class RealConnection extends BaseConnection {
         }
     }
 
+    protected Sink createSink(Socket socket) throws IOException {
+        return Okio.sink(socket);
+    }
+
+    protected Source createSource(Socket socket) throws IOException {
+        return Okio.source(socket);
+    }
+
     @Override
     public InputStream inputStream() throws IOException {
         synchronized (this) {
-            checkNotClosed();
+            checkState();
             return inputStream;
         }
     }
@@ -104,7 +115,7 @@ class RealConnection extends BaseConnection {
     @Override
     public OutputStream outputStream() throws IOException {
         synchronized (this) {
-            checkNotClosed();
+            checkState();
             return outputStream;
         }
     }
@@ -117,7 +128,7 @@ class RealConnection extends BaseConnection {
     @Override
     public BufferedSource source() throws IOException {
         synchronized (this) {
-            checkNotClosed();
+            checkState();
             return source;
         }
     }
@@ -125,7 +136,7 @@ class RealConnection extends BaseConnection {
     @Override
     public BufferedSink sink() throws IOException {
         synchronized (this) {
-            checkNotClosed();
+            checkState();
             return sink;
         }
     }
@@ -274,7 +285,7 @@ class RealConnection extends BaseConnection {
         }
     }
 
-    private void checkNotClosed() throws IOException {
+    private void checkState() throws IOException {
         if (!connected) {
             throw new IOException("Connection is closed.");
         }

@@ -49,10 +49,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class PCloudAPIClient {
 
-    private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
-    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 15;
-    private static final int DEFAULT_READ_TIMEOUT_MS = 30;
-    private static final int DEFAULT_WRITE_TIMEOUT_MS = 30;
+    private static final long DEFAULT_KEEP_ALIVE_TIME = 60;
+    private static final int DEFAULT_CONNECT_TIMEOUT = 15;
+    private static final int DEFAULT_READ_TIMEOUT = 30;
+    private static final int DEFAULT_WRITE_TIMEOUT = 30;
 
     private int connectTimeoutMs;
     private int writeTimeoutMs;
@@ -85,8 +85,8 @@ public class PCloudAPIClient {
         this.connectionPool = builder.connectionPool != null ? builder.connectionPool : new ConnectionPool();
         this.endpointProvider = builder.endpointProvider != null ? builder.endpointProvider : EndpointProvider.DEFAULT;
 
-        ConnectionFactory connectionFactory = new ConnectionFactory(socketFactory, sslSocketFactory, hostnameVerifier);
-        this.connectionProvider = new ConnectionProvider(connectionPool, endpointProvider, connectionFactory,
+        this.connectionProvider = new ConnectionProvider(connectionPool, endpointProvider,
+                socketFactory, sslSocketFactory, hostnameVerifier,
                 connectTimeoutMs, readTimeoutMs, writeTimeoutMs, false);
 
         ThreadFactory threadFactory = new ThreadFactory() {
@@ -98,7 +98,7 @@ public class PCloudAPIClient {
         this.callExecutor = builder.callExecutor != null ?
                 builder.callExecutor : new ThreadPoolExecutor(0,
                 Integer.MAX_VALUE,
-                DEFAULT_KEEP_ALIVE_TIME_MS,
+                DEFAULT_KEEP_ALIVE_TIME,
                 TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
                 threadFactory);
@@ -343,9 +343,9 @@ public class PCloudAPIClient {
      */
     public static Builder newClient() {
         return new Builder()
-                .setConnectTimeout(DEFAULT_CONNECT_TIMEOUT_MS, SECONDS)
-                .setWriteTimeout(DEFAULT_WRITE_TIMEOUT_MS, SECONDS)
-                .setReadTimeout(DEFAULT_READ_TIMEOUT_MS, SECONDS);
+                .setConnectTimeout(DEFAULT_CONNECT_TIMEOUT, SECONDS)
+                .setWriteTimeout(DEFAULT_WRITE_TIMEOUT, SECONDS)
+                .setReadTimeout(DEFAULT_READ_TIMEOUT, SECONDS);
     }
 
     /**

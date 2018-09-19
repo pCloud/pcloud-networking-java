@@ -21,7 +21,6 @@ import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
 import com.pcloud.networking.protocol.ResponseBytesWriter;
 import com.pcloud.networking.protocol.SerializationException;
-import com.sun.istack.internal.NotNull;
 import okio.Buffer;
 import okio.ByteString;
 import org.junit.Rule;
@@ -142,7 +141,6 @@ public class EnumTypeAdapterTest {
         adapter.deserialize(reader);
     }
 
-    @NotNull
     private static ProtocolReader readerWithValues(Object... values) throws IOException {
         ByteString response = ResponseBytesWriter.empty()
                 .writeValue("values", values)
