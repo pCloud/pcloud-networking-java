@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 2.2.3 (19.09.2018)
+--------------------------
+
+#### Client
+
+- Simplify the connection establishment and error reporting logic.
+- Code style improvements & small bugfixes.
+
 Version 2.2.2 (18.09.2018)
 --------------------------
 
