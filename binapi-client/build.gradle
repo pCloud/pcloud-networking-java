@@ -1,29 +1,20 @@
-apply plugin: 'java'
-apply plugin: 'com.github.hauner.jarTest'
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 dependencies {
-    compile project(':protocol')
     compileOnly 'com.google.android:android:4.1.1.4'
-    compile deps.okio
 
-    testCompile project(':protocol')
-    testCompile project(path: ':protocol', configuration: 'testArchives')
-    testCompile group: 'org.hamcrest', name: 'hamcrest-junit', version: '2.0.0.0'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile 'org.assertj:assertj-core:2.5.0'
+    api project(':protocol')
+    implementation project(':utils-io')
+
+    testImplementation project(':protocol-test')
+    testImplementation project(':utils-io-test')
+    testImplementation deps.mockito
+    testImplementation deps.junit
+    testImplementation deps.assertJ
 }
 
-sourceCompatibility = 1.7
-
 ext {
-    bintrayPackage = 'binapi-client'
     artifactId = 'binapi-client'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')

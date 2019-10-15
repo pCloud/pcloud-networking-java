@@ -1,15 +1,7 @@
-apply plugin: 'java'
-
-sourceCompatibility = 1.7
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 ext {
-    bintrayPackage = 'utils-reflection'
     artifactId = 'utils-reflection'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')

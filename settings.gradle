@@ -1,11 +1,14 @@
 rootProject.name = 'pcloud-networking'
 include 'binapi-client'
 include 'protocol'
+include 'protocol-test'
 include 'serialization'
 include 'composer'
 include 'serialization-adapter-timestamp'
 include 'composer-adapter-rxjava'
 include 'utils-io'
+include 'utils-io-test'
 include 'utils-reflection'
 include 'serialization-annotations'
+
 

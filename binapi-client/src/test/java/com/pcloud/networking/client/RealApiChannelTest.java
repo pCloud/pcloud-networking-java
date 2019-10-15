@@ -16,7 +16,7 @@ import org.mockito.stubbing.Answer;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;

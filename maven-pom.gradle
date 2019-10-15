@@ -1,7 +1,4 @@
 apply plugin: 'com.github.dcendents.android-maven'
-apply from: rootProject.file('publishing.gradle')
-
-group = project.getPublishProperty('groupId')
 
 def packagingType = project.hasProperty("android") ? 'aar' : 'jar'
 
@@ -12,32 +9,32 @@ install {
             //noinspection GroovyAssignabilityCheck
             project {
                 packaging packagingType
-                groupId getPublishProperty('groupId')
-                artifactId getPublishProperty('artifactId')
+                groupId project.group
+                artifactId project.artifactId
 
                 // Add your description here
-                name project.getPublishProperty('libraryName')
-                description project.getPublishProperty('description')
-                url project.getPublishProperty('siteUrl')
+                name project.libraryName
+                description project.description
+                url project.siteUrl
 
                 // Set your license
                 licenses {
                     license {
-                        name project.getPublishProperty('licenseName')
-                        url project.getPublishProperty('licenseUrl')
+                        name project.licenseName
+                        url project.licenseUrl
                     }
                 }
                 developers {
                     developer {
-                        id project.getPublishProperty('developerId')
-                        name project.getPublishProperty('developerName')
-                        email project.getPublishProperty('developerEmail')
+                        id project.developerId
+                        name project.developerName
+                        email project.developerEmail
                     }
                 }
                 scm {
-                    connection project.getPublishProperty('vcsUrl')
-                    developerConnection project.getPublishProperty('vcsUrl')
-                    url project.getPublishProperty('siteUrl')
+                    connection project.vcsUrl
+                    developerConnection project.vcsUrl
+                    url project.siteUrl
                 }
             }
         }

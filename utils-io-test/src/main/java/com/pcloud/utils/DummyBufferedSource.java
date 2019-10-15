@@ -30,243 +30,254 @@ import java.nio.charset.Charset;
 
 public class DummyBufferedSource implements BufferedSource {
 
-    private BufferedSource sourceDelegate;
+    private BufferedSource delegate;
 
     public DummyBufferedSource() {
         this(new Buffer());
     }
 
-    public DummyBufferedSource(BufferedSource sourceDelegate) {
-        this.sourceDelegate = sourceDelegate;
+    public DummyBufferedSource(BufferedSource delegate) {
+        this.delegate = delegate;
     }
 
-    public BufferedSource getSourceDelegate() {
-        return sourceDelegate;
+    public BufferedSource getDelegate() {
+        return delegate;
     }
 
     @Override
+    public BufferedSource peek() {
+        return delegate.peek();
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
     public Buffer buffer() {
-        return sourceDelegate.buffer();
+        return delegate.buffer();
+    }
+
+    @Override
+    public Buffer getBuffer() {
+        return delegate.getBuffer();
     }
 
     @Override
     public boolean exhausted() throws IOException {
-        return sourceDelegate.exhausted();
+        return delegate.exhausted();
     }
 
     @Override
     public void require(long byteCount) throws IOException {
-        sourceDelegate.require(byteCount);
+        delegate.require(byteCount);
     }
 
     @Override
     public boolean request(long byteCount) throws IOException {
-        return sourceDelegate.request(byteCount);
+        return delegate.request(byteCount);
     }
 
     @Override
     public byte readByte() throws IOException {
-        return sourceDelegate.readByte();
+        return delegate.readByte();
     }
 
     @Override
     public short readShort() throws IOException {
-        return sourceDelegate.readShort();
+        return delegate.readShort();
     }
 
     @Override
     public short readShortLe() throws IOException {
-        return sourceDelegate.readShortLe();
+        return delegate.readShortLe();
     }
 
     @Override
     public int readInt() throws IOException {
-        return sourceDelegate.readInt();
+        return delegate.readInt();
     }
 
     @Override
     public int readIntLe() throws IOException {
-        return sourceDelegate.readIntLe();
+        return delegate.readIntLe();
     }
 
     @Override
     public long readLong() throws IOException {
-        return sourceDelegate.readLong();
+        return delegate.readLong();
     }
 
     @Override
     public long readLongLe() throws IOException {
-        return sourceDelegate.readLongLe();
+        return delegate.readLongLe();
     }
 
     @Override
     public long readDecimalLong() throws IOException {
-        return sourceDelegate.readDecimalLong();
+        return delegate.readDecimalLong();
     }
 
     @Override
     public long readHexadecimalUnsignedLong() throws IOException {
-        return sourceDelegate.readHexadecimalUnsignedLong();
+        return delegate.readHexadecimalUnsignedLong();
     }
 
     @Override
     public void skip(long byteCount) throws IOException {
-        sourceDelegate.skip(byteCount);
+        delegate.skip(byteCount);
     }
 
     @Override
     public ByteString readByteString() throws IOException {
-        return sourceDelegate.readByteString();
+        return delegate.readByteString();
     }
 
     @Override
     public ByteString readByteString(long byteCount) throws IOException {
-        return sourceDelegate.readByteString(byteCount);
+        return delegate.readByteString(byteCount);
     }
 
     @Override
     public int select(Options options) throws IOException {
-        return sourceDelegate.select(options);
+        return delegate.select(options);
     }
 
     @Override
     public byte[] readByteArray() throws IOException {
-        return sourceDelegate.readByteArray();
+        return delegate.readByteArray();
     }
 
     @Override
     public byte[] readByteArray(long byteCount) throws IOException {
-        return sourceDelegate.readByteArray(byteCount);
+        return delegate.readByteArray(byteCount);
     }
 
     @Override
     public int read(byte[] sink) throws IOException {
-        return sourceDelegate.read(sink);
+        return delegate.read(sink);
     }
 
     @Override
     public void readFully(byte[] sink) throws IOException {
-        sourceDelegate.readFully(sink);
+        delegate.readFully(sink);
     }
 
     @Override
     public int read(byte[] sink, int offset, int byteCount) throws IOException {
-        return sourceDelegate.read(sink, offset, byteCount);
+        return delegate.read(sink, offset, byteCount);
     }
 
     @Override
     public int read(ByteBuffer dst) throws IOException {
-        return sourceDelegate.read(dst);
+        return delegate.read(dst);
     }
 
     @Override
     public void readFully(Buffer sink, long byteCount) throws IOException {
-        sourceDelegate.readFully(sink, byteCount);
+        delegate.readFully(sink, byteCount);
     }
 
     @Override
     public long readAll(Sink sink) throws IOException {
-        return sourceDelegate.readAll(sink);
+        return delegate.readAll(sink);
     }
 
     @Override
     public String readUtf8() throws IOException {
-        return sourceDelegate.readUtf8();
+        return delegate.readUtf8();
     }
 
     @Override
     public String readUtf8(long byteCount) throws IOException {
-        return sourceDelegate.readUtf8(byteCount);
+        return delegate.readUtf8(byteCount);
     }
 
     @Override
     public String readUtf8Line() throws IOException {
-        return sourceDelegate.readUtf8Line();
+        return delegate.readUtf8Line();
     }
 
     @Override
     public String readUtf8LineStrict() throws IOException {
-        return sourceDelegate.readUtf8LineStrict();
+        return delegate.readUtf8LineStrict();
     }
 
     @Override
     public String readUtf8LineStrict(long limit) throws IOException {
-        return sourceDelegate.readUtf8LineStrict(limit);
+        return delegate.readUtf8LineStrict(limit);
     }
 
     @Override
     public int readUtf8CodePoint() throws IOException {
-        return sourceDelegate.readUtf8CodePoint();
+        return delegate.readUtf8CodePoint();
     }
 
     @Override
     public String readString(Charset charset) throws IOException {
-        return sourceDelegate.readString(charset);
+        return delegate.readString(charset);
     }
 
     @Override
     public String readString(long byteCount, Charset charset) throws IOException {
-        return sourceDelegate.readString(byteCount, charset);
+        return delegate.readString(byteCount, charset);
     }
 
     @Override
     public long indexOf(byte b) throws IOException {
-        return sourceDelegate.indexOf(b);
+        return delegate.indexOf(b);
     }
 
     @Override
     public long indexOf(byte b, long fromIndex) throws IOException {
-        return sourceDelegate.indexOf(b, fromIndex);
+        return delegate.indexOf(b, fromIndex);
     }
 
     @Override
     public long indexOf(byte b, long fromIndex, long toIndex) throws IOException {
-        return sourceDelegate.indexOf(b, fromIndex, toIndex);
+        return delegate.indexOf(b, fromIndex, toIndex);
     }
 
     @Override
     public long indexOf(ByteString bytes) throws IOException {
-        return sourceDelegate.indexOf(bytes);
+        return delegate.indexOf(bytes);
     }
 
     @Override
     public long indexOf(ByteString bytes, long fromIndex) throws IOException {
-        return sourceDelegate.indexOf(bytes, fromIndex);
+        return delegate.indexOf(bytes, fromIndex);
     }
 
     @Override
     public long indexOfElement(ByteString targetBytes) throws IOException {
-        return sourceDelegate.indexOfElement(targetBytes);
+        return delegate.indexOfElement(targetBytes);
     }
 
     @Override
     public long indexOfElement(ByteString targetBytes, long fromIndex) throws IOException {
-        return sourceDelegate.indexOfElement(targetBytes, fromIndex);
+        return delegate.indexOfElement(targetBytes, fromIndex);
     }
 
     @Override
     public boolean rangeEquals(long offset, ByteString bytes) throws IOException {
-        return sourceDelegate.rangeEquals(offset, bytes);
+        return delegate.rangeEquals(offset, bytes);
     }
 
     @Override
     public boolean rangeEquals(long offset, ByteString bytes, int bytesOffset, int byteCount) throws IOException {
-        return sourceDelegate.rangeEquals(offset, bytes, bytesOffset, byteCount);
+        return delegate.rangeEquals(offset, bytes, bytesOffset, byteCount);
     }
 
     @Override
     public InputStream inputStream() {
-        return sourceDelegate.inputStream();
+        return delegate.inputStream();
     }
 
     @Override
     public long read(Buffer sink, long byteCount) throws IOException {
-        return sourceDelegate.read(sink, byteCount);
+        return delegate.read(sink, byteCount);
     }
 
     @Override
     public Timeout timeout() {
-        return sourceDelegate.timeout();
+        return delegate.timeout();
     }
 
     @Override
@@ -276,6 +287,6 @@ public class DummyBufferedSource implements BufferedSource {
 
     @Override
     public void close() throws IOException {
-        sourceDelegate.close();
+        delegate.close();
     }
 }

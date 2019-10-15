@@ -18,8 +18,11 @@ package com.pcloud.networking.client;
 
 import com.pcloud.networking.protocol.ResponseBytesWriter;
 import org.assertj.core.api.ThrowableAssert;
-import org.hamcrest.Matchers;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -27,10 +30,22 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -387,7 +402,7 @@ public class RealMultiCallTest {
             expectedValues.add(bytes.toValues());
         }
 
-        assertThat(expectedValues, Matchers.hasItem(responseValues));
+        assertThat(expectedValues, hasItem(responseValues));
     }
 
     private byte[] getMockByteDataResponse(int numberOfRequests) {

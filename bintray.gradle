@@ -1,33 +1,15 @@
-apply plugin: 'com.jfrog.bintray'
 apply from: rootProject.file('publishing.gradle')
+apply from: rootProject.file('maven-pom.gradle')
 
-version = getPublishProperty('versionName')
+apply plugin: 'com.jfrog.bintray'
 
-if (project.hasProperty("android")) { // Android libraries
-    task sourcesJar(type: Jar) {
-        classifier = 'sources'
-        from android.sourceSets.main.java.srcDirs
-    }
-
-    task javadoc(type: Javadoc) {
-        failOnError = true
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    }
-} else { // Java libraries
-    task sourcesJar(type: Jar, dependsOn: classes) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar) {
-    if (project.hasProperty("android")) {
-        dependsOn "javadoc"
-        from javadoc.destinationDir
-    }
     classifier = 'javadoc'
-
 }
 
 artifacts {
@@ -60,12 +42,12 @@ bintray {
     override = true
     configurations = ['archives']
     pkg {
-        repo = getPublishProperty('libraryName')
-        name = getPublishProperty('bintrayPackage')
-        desc = getPublishProperty('description')
-        websiteUrl = getPublishProperty('siteUrl')
-        vcsUrl = getPublishProperty('vcsUrl')
-        licenses = getProperty('allLicenses')
+        repo = project.libraryName
+        name = project.artifactId
+        desc = project.description
+        websiteUrl = project.siteUrl
+        vcsUrl = project.vcsUrl
+        licenses = project.allLicenses
         userOrg = 'pcloud'
         publish = true
         publicDownloadNumbers = true
@@ -77,13 +59,5 @@ bintray {
                 //Optional. The passphrase for GPG signing'
             }
         }
-    }
-}
-
-if (project.hasProperty("android")) {
-    afterEvaluate {
-        javadoc.classpath += files(android.libraryVariants.collect { variant ->
-            variant.javaCompile.classpath.files
-        })
     }
 }

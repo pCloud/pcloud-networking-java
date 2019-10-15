@@ -1,46 +1,54 @@
-
 repositories {
     mavenCentral()
 }
 
 buildscript {
 
-    apply from: rootProject.file('dependencies.gradle')
-
     repositories {
         jcenter()
+        mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
         }
     }
+
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
         classpath "gradle.plugin.gradle-plugins:jartest:1.0.1"
     }
 }
 
-subprojects {
-    plugins.withType(JavaPlugin) {
-        project.apply plugin: 'com.github.hauner.jarTest'
-    }
+allprojects {
+    apply from: rootProject.file('dependencies.gradle')
+    apply from: rootProject.file('publishing.gradle')
 }
 
-allprojects {
-    apply plugin: 'checkstyle'
+subprojects { subProject ->
 
-    checkstyle {
-        configFile file("${rootDir}/checkstyle.xml")
-        showViolations true
-        ignoreFailures false
-        sourceSets [delegate.sourceSets.main]
+    repositories {
+        jcenter()
+        mavenCentral()
     }
 
-    tasks.withType(Checkstyle) {
-        reports {
-            html.destination rootProject.file("build/reports/checkstyle.html")
+    group "com.pcloud.pcloud-networking-java"
+
+    plugins.withType(JavaLibraryPlugin) {
+        subProject.apply plugin: 'checkstyle'
+
+        sourceCompatibility = rootProject.javaSourceCompatibility
+
+        checkstyle {
+            configFile file("${rootDir}/checkstyle.xml")
+            showViolations true
+            ignoreFailures false
+            sourceSets = [subProject.sourceSets.main]
+        }
+
+        subProject.tasks.withType(Checkstyle) {
+            reports {
+                html.destination rootProject.file("build/reports/checkstyle.html")
+            }
         }
     }
 }
-
-apply from: rootProject.file('publishing.gradle')
