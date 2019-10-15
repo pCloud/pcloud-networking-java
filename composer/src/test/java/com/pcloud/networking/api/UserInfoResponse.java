@@ -25,6 +25,7 @@ public class UserInfoResponse extends ApiResponse {
     @ParameterValue("plan")
     private int plan;
     private boolean cryptosubscription;
+    @ParameterValue("email")
     private String email;
     private boolean emailverified;
     @ParameterValue("quota")

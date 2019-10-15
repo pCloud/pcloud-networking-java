@@ -19,53 +19,52 @@ package com.pcloud.networking.api;
 import com.pcloud.networking.protocol.DataSource;
 import okio.Buffer;
 import okio.ByteString;
-import okio.Okio;
 import org.junit.Test;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.*;
 
 public class FileOperationTest extends ApiIntegrationTest {
 
+    private static final String TEST_IMAGE_FILE_NAME = "Nyan_cat_250px_frame.PNG";
+    private static final String REMOTE_IMAGE_URL = "https://filedn.com/lmAEeoTE4jMmdP3fKVL5swu/pcloud-networking/" + TEST_IMAGE_FILE_NAME;
 
     @Test
-    public void donwloadFile_ShouldNotFail() throws Exception {
+    public void downloadFile_ShouldNotFail() throws Exception {
 
-        FileResponse response = donwloadApi.downloadRemoteUrl("http://cms.hostelbookers.com/hbblog/wp-content/uploads/sites/3/2012/02/cat-happy-cat-e1329931204797.jpg", 0L);
+        FileResponse response = downloadApi.downloadRemoteUrl(REMOTE_IMAGE_URL, 0L);
 
         assertNotNull(response);
         assertEquals(0, response.getMetadata().get(0).getFolderid());
-        assertEquals("cat-happy-cat-e1329931204797.jpg", response.getMetadata().get(0).getName());
+        assertEquals(TEST_IMAGE_FILE_NAME, response.getMetadata().get(0).getName());
     }
 
     @Test
     public void downloadFile_ShouldNotFailOnWrongFolderId() throws Exception {
-
-        FileResponse response = donwloadApi.downloadRemoteUrl("http://cms.hostelbookers.com/hbblog/wp-content/uploads/sites/3/2012/02/cat-happy-cat-e1329931204797.jpg", -1);
+        FileResponse response = downloadApi.downloadRemoteUrl(REMOTE_IMAGE_URL, -1);
         assertNotNull(response);
         assertEquals(0L, response.resultCode());
     }
 
     @Test
     public void downloadFile_ShouldNotFailOnEmptyUrl() throws Exception {
-
-        FileResponse response = donwloadApi.downloadRemoteUrl("", 0);
+        FileResponse response = downloadApi.downloadRemoteUrl("", 0);
         assertNotNull(response);
         assertEquals(0, response.resultCode());
     }
 
     @Test
     public void downloadFile_ShouldNotFailOnNullUrl() throws Exception {
-        donwloadApi.downloadRemoteUrl(null, 0);
+        downloadApi.downloadRemoteUrl(null, 0);
     }
 
     @Test
     public void downloadThumb_ShouldNotFailOnCorrectParameters() throws Exception {
-        DataApiResponse response = donwloadApi.getThumb("/cat-happy-cat-e1329931204797.jpg", "64x64");
+        DataApiResponse response = downloadApi.getThumb("/" + TEST_IMAGE_FILE_NAME, "64x64");
         assertNotNull(response);
+        assertEquals(response.message(), response.resultCode(), 0L);
         assertNotNull(response.responseData());
-        assertEquals(response.responseData().contentLength(), 1966L);
 
         Buffer buffer = new Buffer();
         response.responseData().writeTo(buffer);
@@ -74,36 +73,34 @@ public class FileOperationTest extends ApiIntegrationTest {
 
     @Test
     public void downloadThumb_ShouldNotFailOnWrongFileName() throws Exception {
-
-        DataApiResponse response = donwloadApi.getThumb("/abc", "64x64");
+        DataApiResponse response = downloadApi.getThumb("/abc", "64x64");
         assertNotNull(response);
         assertNull(response.responseData());
     }
 
     @Test
     public void downloadThumb_ShouldNotFailOnNullParameters() throws Exception {
-        donwloadApi.getThumb(null, "64x64");
-        donwloadApi.getThumb("", null);
+        downloadApi.getThumb(null, "64x64");
+        downloadApi.getThumb("", null);
     }
 
     @Test
     public void uploadFile_ShouldNotFail() throws Exception {
-
-        ByteString string = ByteString.encodeString("abc123qwerty!@#$%^&*(", Charset.forName("UTF-8"));
-        FileResponse response = donwloadApi.uploadFile(0, "someFile.txt", DataSource.create(string));
+        ByteString string = ByteString.encodeString("abc123qwerty!@#$%^&*(", StandardCharsets.UTF_8);
+        FileResponse response = downloadApi.uploadFile(0, "someFile.txt", DataSource.create(string));
         assertNotNull(response);
     }
 
     @Test
     public void uploadFile_ShouldFailOnNullDataSource() throws Exception {
         exception.expect(IllegalArgumentException.class);
-        FileResponse response = donwloadApi.uploadFile(0, "someFile.txt", null);
+        FileResponse response = downloadApi.uploadFile(0, "someFile.txt", null);
         assertNotNull(response);
     }
 
     @Test
     public void updateFile_ShouldFailOnNullDataSource() throws Exception {
         exception.expect(IllegalArgumentException.class);
-        donwloadApi.uploadFile(0, null, null);
+        downloadApi.uploadFile(0, null, null);
     }
 }
