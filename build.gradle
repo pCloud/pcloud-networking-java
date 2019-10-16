@@ -15,7 +15,7 @@ buildscript {
     dependencies {
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
-        classpath "gradle.plugin.gradle-plugins:jartest:1.0.1"
+        classpath "gradle.plugin.com.github.spotbugs:spotbugs-gradle-plugin:2.0.0"
     }
 }
 
@@ -25,30 +25,16 @@ allprojects {
 }
 
 subprojects { subProject ->
-
     repositories {
         jcenter()
         mavenCentral()
     }
-
-    group "com.pcloud.pcloud-networking-java"
 
     plugins.withType(JavaLibraryPlugin) {
         subProject.apply plugin: 'checkstyle'
 
         sourceCompatibility = rootProject.javaSourceCompatibility
 
-        checkstyle {
-            configFile file("${rootDir}/checkstyle.xml")
-            showViolations true
-            ignoreFailures false
-            sourceSets = [subProject.sourceSets.main]
-        }
-
-        subProject.tasks.withType(Checkstyle) {
-            reports {
-                html.destination rootProject.file("build/reports/checkstyle.html")
-            }
-        }
+        subProject.apply from: rootProject.file('static-analysis.gradle')
     }
 }
