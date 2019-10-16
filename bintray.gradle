@@ -18,27 +18,29 @@ artifacts {
 }
 
 // Bintray
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-def bintrayUser = properties.getProperty("bintray.user")
-def bintrayKey = properties.getProperty("bintray.apikey")
-
-if (bintrayUser == null) {
-    bintrayUser = System.getenv("PCLOUD_BINTRAY_USER")
+def credentials = [:]
+if (project.isCi) {
+    credentials.bintrayUser = System.getenv("PCLOUD_BINTRAY_USER")
+    credentials.bintrayKey = System.getenv("PCLOUD_BINTRAY_KEY")
+    credentials.signingPassword = System.getenv("PCLOUD_BINTRAY_SIGN_KEY_PASSWORD")
+} else {
+    // Read user and token from `local.properties`
+    project.rootProject.file('local.properties').withInputStream {stream ->
+        Properties properties = new Properties()
+        properties.load(new DataInputStream(stream))
+        credentials.bintrayUser = properties.getProperty("bintray.user")
+        credentials.bintrayKey = properties.getProperty("bintray.apikey")
+        credentials.signingPassword = System.getenv("bintray.signingKey")
+    }
 }
 
-if (bintrayKey == null) {
-    bintrayKey = System.getenv("PCLOUD_BINTRAY_KEY")
-}
-
-if (bintrayUser == null  || bintrayKey == null) {
-    throw new GradleException("Missing bintray credentials.")
+if (credentials.isEmpty()) {
+    throw new GradleException("Missing Bintray credentials.")
 }
 
 bintray {
-    user = bintrayUser
-    key = bintrayKey
+    user = credentials.bintrayUser
+    key = credentials.bintrayKey
     override = true
     configurations = ['archives']
     pkg {
@@ -52,11 +54,10 @@ bintray {
         publish = true
         publicDownloadNumbers = true
         version {
-            desc = getProperty('description')
+            desc = project.description
             gpg {
-                sign = true //Determines whether to GPG sign the files. The default is false
-                passphrase = properties.getProperty("bintray.gpg.password")
-                //Optional. The passphrase for GPG signing'
+                sign = credentials.signingPassword != null
+                passphrase = credentials.signingPassword
             }
         }
     }

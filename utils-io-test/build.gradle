@@ -3,3 +3,7 @@ apply plugin: 'java-library'
 dependencies {
     implementation deps.okio
 }
+
+tasks.withType(Checkstyle) {
+    enabled false
+}

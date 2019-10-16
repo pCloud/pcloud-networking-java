@@ -1,0 +1,77 @@
+variables:
+  GIT_STRATEGY: fetch
+  GIT_SUBMODULE_STRATEGY: normal
+
+before_script:
+  - chmod +x ./gradlew
+
+stages:
+  - build
+  - analyze
+  - test
+  - deploy
+
+assemble:
+  stage: build
+  tags:
+    - java
+  script:
+    - ./gradlew assemble
+  dependencies: []
+
+checkstyle:
+  stage: analyze
+  tags:
+    - java
+  script:
+    - ./gradlew checkstyleMain
+  dependencies: []
+  artifacts:
+    expire_in: 1 week
+    when: on_failure
+    name: "checkstyle-report-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    paths:
+      - "*/build/reports/checkstyle/*"
+
+finbugs:
+  stage: analyze
+  allow_failure: true
+  tags:
+    - java
+  script:
+    - ./gradlew findbugsMain
+  dependencies: []
+  artifacts:
+    expire_in: 1 week
+    when: on_failure
+    name: "findbugs-report-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    paths:
+      - "*/build/reports/spotbugs/*"
+
+tests:
+  stage: test
+  tags:
+    - java
+  script:
+    - ./gradlew test
+  dependencies: []
+  artifacts:
+    expire_in: 1 week
+    when: on_failure
+    name: "test-reports-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    paths:
+      - "*/build/reports/tests/test/*"
+    reports:
+      junit:
+        - "*/build/test-results/test/TEST-*.xml"
+
+upload-artifacts-bintray:
+  stage: deploy
+  only:
+    - tags
+  tags:
+    - java
+  script:
+    - ./gradlew install bintrayUpload
+  dependencies: []
+

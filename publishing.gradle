@@ -1,5 +1,5 @@
 ext {
-    isCi = "true" == System.getenv('CI')
+    isCi = System.getenv().containsKey('CI')
 
     versionName = "2.2.3"
     versionCode = 19
