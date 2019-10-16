@@ -309,7 +309,7 @@ public class BytesReader implements ProtocolResponseReader {
         reader.currentScope = this.currentScope;
         reader.previousScope = this.previousScope;
         reader.scopeStack = new ArrayDeque<>(this.scopeStack);
-        reader.bufferedSource = Okio.buffer(new PeekingSource(this.bufferedSource, 0L, PEEK_READ_LIMIT_BYTES));
+        reader.bufferedSource = Okio.buffer(this.bufferedSource.peek());
         reader.stringCache = this.stringCache;
         reader.dataLength = this.dataLength;
         reader.lastStringId = this.lastStringId;
@@ -530,6 +530,11 @@ public class BytesReader implements ProtocolResponseReader {
         @Override
         public void readData(BufferedSink sink) throws IOException {
             throw new UnsupportedOperationException("Data cannot be peeked.");
+        }
+
+        @Override
+        public void close() {
+
         }
     }
 }
