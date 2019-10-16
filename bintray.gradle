@@ -1,33 +1,15 @@
-apply plugin: 'com.jfrog.bintray'
 apply from: rootProject.file('publishing.gradle')
+apply from: rootProject.file('maven-pom.gradle')
 
-version = getPublishProperty('versionName')
+apply plugin: 'com.jfrog.bintray'
 
-if (project.hasProperty("android")) { // Android libraries
-    task sourcesJar(type: Jar) {
-        classifier = 'sources'
-        from android.sourceSets.main.java.srcDirs
-    }
-
-    task javadoc(type: Javadoc) {
-        failOnError = true
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    }
-} else { // Java libraries
-    task sourcesJar(type: Jar, dependsOn: classes) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar) {
-    if (project.hasProperty("android")) {
-        dependsOn "javadoc"
-        from javadoc.destinationDir
-    }
     classifier = 'javadoc'
-
 }
 
 artifacts {
@@ -36,54 +18,47 @@ artifacts {
 }
 
 // Bintray
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-def bintrayUser = properties.getProperty("bintray.user")
-def bintrayKey = properties.getProperty("bintray.apikey")
-
-if (bintrayUser == null) {
-    bintrayUser = System.getenv("PCLOUD_BINTRAY_USER")
+def credentials = [:]
+if (project.isCi) {
+    credentials.bintrayUser = System.getenv("PCLOUD_BINTRAY_USER")
+    credentials.bintrayKey = System.getenv("PCLOUD_BINTRAY_KEY")
+    credentials.signingPassword = System.getenv("PCLOUD_BINTRAY_SIGN_KEY_PASSWORD")
+} else {
+    // Read user and token from `local.properties`
+    project.rootProject.file('local.properties').withInputStream {stream ->
+        Properties properties = new Properties()
+        properties.load(new DataInputStream(stream))
+        credentials.bintrayUser = properties.getProperty("bintray.user")
+        credentials.bintrayKey = properties.getProperty("bintray.apikey")
+        credentials.signingPassword = System.getenv("bintray.signingKey")
+    }
 }
 
-if (bintrayKey == null) {
-    bintrayKey = System.getenv("PCLOUD_BINTRAY_KEY")
-}
-
-if (bintrayUser == null  || bintrayKey == null) {
-    throw new GradleException("Missing bintray credentials.")
+if (credentials.isEmpty()) {
+    throw new GradleException("Missing Bintray credentials.")
 }
 
 bintray {
-    user = bintrayUser
-    key = bintrayKey
+    user = credentials.bintrayUser
+    key = credentials.bintrayKey
     override = true
     configurations = ['archives']
     pkg {
-        repo = getPublishProperty('libraryName')
-        name = getPublishProperty('bintrayPackage')
-        desc = getPublishProperty('description')
-        websiteUrl = getPublishProperty('siteUrl')
-        vcsUrl = getPublishProperty('vcsUrl')
-        licenses = getProperty('allLicenses')
+        repo = project.libraryName
+        name = project.artifactId
+        desc = project.description
+        websiteUrl = project.siteUrl
+        vcsUrl = project.vcsUrl
+        licenses = project.allLicenses
         userOrg = 'pcloud'
         publish = true
         publicDownloadNumbers = true
         version {
-            desc = getProperty('description')
+            desc = project.description
             gpg {
-                sign = true //Determines whether to GPG sign the files. The default is false
-                passphrase = properties.getProperty("bintray.gpg.password")
-                //Optional. The passphrase for GPG signing'
+                sign = credentials.signingPassword != null
+                passphrase = credentials.signingPassword
             }
         }
-    }
-}
-
-if (project.hasProperty("android")) {
-    afterEvaluate {
-        javadoc.classpath += files(android.libraryVariants.collect { variant ->
-            variant.javaCompile.classpath.files
-        })
     }
 }

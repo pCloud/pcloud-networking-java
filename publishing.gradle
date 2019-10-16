@@ -1,5 +1,5 @@
 ext {
-    isCi = "true".equals(System.getenv('CI'))
+    isCi = System.getenv().containsKey('CI')
 
     versionName = "2.2.3"
     versionCode = 19
@@ -18,13 +18,5 @@ ext {
     allLicenses = ["Apache-2.0"]
 }
 
-ext.getPublishProperty = { String valueName ->
-    String value = null
-    if (project.ext.has(valueName)) {
-        value = project.ext.get(valueName)
-    } else if (rootProject.ext.has(valueName)) {
-        value = rootProject.ext.get(valueName)
-    }
-
-    return value
-}
+version = ext.versionName
+group = ext.groupId

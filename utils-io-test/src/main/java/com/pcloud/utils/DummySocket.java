@@ -20,8 +20,6 @@ import okio.Buffer;
 import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.Okio;
-import okio.Sink;
-import okio.Source;
 
 import java.io.IOException;
 import java.io.InputStream;

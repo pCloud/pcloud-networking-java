@@ -1,26 +1,16 @@
-apply plugin: 'java'
-apply plugin: 'com.github.hauner.jarTest'
-
-sourceCompatibility = 1.7
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 dependencies {
-    compile project(':binapi-client')
-    compile project(':serialization')
-    compile project(':utils-reflection')
-    compile project(':utils-io')
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
-    testCompile 'org.assertj:assertj-core:2.5.0'
+    api project(':binapi-client')
+    api project(':serialization')
+    implementation project(':utils-reflection')
+    implementation project(':utils-io')
+    testImplementation deps.junit
+    testImplementation deps.mockito
 }
 
 ext {
-    bintrayPackage = 'composer'
     artifactId = 'composer'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')

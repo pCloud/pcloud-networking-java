@@ -16,9 +16,13 @@
 
 package com.pcloud.networking.api;
 
-import com.pcloud.networking.client.*;
+import com.pcloud.networking.client.PCloudAPIClient;
+import com.pcloud.networking.client.Request;
+import com.pcloud.networking.client.RequestInterceptor;
+import com.pcloud.networking.client.Response;
 import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.serialization.Transformer;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -30,6 +34,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.pcloud.utils.IOUtils.closeQuietly;
 import static org.mockito.Mockito.spy;
@@ -39,7 +44,7 @@ public abstract class ApiIntegrationTest {
     protected static PCloudAPIClient apiClient;
     protected static Transformer transformer;
     protected static ApiComposer apiComposer;
-    protected static FileOperationApi donwloadApi;
+    protected static FileOperationApi downloadApi;
     protected static FolderApi folderApi;
     protected static UserApi userApi;
 
@@ -48,6 +53,8 @@ public abstract class ApiIntegrationTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
+
+    private static final AtomicReference<String> tokenReference = new AtomicReference<>(null);
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -74,11 +81,12 @@ public abstract class ApiIntegrationTest {
             final String token = getAuthToken(apiClient, transformer, username, password);
             apiClient = apiClient.newBuilder()
                     .addInterceptor(new RequestInterceptor() {
-                @Override
-                public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                    writer.writeName("auth").writeValue(token);
-                }
-            }).create();
+                        @Override
+                        public void intercept(Request request, ProtocolWriter writer) throws IOException {
+                            writer.writeName("auth").writeValue(token);
+                        }
+                    }).create();
+            tokenReference.set(token);
 
             apiComposer = ApiComposer.create()
                     .apiClient(apiClient)
@@ -86,10 +94,21 @@ public abstract class ApiIntegrationTest {
                     .loadEagerly(true)
                     .create();
 
-            donwloadApi = apiComposer.compose(FileOperationApi.class);
+            downloadApi = apiComposer.compose(FileOperationApi.class);
             folderApi = apiComposer.compose(FolderApi.class);
             userApi = apiComposer.compose(UserApi.class);
         }
+    }
+
+
+    @AfterClass
+    public static void tearDown() throws Exception {
+        try {
+            apiClient.newCall(Request.create().methodName("logout").build()).enqueueAndWait(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+        }
+        apiClient.shutdown();
+        tokenReference.set(null);
     }
 
     private static void resolveTestAccountCredentials() {
@@ -121,8 +140,8 @@ public abstract class ApiIntegrationTest {
                     .enqueueAndWait();
             UserInfoResponse apiResponse = transformer.getTypeAdapter(UserInfoResponse.class)
                     .deserialize(response.responseBody().reader());
-            if (!apiResponse.isSuccessful()){
-                throw new IOException(apiResponse.resultCode()+"-"+apiResponse.message());
+            if (!apiResponse.isSuccessful()) {
+                throw new IOException(apiResponse.resultCode() + "-" + apiResponse.message());
             }
             return apiResponse.authenticationToken();
         } finally {

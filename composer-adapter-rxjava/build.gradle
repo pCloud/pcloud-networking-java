@@ -1,27 +1,17 @@
-group 'com.pcloud'
-
-apply plugin: 'java'
-
-sourceCompatibility = 1.7
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 dependencies {
-    compile 'io.reactivex:rxjava:1.3.7'
-    testCompile 'io.reactivex:rxjava:1.3.7'
-    compile  project(':composer')
-    testCompile project(path: ':composer', configuration: 'testArchives')
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
-    testCompile 'org.assertj:assertj-core:2.5.0'
+    api deps.rxJava
+    api project(':composer')
+    implementation project(':utils-reflection')
+    testImplementation deps.junit
+    testImplementation deps.mockito
+    testImplementation deps.assertJ
 }
 
 ext {
-    bintrayPackage = 'composer-adapter-rxjava'
     artifactId = 'composer-adapter-rxjava'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')
+

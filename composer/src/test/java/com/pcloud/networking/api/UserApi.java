@@ -28,6 +28,9 @@ public interface UserApi {
     UserInfoResponse getUserInfo1(@RequestBody UserInfoRequest request) throws IOException;
 
     @Method("userinfo")
+    Call<UserInfoResponse> getUserInfo(@Parameter("auth") String token, @Parameter("getauth") boolean returnToken);
+
+    @Method("userinfo")
     Call<UserInfoResponse> getUserInfo2(@Parameter("username")String username, @Parameter("password")String password, @Parameter("getauth") boolean returnToken);
 
     @Method("userinfo")
@@ -39,5 +42,6 @@ public interface UserApi {
     @Method("userinfo")
     MultiCall<UserInfoRequest, UserInfoResponse> getUserInfo5(@RequestBody List<UserInfoRequest> request);
 
-
+    @Method("logout")
+    Call<ApiResponse> logout(@Parameter("auth") String token);
 }

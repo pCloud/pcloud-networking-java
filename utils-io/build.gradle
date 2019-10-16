@@ -1,23 +1,14 @@
-apply plugin: 'java'
-apply plugin: 'com.github.hauner.jarTest'
-
-sourceCompatibility = 1.7
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 dependencies {
-    compileOnly deps.okio
-    testCompile deps.okio
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
+    implementation deps.okio
+    testImplementation deps.okio
+    testImplementation deps.junit
+    testImplementation deps.mockito
 }
 
 ext {
-    bintrayPackage = 'utils-io'
     artifactId = 'utils-io'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')

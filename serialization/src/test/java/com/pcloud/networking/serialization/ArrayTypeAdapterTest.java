@@ -2,7 +2,6 @@ package com.pcloud.networking.serialization;
 
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolWriter;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -14,9 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.*;
 
 
 /**
@@ -85,6 +82,7 @@ public class ArrayTypeAdapterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void returns_Correct_Constant_When_Serializing_CustomObjectArrayList() throws Exception {
         CustomObject object = new CustomObject();
         List<CustomObject> list = Arrays.asList(object, object, object);
@@ -99,6 +97,7 @@ public class ArrayTypeAdapterTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void returns_Correct_Constant_When_Serializing_CustomObjectArrayList_With_ExtraNull() throws Exception {
         CustomObject object = new CustomObject();
         List<CustomObject> list = Arrays.asList(object, object, null, object);

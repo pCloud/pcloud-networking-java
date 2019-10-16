@@ -97,7 +97,7 @@ public class UserInfoTest extends ApiIntegrationTest {
     public void getUserInfo4_ShouldFailOnNullParameters() throws Exception {
 
         exception.expect(IllegalArgumentException.class);
-        userApi.getUserInfo4((UserInfoRequest[])null);
+        userApi.getUserInfo4((UserInfoRequest[]) null);
     }
 
     @Test
@@ -119,6 +119,4 @@ public class UserInfoTest extends ApiIntegrationTest {
         MultiCall<UserInfoRequest, UserInfoResponse> call = userApi.getUserInfo5(null);
         call.execute();
     }
-
-
 }

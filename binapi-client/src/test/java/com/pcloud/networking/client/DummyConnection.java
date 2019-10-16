@@ -30,9 +30,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-
 public class DummyConnection implements Connection {
 
     private Buffer readBuffer;
@@ -125,7 +122,7 @@ public class DummyConnection implements Connection {
     public static  Connection withResponsesFromValues(Collection<Map<String, ?>> responseValues) throws IOException {
         Connection connection = new DummyConnection();
         for (Map<String, ?> values : responseValues) {
-            ResponseBytesWriter.from(values).writeTo(connection.source().buffer());
+            ResponseBytesWriter.from(values).writeTo(connection.source().getBuffer());
         }
         return connection;
     }
@@ -134,7 +131,7 @@ public class DummyConnection implements Connection {
         Connection connection = new DummyConnection();
 
         for (ResponseBytesWriter b : responses) {
-            b.writeTo(connection.source().buffer());
+            b.writeTo(connection.source().getBuffer());
         }
         return connection;
     }

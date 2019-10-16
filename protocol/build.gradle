@@ -1,26 +1,17 @@
-group = getPublishProperty('groupId')
-version = getPublishProperty('versionName')
-
-apply plugin: 'java'
-
-sourceCompatibility = 1.7
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'java-library'
 
 dependencies {
-    compile project(':utils-io')
-    testCompile project(path: ':utils-io', configuration: 'testArchives')
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '1.10.19'
-    compile 'com.squareup.okio:okio:1.12.0'
+    api deps.okio
+    implementation project(':utils-io')
+
+    testImplementation project(':utils-io-test')
+    testImplementation project(':protocol-test')
+    testImplementation deps.junit
+    testImplementation deps.mockito
 }
 
 ext {
-    bintrayPackage = 'protocol'
     artifactId = 'protocol'
 }
 
-apply from: '../bintray.gradle'
-apply from: '../maven-pom.gradle'
+apply from: rootProject.file('bintray.gradle')

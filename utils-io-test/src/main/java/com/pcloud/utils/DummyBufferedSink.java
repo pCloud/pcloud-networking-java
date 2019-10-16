@@ -29,138 +29,138 @@ import java.nio.charset.Charset;
 
 public class DummyBufferedSink implements BufferedSink {
 
-    private BufferedSink bufferedSinkDelegate;
+    private BufferedSink delegate;
 
     public DummyBufferedSink() {
         this(new Buffer());
     }
 
-    public DummyBufferedSink(BufferedSink bufferedSinkDelegate) {
-        this.bufferedSinkDelegate = bufferedSinkDelegate;
+    public DummyBufferedSink(BufferedSink delegate) {
+        this.delegate = delegate;
     }
 
     public BufferedSink getDelegate() {
-        return bufferedSinkDelegate;
+        return delegate;
     }
 
     @Override
     public Buffer buffer() {
-        return bufferedSinkDelegate.buffer();
+        return delegate.buffer();
     }
 
     @Override
     public BufferedSink write(ByteString byteString) throws IOException {
-        return bufferedSinkDelegate.write(byteString);
+        return delegate.write(byteString);
     }
 
     @Override
     public BufferedSink write(byte[] source) throws IOException {
-        return bufferedSinkDelegate.write(source);
+        return delegate.write(source);
     }
 
     @Override
     public BufferedSink write(byte[] source, int offset, int byteCount) throws IOException {
-        return bufferedSinkDelegate.write(source, offset, byteCount);
+        return delegate.write(source, offset, byteCount);
     }
 
     @Override
     public long writeAll(Source source) throws IOException {
-        return bufferedSinkDelegate.writeAll(source);
+        return delegate.writeAll(source);
     }
 
     @Override
     public BufferedSink write(Source source, long byteCount) throws IOException {
-        return bufferedSinkDelegate.write(source, byteCount);
+        return delegate.write(source, byteCount);
     }
 
     @Override
     public int write(ByteBuffer src) throws IOException {
-        return bufferedSinkDelegate.write(src);
+        return delegate.write(src);
     }
 
     @Override
     public BufferedSink writeUtf8(String string) throws IOException {
-        return bufferedSinkDelegate.writeUtf8(string);
+        return delegate.writeUtf8(string);
     }
 
     @Override
     public BufferedSink writeUtf8(String string, int beginIndex, int endIndex) throws IOException {
-        return bufferedSinkDelegate.writeUtf8(string, beginIndex, endIndex);
+        return delegate.writeUtf8(string, beginIndex, endIndex);
     }
 
     @Override
     public BufferedSink writeUtf8CodePoint(int codePoint) throws IOException {
-        return bufferedSinkDelegate.writeUtf8CodePoint(codePoint);
+        return delegate.writeUtf8CodePoint(codePoint);
     }
 
     @Override
     public BufferedSink writeString(String string, Charset charset) throws IOException {
-        return bufferedSinkDelegate.writeString(string, charset);
+        return delegate.writeString(string, charset);
     }
 
     @Override
     public BufferedSink writeString(String string, int beginIndex, int endIndex, Charset charset) throws IOException {
-        return bufferedSinkDelegate.writeString(string, beginIndex, endIndex, charset);
+        return delegate.writeString(string, beginIndex, endIndex, charset);
     }
 
     @Override
     public BufferedSink writeByte(int b) throws IOException {
-        return bufferedSinkDelegate.writeByte(b);
+        return delegate.writeByte(b);
     }
 
     @Override
     public BufferedSink writeShort(int s) throws IOException {
-        return bufferedSinkDelegate.writeShort(s);
+        return delegate.writeShort(s);
     }
 
     @Override
     public BufferedSink writeShortLe(int s) throws IOException {
-        return bufferedSinkDelegate.writeShortLe(s);
+        return delegate.writeShortLe(s);
     }
 
     @Override
     public BufferedSink writeInt(int i) throws IOException {
-        return bufferedSinkDelegate.writeInt(i);
+        return delegate.writeInt(i);
     }
 
     @Override
     public BufferedSink writeIntLe(int i) throws IOException {
-        return bufferedSinkDelegate.writeIntLe(i);
+        return delegate.writeIntLe(i);
     }
 
     @Override
     public BufferedSink writeLong(long v) throws IOException {
-        return bufferedSinkDelegate.writeLong(v);
+        return delegate.writeLong(v);
     }
 
     @Override
     public BufferedSink writeLongLe(long v) throws IOException {
-        return bufferedSinkDelegate.writeLongLe(v);
+        return delegate.writeLongLe(v);
     }
 
     @Override
     public BufferedSink writeDecimalLong(long v) throws IOException {
-        return bufferedSinkDelegate.writeDecimalLong(v);
+        return delegate.writeDecimalLong(v);
     }
 
     @Override
     public BufferedSink writeHexadecimalUnsignedLong(long v) throws IOException {
-        return bufferedSinkDelegate.writeHexadecimalUnsignedLong(v);
+        return delegate.writeHexadecimalUnsignedLong(v);
     }
 
     @Override
     public void write(Buffer source, long byteCount) throws IOException {
-        bufferedSinkDelegate.write(source, byteCount);
+        delegate.write(source, byteCount);
     }
 
     @Override
     public void flush() throws IOException {
-        bufferedSinkDelegate.flush();
+        delegate.flush();
     }
 
     @Override
     public Timeout timeout() {
-        return bufferedSinkDelegate.timeout();
+        return delegate.timeout();
     }
 
     @Override
@@ -170,21 +170,21 @@ public class DummyBufferedSink implements BufferedSink {
 
     @Override
     public void close() throws IOException {
-        bufferedSinkDelegate.close();
+        delegate.close();
     }
 
     @Override
     public BufferedSink emit() throws IOException {
-        return bufferedSinkDelegate.emit();
+        return delegate.emit();
     }
 
     @Override
     public BufferedSink emitCompleteSegments() throws IOException {
-        return bufferedSinkDelegate.emitCompleteSegments();
+        return delegate.emitCompleteSegments();
     }
 
     @Override
     public OutputStream outputStream() {
-        return bufferedSinkDelegate.outputStream();
+        return delegate.outputStream();
     }
 }

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Skip all Android-specific stubs -->
+    <Match>
+        <Package name="~android\.*"/>
+    </Match>
+
+    <!-- All bugs in test classes, except for JUnit-specific bugs -->
+    <Match>
+        <Class name="~.*\.*Test"/>
+        <Not>
+            <Bug code="IJU"/>
+        </Not>
+    </Match>
+
+</FindBugsFilter>
