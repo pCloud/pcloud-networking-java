@@ -351,9 +351,8 @@ public class BytesReaderTest {
     }
 
     @Test
-    public void peekingReader_Should_Close_The_Real_Buffer() throws Exception {
-
+    public void peekingReader_Should_Not_Close_The_Real_Buffer() throws Exception {
         reader.newPeekingReader().close();
-        Mockito.verify(source).close();
+        Mockito.verify(source, Mockito.never()).close();
     }
 }
