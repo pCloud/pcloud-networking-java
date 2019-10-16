@@ -64,9 +64,19 @@ public class GuardedSerializationTypeAdapter<T> extends TypeAdapter<T> {
         singleValueProtocolWriter.guard(writer);
         try {
             delegate.serialize(singleValueProtocolWriter, value);
+        } catch (NotSerializedToAValueException e) {
+            throw new SerializationException(delegate.getClass() +
+                    " does not serialize \"" + value.getClass() + "\" to a single value", e);
         } finally {
             singleValueProtocolWriter.reset();
             guardedWriterObjectPool.recycle(singleValueProtocolWriter);
+        }
+    }
+
+    private static class NotSerializedToAValueException extends SerializationException {
+
+        private NotSerializedToAValueException() {
+            super("Object must serialize to a single value.");
         }
     }
 
@@ -84,7 +94,7 @@ public class GuardedSerializationTypeAdapter<T> extends TypeAdapter<T> {
 
         @Override
         public ProtocolWriter writeName(String name) throws IOException {
-            throw new SerializationException("Object must serialize to a single value.");
+            throw new NotSerializedToAValueException();
         }
 
         @Override

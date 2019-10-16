@@ -26,7 +26,6 @@ import rx.SingleSubscriber;
 import rx.functions.Action0;
 import rx.subscriptions.Subscriptions;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
@@ -44,6 +43,7 @@ import java.lang.reflect.Type;
  */
 public class RxSingleCallAdapter<T> implements CallAdapter<T, Single<T>> {
 
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public static final Factory FACTORY = new Factory() {
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
@@ -69,21 +69,23 @@ public class RxSingleCallAdapter<T> implements CallAdapter<T, Single<T>> {
     }
 
     @Override
-    public Single<T> adapt(final Call<T> call) throws IOException {
+    public Single<T> adapt(final Call<T> call) {
         return Single.create(
                 new Single.OnSubscribe<T>() {
                     @Override
                     public void call(SingleSubscriber<? super T> singleSubscriber) {
-                        Call<T> callClone = call.clone();
+                        final Call<T> callClone = call.clone();
                         singleSubscriber.add(Subscriptions.create(new Action0() {
                             @Override
                             public void call() {
-                                call.cancel();
+                                callClone.cancel();
                             }
                         }));
                         try {
                             singleSubscriber.onSuccess(callClone.execute());
                         } catch (Throwable throwable) {
+                            throwable.addSuppressed(new RuntimeException("Failed to execute \"" +
+                                    callClone.methodName() + "\"."));
                             singleSubscriber.onError(throwable);
                         }
                     }
@@ -91,7 +93,7 @@ public class RxSingleCallAdapter<T> implements CallAdapter<T, Single<T>> {
     }
 
     @Override
-    public Single<T> adapt(MultiCall<?, T> call) throws IOException {
+    public Single<T> adapt(MultiCall<?, T> call) {
         throw new IllegalArgumentException("Cannot convert a `" +
                 call.getClass().getCanonicalName() + "` to a `" + Single.class.getCanonicalName() + "` ");
     }

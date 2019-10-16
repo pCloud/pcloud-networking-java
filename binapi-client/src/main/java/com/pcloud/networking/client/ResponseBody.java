@@ -16,8 +16,8 @@
 
 package com.pcloud.networking.client;
 
-import com.pcloud.networking.protocol.ValueReader;
 import com.pcloud.networking.protocol.ProtocolReader;
+import com.pcloud.networking.protocol.ValueReader;
 import okio.ByteString;
 
 import java.io.Closeable;
@@ -90,8 +90,15 @@ public abstract class ResponseBody implements Closeable {
      */
     public abstract ResponseData data() throws IOException;
 
+    /**
+     * Returns the source {@linkplain Endpoint} for this {@linkplain ResponseBody}
+     *
+     * @return non-null {@linkplain Endpoint}
+     */
+    public abstract Endpoint endpoint();
+
     @Override
     public String toString() {
-        return String.format("[Response]: %d bytes", contentLength());
+        return String.format("(%s)->[Response]: %d bytes", endpoint(), contentLength());
     }
 }

@@ -38,6 +38,14 @@ import java.util.concurrent.TimeoutException;
  * @param <T> the type of the returned result
  */
 public interface Call<T> extends Cloneable {
+
+    /**
+     * The API method name to be executed.
+     *
+     * @return the non-null method name
+     */
+    String methodName();
+
     /**
      * Synchronously send the request and return its response.
      *

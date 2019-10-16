@@ -49,6 +49,7 @@ import java.lang.reflect.Type;
  */
 public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>> {
 
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public static final Factory FACTORY = new Factory() {
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
@@ -89,6 +90,7 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
                     observer.onNext(callClone.execute());
                     observer.onCompleted();
                 } catch (Throwable throwable) {
+                    throwable.addSuppressed(new RuntimeException(errorMessage(callClone.methodName())));
                     observer.onError(throwable);
                 }
             }
@@ -102,51 +104,50 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
 
     @Override
     public Observable<T> adapt(final MultiCall<?, T> call) {
-        return Observable.create(AsyncOnSubscribe.createSingleState(new Func0<Object>() {
+        return Observable.create(AsyncOnSubscribe.createSingleState(new Func0<Interactor<T>>() {
             @Override
-            public Object call() {
+            public Interactor<T> call() {
                 try {
                     return call.clone().start();
                 } catch (Throwable e) {
-                    return e;
+                    e.addSuppressed(new RuntimeException(errorMessage(call.methodName())));
+                    throw e;
                 }
             }
-        }, new Action3<Object, Long, Observer<Observable<? extends T>>>() {
+        }, new Action3<Interactor<T>, Long, Observer<Observable<? extends T>>>() {
             @Override
-            public void call(Object o, final Long requested, Observer<Observable<? extends T>> observableObserver) {
-                if (o instanceof Throwable) {
-                    observableObserver.onError((Throwable) o);
-                    return;
-                }
-
-                @SuppressWarnings("unchecked") final Interactor<T> interactor = (Interactor<T>) o;
+            public void call(final Interactor<T> interactor, final Long requested,
+                             final Observer<Observable<? extends T>> observableObserver) {
 
                 if (!interactor.hasNextResponse()) {
                     observableObserver.onCompleted();
-                    return;
-                }
-                observableObserver.onNext(Observable.create(new Action1<Emitter<T>>() {
-                    @Override
-                    public void call(Emitter<T> emitter) {
-                        try {
-                            int submitted = interactor.submitRequests((int) Math.min(Integer.MAX_VALUE, requested));
-                            for (int i = 0; i < submitted; i++) {
-                                emitter.onNext(interactor.nextResponse());
+                } else {
+                    observableObserver.onNext(Observable.create(new Action1<Emitter<T>>() {
+                        @Override
+                        public void call(Emitter<T> emitter) {
+                            try {
+                                int submitted = interactor.submitRequests((int) Math.min(Integer.MAX_VALUE, requested));
+                                for (int i = 0; i < submitted; i++) {
+                                    emitter.onNext(interactor.nextResponse());
+                                }
+                                emitter.onCompleted();
+                            } catch (Throwable e) {
+                                e.addSuppressed(new RuntimeException(errorMessage(call.methodName())));
+                                emitter.onError(e);
                             }
-                            emitter.onCompleted();
-                        } catch (Exception e) {
-                            emitter.onError(e);
                         }
-                    }
-                }, Emitter.BackpressureMode.BUFFER));
-            }
-        }, new Action1<Object>() {
-            @Override
-            public void call(Object o) {
-                if (o instanceof Interactor) {
-                    ((Interactor) o).close();
+                    }, Emitter.BackpressureMode.NONE));
                 }
+            }
+        }, new Action1<Interactor<T>>() {
+            @Override
+            public void call(Interactor<T> interactor) {
+                interactor.close();
             }
         }));
+    }
+
+    private static String errorMessage(String methodName) {
+        return "Failed to execute \"" + methodName + "\".";
     }
 }
