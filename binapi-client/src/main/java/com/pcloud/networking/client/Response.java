@@ -128,7 +128,7 @@ public class Response implements Closeable {
     /**
      * Returns a String representation of the {@linkplain Response}
      *
-     * @return A String repsentation of the {@linkplain Response}
+     * @return A String representation of the {@linkplain Response}
      * @see ResponseBody#toString()
      */
     public String toString() {

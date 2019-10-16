@@ -45,6 +45,13 @@ import java.util.concurrent.TimeoutException;
 public interface MultiCall<T, R> extends Cloneable {
 
     /**
+     * The API method name to be executed.
+     *
+     * @return the non-null method name
+     */
+    String methodName();
+
+    /**
      * Returns a {@linkplain List} of the requests for this {@linkplain MultiCall}
      *
      * @return A {@linkplain List} of the requests for this {@linkplain MultiCall}
@@ -90,7 +97,6 @@ public interface MultiCall<T, R> extends Cloneable {
      * @param callback The {@linkplain MultiCallback} to be fired on success or failure
      */
     void enqueue(MultiCallback<T, R> callback);
-
 
     /**
      * Start executing the call and return a {@linkplain Interactor}

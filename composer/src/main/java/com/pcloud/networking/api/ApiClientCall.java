@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class ApiClientCall<T> implements Call<T> {
@@ -35,6 +36,11 @@ class ApiClientCall<T> implements Call<T> {
         this.apiComposer = apiComposer;
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
+    }
+
+    @Override
+    public String methodName() {
+        return rawCall.request().methodName();
     }
 
     @Override

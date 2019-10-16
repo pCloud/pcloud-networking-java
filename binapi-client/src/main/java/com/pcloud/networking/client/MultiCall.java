@@ -43,7 +43,6 @@ import java.util.concurrent.TimeoutException;
  */
 public interface MultiCall extends Cloneable {
 
-
     /**
      * Returns a {@linkplain List} of the {@linkplain Request} objects in this {@linkplain MultiCall}
      *

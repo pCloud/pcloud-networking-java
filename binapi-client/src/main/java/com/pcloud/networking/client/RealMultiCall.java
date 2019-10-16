@@ -325,7 +325,7 @@ class RealMultiCall implements MultiCall {
 
         final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
         checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
-        return new BufferedResponseBody(responseBuffer, reader, responseLength);
+        return new BufferedResponseBody(responseBuffer, reader, responseLength, connection.endpoint());
     }
 
     private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection,
@@ -347,7 +347,7 @@ class RealMultiCall implements MultiCall {
         final BufferedSource bufferedSource = Okio.buffer(source);
         final BytesReader reader = new NoDataBytesReader(bufferedSource);
         checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
-        return new FixedLengthResponseBody(bufferedSource, source, reader, responseLength);
+        return new FixedLengthResponseBody(bufferedSource, source, reader, responseLength, connection.endpoint());
     }
 
     private int scanResponseParameters(ProtocolResponseReader reader, boolean readUntilEnd) throws IOException {
@@ -409,14 +409,16 @@ class RealMultiCall implements MultiCall {
 
     private static class BufferedResponseBody extends ResponseBody {
 
-        private Buffer source;
-        private ProtocolReader reader;
-        private long contentLength;
+        private final Buffer source;
+        private final ProtocolReader reader;
+        private final long contentLength;
+        private final Endpoint endpoint;
 
-        BufferedResponseBody(Buffer source, ProtocolReader reader, long contentLength) {
+        BufferedResponseBody(Buffer source, ProtocolReader reader, long contentLength, Endpoint endpoint) {
             this.source = source;
             this.reader = reader;
             this.contentLength = contentLength;
+            this.endpoint = endpoint;
         }
 
         @Override
@@ -441,7 +443,12 @@ class RealMultiCall implements MultiCall {
         }
 
         @Override
-        public void close() throws IOException {
+        public Endpoint endpoint() {
+            return endpoint;
+        }
+
+        @Override
+        public void close() {
             source.close();
         }
     }
@@ -449,17 +456,20 @@ class RealMultiCall implements MultiCall {
     private static class FixedLengthResponseBody extends ResponseBody {
         private final BufferedSource bufferedSource;
         private final FixedLengthSource source;
-        private ProtocolReader reader;
-        private long contentLength;
+        private final ProtocolReader reader;
+        private final long contentLength;
+        private final Endpoint endpoint;
 
         FixedLengthResponseBody(BufferedSource bufferedSource,
                                 FixedLengthSource source,
                                 BytesReader reader,
-                                long contentLength) {
+                                long contentLength,
+                                Endpoint endpoint) {
             this.bufferedSource = bufferedSource;
             this.source = source;
             this.reader = reader;
             this.contentLength = contentLength;
+            this.endpoint = endpoint;
         }
 
         @Override
@@ -481,6 +491,11 @@ class RealMultiCall implements MultiCall {
         public ResponseData data() throws IOException {
             // MultiCalls do not allow responses with data.
             return null;
+        }
+
+        @Override
+        public Endpoint endpoint() {
+            return endpoint;
         }
 
         @Override

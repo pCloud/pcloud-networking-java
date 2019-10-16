@@ -22,7 +22,8 @@ public class RxObservableCallAdapterTest {
     private Interactor<ApiResponse> mockInteractor;
     private RxObservableCallAdapter<ApiResponse> callAdapter;
     private TestSubscriber<ApiResponse> subscriber;
-    
+
+    @SuppressWarnings("unchecked")
     @Before
     public void setUp() throws Exception {
         callAdapter = new RxObservableCallAdapter<>(ApiResponse.class);

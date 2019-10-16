@@ -226,9 +226,10 @@ class RealCall implements Call {
                 }
             }
         };
-
         final BufferedSource source = Okio.buffer(responseParametersSource);
         final ProtocolResponseReader reader = new SelfEndingBytesReader(source);
+        final Endpoint endpoint = connection.endpoint();
+
         reader.beginResponse();
         return new ResponseBody() {
 
@@ -251,6 +252,11 @@ class RealCall implements Call {
             }
 
             @Override
+            public Endpoint endpoint() {
+                return endpoint;
+            }
+
+            @Override
             public ResponseData data() throws IOException {
                 int scope = reader.currentScope();
                 if (scope == ProtocolResponseReader.SCOPE_NONE) {
@@ -270,7 +276,7 @@ class RealCall implements Call {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 final int currentScope;
                 final FixedLengthSource dataSource;
                 synchronized (reader) {

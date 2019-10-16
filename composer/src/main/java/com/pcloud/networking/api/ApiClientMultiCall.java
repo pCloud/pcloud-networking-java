@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
@@ -42,6 +43,11 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
         this.rawCall = rawCall;
         this.responseAdapter = responseAdapter;
         this.requests = Collections.unmodifiableList(requests);
+    }
+
+    @Override
+    public String methodName() {
+        return rawCall.requests().get(0).methodName();
     }
 
     @Override
@@ -115,6 +121,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     public Interactor<R> start() {
         final com.pcloud.networking.client.Interactor rawInteractor = rawCall.start();
         return new Interactor<R>() {
+
             @Override
             public boolean hasMoreRequests() {
                 return rawInteractor.hasMoreRequests();
