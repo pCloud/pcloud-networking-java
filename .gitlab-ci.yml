@@ -29,7 +29,7 @@ checkstyle:
   artifacts:
     expire_in: 1 week
     when: on_failure
-    name: "checkstyle-report-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    name: "checkstyle-report-$CI_COMMIT_REF_SLUG"
     paths:
       - "*/build/reports/checkstyle/*"
 
@@ -44,7 +44,7 @@ finbugs:
   artifacts:
     expire_in: 1 week
     when: on_failure
-    name: "findbugs-report-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    name: "findbugs-report-$CI_COMMIT_REF_SLUG"
     paths:
       - "*/build/reports/spotbugs/*"
 
@@ -58,7 +58,7 @@ tests:
   artifacts:
     expire_in: 1 week
     when: on_failure
-    name: "test-reports-$CI_COMMIT_REF_SLUG-$CI_JOB_NAME"
+    name: "test-reports-$CI_COMMIT_REF_SLUG"
     paths:
       - "*/build/reports/tests/test/*"
     reports:
