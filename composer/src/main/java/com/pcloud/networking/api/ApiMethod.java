@@ -16,6 +16,7 @@
 
 package com.pcloud.networking.api;
 
+import com.pcloud.networking.client.Endpoint;
 import com.pcloud.networking.client.ResponseBody;
 import com.pcloud.networking.serialization.TypeAdapter;
 import com.pcloud.utils.Types;
@@ -29,7 +30,7 @@ import java.util.List;
 
 abstract class ApiMethod<T> {
 
-    protected static final Object[] EMPTY_ARGS = new Object[0];
+    static final Object[] EMPTY_ARGS = new Object[0];
 
     abstract T invoke(ApiComposer apiComposer, Object[] args) throws IOException;
 
@@ -89,6 +90,7 @@ abstract class ApiMethod<T> {
                                                           Annotation[][] annotations) {
             int argumentCount = parameterTypes.length;
             boolean hasDataParameter = false;
+            boolean hasEndpointParameter = false;
             ArgumentAdapter[] argumentAdapters = new ArgumentAdapter[argumentCount];
             for (int index = 0; index < argumentCount; index++) {
                 Annotation[] argumentAnnotations = annotations[index];
@@ -103,8 +105,8 @@ abstract class ApiMethod<T> {
                     } else if (annotationType == Parameter.class) {
                         String name = ((Parameter) annotation).value();
                         if (name.equals("")) {
-                            throw apiMethodError(method, "@Parameter-annotated methods cannot have an " +
-                                    "empty parameter name.");
+                            throw apiMethodError(method, "\'@%s\'-annotated method arguments cannot have an " +
+                                    "empty parameter name.", Parameter.class.getSimpleName());
                         }
 
                         TypeAdapter<?> typeAdapter = getTypeAdapter(composer, method, parameterType);
@@ -112,7 +114,7 @@ abstract class ApiMethod<T> {
                     } else if (annotationType == RequestData.class) {
                         if (hasDataParameter) {
                             throw apiMethodError(method, "API method cannot have more than one " +
-                                    "parameter annotated with @RequestData");
+                                    "parameter annotated with @%s.", RequestData.class.getSimpleName());
                         }
 
                         hasDataParameter = true;
@@ -120,9 +122,19 @@ abstract class ApiMethod<T> {
                     }
                 }
 
+                if (resolvedAdapter == null && parameterType == Endpoint.class) {
+                    if (hasEndpointParameter) {
+                        throw apiMethodError(method, "API method cannot have more than one " +
+                                "non-annotated \'%s\' parameter ", Endpoint.class);
+                    }
+                    hasEndpointParameter = true;
+                    resolvedAdapter = ArgumentAdapters.endpoint();
+                }
+
                 if (resolvedAdapter == null) {
-                    throw apiMethodError(method, "Each API method parameter must be annotated with one of %s",
-                            Arrays.<Type>asList(RequestBody.class, Parameter.class, RequestData.class));
+                    throw apiMethodError(method, "Each API method parameter must be annotated with one of %s " +
+                                    "or be of type \'%s\'.",
+                            Arrays.<Type>asList(RequestBody.class, Parameter.class, RequestData.class), Endpoint.class);
                 }
 
                 argumentAdapters[index] = resolvedAdapter;
@@ -150,6 +162,7 @@ abstract class ApiMethod<T> {
             }
         }
 
+        @SuppressWarnings("SameParameterValue")
         protected static RuntimeException apiMethodError(Method method,
                                                          Throwable cause,
                                                          String message,

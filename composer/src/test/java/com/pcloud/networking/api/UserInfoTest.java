@@ -16,11 +16,14 @@
 
 package com.pcloud.networking.api;
 
+import com.pcloud.networking.client.Endpoint;
+import com.pcloud.networking.client.ResponseBody;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 public class UserInfoTest extends ApiIntegrationTest {
@@ -118,5 +121,14 @@ public class UserInfoTest extends ApiIntegrationTest {
         exception.expect(IllegalArgumentException.class);
         MultiCall<UserInfoRequest, UserInfoResponse> call = userApi.getUserInfo5(null);
         call.execute();
+    }
+
+    @Test
+    public void getUserInfoOnEndpoint_Should_Execute_Call_OnProvided_Endpoint() throws Exception {
+        Endpoint expected = new Endpoint("binapi359.pcloud.com", 443);
+
+        try (ResponseBody body = userApi.getUserInfoOnEndpoint(expected).execute()) {
+            assertEquals(expected, body.endpoint());
+        }
     }
 }

@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2019 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,16 +23,17 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-
 /**
- * Mark a method parameter as a requestBody body.
+ * Mark a method parameter as a Request data source.
  * <p>
- * The annotated object's field values will be serialized and set as requestBody parameters.
+ * <b>NOTE:</b> The only allowed argument types are
+ * {@linkplain com.pcloud.networking.protocol.DataSource}, {@linkplain java.io.File},
+ * {@linkplain okio.ByteString} and byte arrays (byte[]).
  * <p>
- * RequestBody objects cannot be null.
+ * RequestData objects cannot be null.
  */
 @Documented
 @Target(PARAMETER)
 @Retention(RUNTIME)
-public @interface RequestBody {
+public @interface RequestData {
 }

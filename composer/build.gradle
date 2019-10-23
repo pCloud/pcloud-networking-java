@@ -3,6 +3,7 @@ apply plugin: 'java-library'
 dependencies {
     api project(':binapi-client')
     api project(':serialization')
+    api project(':composer-annotations')
     implementation project(':utils-reflection')
     implementation project(':utils-io')
     testImplementation deps.junit
