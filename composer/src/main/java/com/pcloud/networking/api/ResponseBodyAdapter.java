@@ -19,13 +19,11 @@ package com.pcloud.networking.api;
 import com.pcloud.networking.client.Response;
 import com.pcloud.networking.client.ResponseBody;
 
-import java.io.IOException;
-
 
 class ResponseBodyAdapter implements ResponseAdapter<ResponseBody> {
 
     @Override
-    public ResponseBody adapt(Response response) throws IOException {
+    public ResponseBody adapt(Response response) {
         return response.responseBody();
     }
 }

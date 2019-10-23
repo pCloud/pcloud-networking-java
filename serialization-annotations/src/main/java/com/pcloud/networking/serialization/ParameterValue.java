@@ -39,6 +39,8 @@ public @interface ParameterValue {
     /**
      * The parameter name to be used when serializing/deserializing from
      * binary protocol form.
+     *
+     * @return parameter name
      */
     String value() default DEFAULT_NAME;
 }

@@ -27,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 
 interface Connection extends Closeable {
 
+    int NO_TIMEOUT = 0;
+
     Endpoint endpoint();
 
     BufferedSource source() throws IOException;

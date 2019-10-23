@@ -28,7 +28,7 @@ class DataApiResponseAdapter<T> implements ResponseAdapter<T> {
 
     private TypeAdapter<? extends DataApiResponse> typeAdapter;
 
-    public DataApiResponseAdapter(TypeAdapter<? extends DataApiResponse> typeAdapter) {
+    DataApiResponseAdapter(TypeAdapter<? extends DataApiResponse> typeAdapter) {
         this.typeAdapter = typeAdapter;
     }
 

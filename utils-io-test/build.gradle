@@ -7,3 +7,7 @@ dependencies {
 tasks.withType(Checkstyle) {
     enabled false
 }
+
+tasks.withType(FindBugs) {
+    enabled false
+}

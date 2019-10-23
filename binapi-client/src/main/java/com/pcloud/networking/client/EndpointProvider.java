@@ -39,6 +39,14 @@ public interface EndpointProvider {
         @Override
         public void endpointConnectionError(Endpoint endpoint, IOException error) {
         }
+
+        @Override
+        public void endpointReadError(Endpoint endpoint, IOException error) {
+        }
+
+        @Override
+        public void endpointWriteError(Endpoint endpoint, IOException error) {
+        }
     };
 
     /**
@@ -49,13 +57,29 @@ public interface EndpointProvider {
     Endpoint endpoint();
 
     /**
-     * Called when an exception is thrown on the current {@linkplain Endpoint}
+     * Called when an exception is thrown while connecting to the given {@linkplain Endpoint}
      * <p>
-     * You should switch to the {@linkplain #DEFAULT} here
      *
-     * @param endpoint The {@linkplain Endpoint} that has an exception
-     * @param error    The exception that was thrown on the {@linkplain Endpoint}
+     * @param endpoint The {@linkplain Endpoint} that had a connection error
+     * @param error    The connection error
      */
-
     void endpointConnectionError(Endpoint endpoint, IOException error);
+
+    /**
+     * Called when an exception is thrown while reading from the given {@linkplain Endpoint}
+     * <p>
+     *
+     * @param endpoint The {@linkplain Endpoint} that had a read error
+     * @param error    The connection error
+     */
+    void endpointReadError(Endpoint endpoint, IOException error);
+
+    /**
+     * Called when an exception is thrown while writing to the given {@linkplain Endpoint}
+     * <p>
+     *
+     * @param endpoint The {@linkplain Endpoint} that had a write error
+     * @param error    The connection error
+     */
+    void endpointWriteError(Endpoint endpoint, IOException error);
 }

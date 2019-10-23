@@ -21,13 +21,8 @@ import com.pcloud.utils.Types;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
-/**
- * Created by Dimitard on 3.5.2017 г..
- */
 class CallWrappedCallAdapter {
-    static final CallWrappedCallAdapterFactory FACTORY = new CallWrappedCallAdapterFactory();
-
-    static class CallWrappedCallAdapterFactory extends CallAdapter.Factory {
+    static final CallAdapter.Factory FACTORY = new CallAdapter.Factory() {
 
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
@@ -60,5 +55,9 @@ class CallWrappedCallAdapter {
                 }
             };
         }
+    };
+
+    private CallWrappedCallAdapter() {
+        throw new UnsupportedOperationException();
     }
 }

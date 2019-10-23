@@ -42,6 +42,8 @@ public @interface Parameter {
      *<p>
      * Assigns and returns the API method's parameter name,
      * e.g. like "folderid", or "auth".
+     *
+     * @return parameter name
      */
     String value();
 }

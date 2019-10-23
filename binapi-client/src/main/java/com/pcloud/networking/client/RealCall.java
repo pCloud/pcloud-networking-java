@@ -67,25 +67,22 @@ class RealCall implements Call {
     @Override
     public Response enqueueAndWait() throws IOException, InterruptedException {
         checkAndMarkExecuted();
-        Response response = null;
-        boolean success = false;
         try {
-            response = callExecutor.submit(new Callable<Response>() {
+            return callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get();
-            success = true;
-            return response;
         } catch (ExecutionException e) {
-            throw new IOException(e.getCause());
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else {
+                throw new RuntimeException(cause);
+            }
         } catch (CancellationException e) {
             throw new IOException(e);
-        } finally {
-            if (!success) {
-                closeQuietly(response);
-            }
         }
     }
 
@@ -93,22 +90,19 @@ class RealCall implements Call {
     public Response enqueueAndWait(long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
-        Response response = null;
-        boolean success = false;
         try {
-            response = callExecutor.submit(new Callable<Response>() {
+            return callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get(timeout, timeUnit);
-            success = true;
-            return response;
         } catch (ExecutionException e) {
-            throw new IOException(e.getCause());
-        } finally {
-            if (!success) {
-                closeQuietly(response);
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else {
+                throw new RuntimeException(cause);
             }
         }
     }
@@ -116,20 +110,22 @@ class RealCall implements Call {
     @Override
     public void enqueue(final Callback callback) {
         checkAndMarkExecuted();
-        callExecutor.submit(new Runnable() {
+        callExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                boolean callingCallback = false;
-                Response response = null;
-                try {
-                    response = getResponse();
-                    callingCallback = true;
-                    callback.onResponse(RealCall.this, response);
-                } catch (IOException e) {
-                    if (!callingCallback) {
-                        callback.onFailure(RealCall.this, e);
+                if (!isCancelled()) {
+                    boolean callingCallback = false;
+                    Response response = null;
+                    try {
+                        response = getResponse();
+                        callingCallback = true;
+                        callback.onResponse(RealCall.this, response);
+                    } catch (IOException e) {
+                        if (!callingCallback) {
+                            callback.onFailure(RealCall.this, e);
+                        }
+                        closeQuietly(response);
                     }
-                    closeQuietly(response);
                 }
             }
         });
@@ -217,15 +213,7 @@ class RealCall implements Call {
     private ResponseBody createResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
-        final FixedLengthSource responseParametersSource = new FixedLengthSource(
-                connection.source(), responseLength + RESPONSE_LENGTH) {
-            @Override
-            protected void exhausted(boolean reuseSource) {
-                if (!reuseSource) {
-                    connection.close();
-                }
-            }
-        };
+        final FixedLengthSource responseParametersSource = new AutoCloseSource(connection, responseLength);
         final BufferedSource source = Okio.buffer(responseParametersSource);
         final ProtocolResponseReader reader = new SelfEndingBytesReader(source);
         final Endpoint endpoint = connection.endpoint();
@@ -314,6 +302,22 @@ class RealCall implements Call {
                 connectionPool.recycleConnection(connection);
             } else {
                 closeQuietly(connection);
+            }
+        }
+    }
+
+    private static class AutoCloseSource extends FixedLengthSource {
+        private final Connection connection;
+
+        AutoCloseSource(Connection connection, long responseLength) throws IOException {
+            super(connection.source(), responseLength + RealCall.RESPONSE_LENGTH);
+            this.connection = connection;
+        }
+
+        @Override
+        protected void exhausted(boolean reuseSource) {
+            if (!reuseSource) {
+                connection.close();
             }
         }
     }

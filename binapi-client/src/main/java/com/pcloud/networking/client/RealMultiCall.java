@@ -128,7 +128,12 @@ class RealMultiCall implements MultiCall {
                 }
             }).get();
         } catch (ExecutionException e) {
-            throw new IOException(e.getCause());
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else {
+                throw new IOException(cause);
+            }
         } catch (CancellationException e) {
             throw new IOException(e);
         }
@@ -146,14 +151,19 @@ class RealMultiCall implements MultiCall {
                 }
             }).get(timeout, timeUnit);
         } catch (ExecutionException e) {
-            throw new IOException(e.getCause());
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException) {
+                throw (IOException) cause;
+            } else {
+                throw new IOException(cause);
+            }
         }
     }
 
     @Override
     public void enqueue(final MultiCallback callback) {
         checkAndMarkExecuted();
-        callExecutor.submit(new Runnable() {
+        callExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 final int expectedCount = requests.size();

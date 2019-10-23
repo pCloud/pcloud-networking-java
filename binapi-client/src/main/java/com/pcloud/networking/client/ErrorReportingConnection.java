@@ -46,29 +46,51 @@ class ErrorReportingConnection extends RealConnection {
         try {
             super.connect(connectTimeout, timeUnit);
         } catch (IOException e) {
-            endpointProvider.endpointConnectionError(endpoint(), e);
+            EndpointProvider endpointProvider = endpointProvider();
+            if (endpointProvider != null) {
+                endpointProvider.endpointConnectionError(endpoint(), e);
+            }
             throw e;
         }
     }
 
-    public ErrorReportingConnection endpointProvider(EndpointProvider endpointProvider) {
-        this.endpointProvider = endpointProvider;
-        return this;
+    void endpointProvider(EndpointProvider endpointProvider) {
+        synchronized (this) {
+            this.endpointProvider = endpointProvider;
+        }
+    }
+
+    private EndpointProvider endpointProvider() {
+        synchronized (this) {
+            return endpointProvider;
+        }
     }
 
     @Override
     protected Source createSource(Socket socket) throws IOException {
-        return new ReportingSource(super.createSource(socket), endpointProvider, endpoint());
+        Source source = super.createSource(socket);
+        EndpointProvider endpointProvider = endpointProvider();
+        if (endpointProvider != null) {
+            return new ReportingSource(source, endpointProvider, endpoint());
+        } else {
+            return source;
+        }
     }
 
     @Override
     protected Sink createSink(Socket socket) throws IOException {
-        return new ReportingSink(super.createSink(socket), endpointProvider, endpoint());
+        Sink sink = super.createSink(socket);
+        EndpointProvider endpointProvider = endpointProvider();
+        if (endpointProvider != null) {
+            return new ReportingSink(sink, endpointProvider, endpoint());
+        } else {
+            return sink;
+        }
     }
 
     static class ReportingSource extends ForwardingSource {
-        private EndpointProvider endpointProvider;
-        private Endpoint endpoint;
+        private final EndpointProvider endpointProvider;
+        private final Endpoint endpoint;
 
         ReportingSource(Source source, EndpointProvider endpointProvider, Endpoint endpoint) {
             super(source);
@@ -81,15 +103,15 @@ class ErrorReportingConnection extends RealConnection {
             try {
                 return super.read(sink, byteCount);
             } catch (IOException e) {
-                endpointProvider.endpointConnectionError(endpoint, e);
+                endpointProvider.endpointReadError(endpoint, e);
                 throw e;
             }
         }
     }
 
     static class ReportingSink extends ForwardingSink {
-        private EndpointProvider endpointProvider;
-        private Endpoint endpoint;
+        private final EndpointProvider endpointProvider;
+        private final Endpoint endpoint;
 
         ReportingSink(Sink sink, EndpointProvider endpointProvider, Endpoint endpoint) {
             super(sink);
@@ -102,7 +124,7 @@ class ErrorReportingConnection extends RealConnection {
             try {
                 super.write(source, byteCount);
             } catch (IOException e) {
-                endpointProvider.endpointConnectionError(endpoint, e);
+                endpointProvider.endpointWriteError(endpoint, e);
                 throw e;
             }
         }
@@ -112,7 +134,7 @@ class ErrorReportingConnection extends RealConnection {
             try {
                 super.flush();
             } catch (IOException e) {
-                endpointProvider.endpointConnectionError(endpoint, e);
+                endpointProvider.endpointWriteError(endpoint, e);
                 throw e;
             }
         }

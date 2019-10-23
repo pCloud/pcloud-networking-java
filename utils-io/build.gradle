@@ -11,4 +11,8 @@ ext {
     artifactId = 'utils-io'
 }
 
+findbugs {
+    reportLevel 'medium'
+}
+
 apply from: rootProject.file('bintray.gradle')

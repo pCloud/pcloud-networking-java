@@ -84,8 +84,6 @@ public class RxSingleCallAdapter<T> implements CallAdapter<T, Single<T>> {
                         try {
                             singleSubscriber.onSuccess(callClone.execute());
                         } catch (Throwable throwable) {
-                            throwable.addSuppressed(new RuntimeException("Failed to execute \"" +
-                                    callClone.methodName() + "\"."));
                             singleSubscriber.onError(throwable);
                         }
                     }

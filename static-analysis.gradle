@@ -2,7 +2,7 @@ apply plugin: 'checkstyle'
 apply plugin: "findbugs"
 
 checkstyle {
-    toolVersion '6.7'
+    toolVersion '8.25'
     sourceSets = [project.sourceSets.main]
     configFile file("${rootDir}/config/checkstyle.xml")
     showViolations true

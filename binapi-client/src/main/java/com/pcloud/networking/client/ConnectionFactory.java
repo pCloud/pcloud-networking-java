@@ -28,7 +28,7 @@ class ConnectionFactory {
     private SSLSocketFactory sslSocketFactory;
     private HostnameVerifier hostnameVerifier;
 
-    public ConnectionFactory() {
+    ConnectionFactory() {
         this(SocketFactory.getDefault(),
                 (SSLSocketFactory) SSLSocketFactory.getDefault(),
                 DefaultHostnameVerifier.INSTANCE);

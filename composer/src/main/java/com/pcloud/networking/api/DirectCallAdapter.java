@@ -15,19 +15,15 @@
  */
 
 package com.pcloud.networking.api;
+
 import com.pcloud.utils.Types;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
-/**
- * Created by Dimitard on 3.5.2017 г..
- */
-class DirectCallAdapter  {
-    static final DirectCallAdapterFactory FACTORY = new DirectCallAdapterFactory();
-
-    static class DirectCallAdapterFactory extends CallAdapter.Factory {
+class DirectCallAdapter {
+    static final CallAdapter.Factory FACTORY = new CallAdapter.Factory() {
         @Override
         public CallAdapter<?, ?> get(ApiComposer apiComposer, Method method) {
             final Class<?> returnType = Types.getRawType(method.getGenericReturnType());
@@ -51,5 +47,9 @@ class DirectCallAdapter  {
                 }
             };
         }
+    };
+
+    private DirectCallAdapter() {
+        throw new UnsupportedOperationException();
     }
 }

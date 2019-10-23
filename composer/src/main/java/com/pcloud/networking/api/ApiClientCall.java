@@ -63,7 +63,7 @@ class ApiClientCall<T> implements Call<T> {
             }
 
             @Override
-            public void onResponse(com.pcloud.networking.client.Call call, Response response) throws IOException {
+            public void onResponse(com.pcloud.networking.client.Call call, Response response) {
                 if (!isCancelled()) {
                     try {
                         callback.onResponse(ApiClientCall.this, adapt(response));
@@ -121,8 +121,8 @@ class ApiClientCall<T> implements Call<T> {
                 } catch (Exception e) {
                     closeQuietly(response);
                     throw new RuntimeException(
-                            String.format("Error while calling ResponseInterceptor of type '%s'",
-                                    interceptor.getClass()), e
+                            String.format("Error while calling ResponseInterceptor of type '%s' for '%s' call.",
+                                    interceptor.getClass(), methodName()), e
                     );
                 }
             }

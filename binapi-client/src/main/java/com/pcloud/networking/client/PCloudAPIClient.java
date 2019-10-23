@@ -54,6 +54,13 @@ public class PCloudAPIClient {
     private static final int DEFAULT_READ_TIMEOUT = 30;
     private static final int DEFAULT_WRITE_TIMEOUT = 30;
 
+    private static final ThreadFactory DEFAULT_THREAD_FACTORY = new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "PCloud API Client");
+        }
+    };
+
     private int connectTimeoutMs;
     private int writeTimeoutMs;
     private int readTimeoutMs;
@@ -89,19 +96,14 @@ public class PCloudAPIClient {
                 socketFactory, sslSocketFactory, hostnameVerifier,
                 connectTimeoutMs, readTimeoutMs, writeTimeoutMs, false);
 
-        ThreadFactory threadFactory = new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "PCloud API Client");
-            }
-        };
+
         this.callExecutor = builder.callExecutor != null ?
                 builder.callExecutor : new ThreadPoolExecutor(0,
                 Integer.MAX_VALUE,
                 DEFAULT_KEEP_ALIVE_TIME,
                 TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>(),
-                threadFactory);
+                DEFAULT_THREAD_FACTORY);
 
         this.interceptors = Collections.unmodifiableList(new ArrayList<>(builder.interceptors));
     }
