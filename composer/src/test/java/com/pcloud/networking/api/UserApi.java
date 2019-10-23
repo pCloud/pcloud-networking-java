@@ -16,6 +16,9 @@
 
 package com.pcloud.networking.api;
 
+import com.pcloud.networking.client.Endpoint;
+import com.pcloud.networking.client.ResponseBody;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -35,6 +38,9 @@ public interface UserApi {
 
     @Method("userinfo")
     Call<UserInfoResponse> getUserInfo3(@RequestBody UserInfoRequest request);
+
+    @Method("userinfo")
+    Call<ResponseBody> getUserInfoOnEndpoint(Endpoint endpoint);
 
     @Method("userinfo")
     MultiCall<UserInfoRequest, UserInfoResponse> getUserInfo4(@RequestBody UserInfoRequest... request);

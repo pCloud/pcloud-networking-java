@@ -16,9 +16,10 @@
 
 package com.pcloud.networking.api;
 
-import com.pcloud.networking.protocol.ProtocolWriter;
+import com.pcloud.networking.client.Endpoint;
 import com.pcloud.networking.client.Request;
 import com.pcloud.networking.protocol.DataSource;
+import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.serialization.GuardedSerializationTypeAdapter;
 import com.pcloud.networking.serialization.TypeAdapter;
 import com.pcloud.utils.Types;
@@ -46,7 +47,7 @@ class ArgumentAdapters {
     }
 
     private ArgumentAdapters() {
-
+        throw new UnsupportedOperationException();
     }
 
     static <T> ArgumentAdapter<T> parameter(final String name, final TypeAdapter<T> adapter) {
@@ -123,5 +124,14 @@ class ArgumentAdapters {
         } else {
             throw new IllegalStateException("Cannot convert argument of type '" + argType + "' to DataSource.");
         }
+    }
+
+    static ArgumentAdapter<Endpoint> endpoint() {
+        return new BuilderArgumentAdapter<Endpoint>() {
+            @Override
+            public void adapt(Request.Builder builder, Endpoint argValue) {
+                builder.endpoint(argValue);
+            }
+        };
     }
 }

@@ -10,5 +10,7 @@ include 'utils-io'
 include 'utils-io-test'
 include 'utils-reflection'
 include 'serialization-annotations'
+include 'composer-annotations'
+
 
 

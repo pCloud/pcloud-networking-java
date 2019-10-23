@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2019 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,25 +25,14 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 
 /**
- * Mark a method parameter as a requestBody parameter.
+ * Mark a method parameter as a requestBody body.
  * <p>
- * <b>NOTE:</b> Allowed types are long, int, short, byte, float, double, boolean, String
- * and their boxed equivalents.
+ * The annotated object's field values will be serialized and set as requestBody parameters.
  * <p>
- * Any other types will result in a {@linkplain IllegalArgumentException} thrown during method generation.
+ * RequestBody objects cannot be null.
  */
 @Documented
 @Target(PARAMETER)
 @Retention(RUNTIME)
-public @interface Parameter {
-
-    /**
-     * The API parameter's name.
-     *<p>
-     * Assigns and returns the API method's parameter name,
-     * e.g. like "folderid", or "auth".
-     *
-     * @return parameter name
-     */
-    String value();
+public @interface RequestBody {
 }
