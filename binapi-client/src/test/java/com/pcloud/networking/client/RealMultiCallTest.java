@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -214,15 +213,15 @@ public class RealMultiCallTest {
 
         final MultiCall call = createMultiCall(requestList, executor);
 
-        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
+        doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
-                Runnable runnable = ((Runnable) args[0]);
+                Runnable runnable = (Runnable) args[0];
                 runnable.run();
-                return new FutureTask<Void>(runnable, null);
+                return null;
             }
-        });
+        }).when(executor).execute(notNull(Runnable.class));
         MultiCallback callback = mock(MultiCallback.class);
 
         call.enqueue(callback);
@@ -251,15 +250,15 @@ public class RealMultiCallTest {
 
         final MultiCall call = createMultiCall(requestList, executor);
 
-        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
+        doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
-                Runnable runnable = ((Runnable) args[0]);
+                Runnable runnable = (Runnable) args[0];
                 runnable.run();
-                return new FutureTask<Void>(runnable, null);
+                return null;
             }
-        });
+        }).when(executor).execute(notNull(Runnable.class));
         MultiCallback callback = mock(MultiCallback.class);
 
         call.enqueue(callback);

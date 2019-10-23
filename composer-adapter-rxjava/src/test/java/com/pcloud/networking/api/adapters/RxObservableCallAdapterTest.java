@@ -25,7 +25,7 @@ public class RxObservableCallAdapterTest {
 
     @SuppressWarnings("unchecked")
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         callAdapter = new RxObservableCallAdapter<>(ApiResponse.class);
         mockCall = mock(Call.class);
         mockMultiCall = mock(MultiCall.class);
@@ -37,23 +37,23 @@ public class RxObservableCallAdapterTest {
     }
 
     @Test
-    public void adapt_Call_Returns_NonNull_Observable() throws Exception {
+    public void adapt_Call_Returns_NonNull_Observable() {
         assertNotNull(callAdapter.adapt(mockCall));
     }
 
     @Test
-    public void adapt_MultiCall_Returns_NonNull_Observable() throws Exception {
+    public void adapt_MultiCall_Returns_NonNull_Observable() {
         assertNotNull(callAdapter.adapt(mockMultiCall));
     }
 
     @Test
-    public void adapt_Call_Clones_The_Provided_Call() throws Exception {
+    public void adapt_Call_Clones_The_Provided_Call() {
         callAdapter.adapt(mockCall).subscribe(subscriber);
         verify(mockCall).clone();
     }
 
     @Test
-    public void adapt_MultiCall_Clones_The_Provided_MultiCall() throws Exception {
+    public void adapt_MultiCall_Clones_The_Provided_MultiCall() {
         callAdapter.adapt(mockMultiCall).subscribe(subscriber);
         verify(mockMultiCall).clone();
     }
@@ -100,7 +100,7 @@ public class RxObservableCallAdapterTest {
     }
 
     @Test
-    public void multiCall_Observable_Calls_MultiCall_start() throws Exception {
+    public void multiCall_Observable_Calls_MultiCall_start() {
         callAdapter.adapt(mockMultiCall).subscribe(subscriber);
         verify(mockMultiCall).start();
     }
@@ -168,7 +168,7 @@ public class RxObservableCallAdapterTest {
 
 
     @Test
-    public void multiCall_Observable_Closes_Interactor_On_Unsubscribe() throws Exception {
+    public void multiCall_Observable_Closes_Interactor_On_Unsubscribe() {
         subscriber.requestMore(0);
 
         callAdapter.adapt(mockMultiCall).subscribe(subscriber);

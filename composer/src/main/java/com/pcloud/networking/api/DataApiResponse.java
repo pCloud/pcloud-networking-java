@@ -52,12 +52,10 @@ public class DataApiResponse extends ApiResponse implements Closeable {
      * @param data data object to be injected, can be null.
      */
     final void setResponseData(ResponseData data) {
-        synchronized (this) {
-            if (this.responseData != null) {
-                throw new AssertionError("ResponseData already set to instance.");
-            }
-            this.responseData = data;
+        if (this.responseData != null) {
+            throw new AssertionError("ResponseData already set to instance.");
         }
+        this.responseData = data;
     }
 
     /**

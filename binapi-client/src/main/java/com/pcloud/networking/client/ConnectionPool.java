@@ -44,6 +44,8 @@ public class ConnectionPool {
     private static final int MAX_IDLE_CONN_COUNT = 5;
     private static final long MAX_KEEP_ALIVE_DURATION = 5;
 
+    private static final Executor CLEANUP_THREAD_EXECUTOR;
+
     static {
         ThreadFactory threadFactory = new ThreadFactory() {
             @Override
@@ -56,14 +58,12 @@ public class ConnectionPool {
 
         CLEANUP_THREAD_EXECUTOR =
                 new ThreadPoolExecutor(0 /* corePoolSize */,
-                                              Integer.MAX_VALUE /* maximumPoolSize */,
-                                              DEFAULT_KEEP_ALIVE_TIME_MS /* keepAliveTime */,
-                                              TimeUnit.SECONDS,
-                                              new SynchronousQueue<Runnable>(),
-                                              threadFactory);
+                        Integer.MAX_VALUE /* maximumPoolSize */,
+                        DEFAULT_KEEP_ALIVE_TIME_MS /* keepAliveTime */,
+                        TimeUnit.SECONDS,
+                        new SynchronousQueue<Runnable>(),
+                        threadFactory);
     }
-
-    private static final Executor CLEANUP_THREAD_EXECUTOR;
 
     private final int maxIdleConnections;
     private final long keepAliveDurationNs;
@@ -72,23 +72,21 @@ public class ConnectionPool {
         public void run() {
             while (true) {
                 long waitNanos = cleanup(System.nanoTime());
-                if (waitNanos == -1) return;
-                if (waitNanos > 0) {
+                if (waitNanos == -1L) return;
+                if (waitNanos > 0L) {
                     long waitMillis = waitNanos / NANOS_TO_MILLIS_COEF;
                     waitNanos -= (waitMillis * NANOS_TO_MILLIS_COEF);
-                    synchronized (ConnectionPool.this) {
-                        try {
-                            ConnectionPool.this.wait(waitMillis, (int) waitNanos);
-                        } catch (InterruptedException ignored) {
-                            ignored.printStackTrace();
-                        }
+                    try {
+                        Thread.sleep(waitMillis, (int) waitNanos);
+                    } catch (InterruptedException ignored) {
+                        // Do nothing
                     }
                 }
             }
         }
     };
 
-    private final LinkedList<Connection> connections = new LinkedList<>();
+    private final LinkedList<RealConnection> connections = new LinkedList<>();
     private boolean cleanupRunning;
 
     /**
@@ -151,15 +149,15 @@ public class ConnectionPool {
     /**
      * Returns a recycled connection to {@code address}, or null if no such connection exists.
      */
-    synchronized Connection get(Endpoint endpoint) {
+    synchronized RealConnection get(Endpoint endpoint) {
 
         /*
-        * Iterate the connections in reverse order
-        * and take the first connection having the same endpoint.
-        * */
-        ListIterator<Connection> iterator = connections.listIterator(connections.size());
+         * Iterate the connections in reverse order
+         * and take the first connection having the same endpoint.
+         * */
+        ListIterator<RealConnection> iterator = connections.listIterator(connections.size());
         while (iterator.hasPrevious()) {
-            Connection connection = iterator.previous();
+            RealConnection connection = iterator.previous();
             if (connection.endpoint().equals(endpoint)) {
                 iterator.remove();
                 return connection;
@@ -169,12 +167,12 @@ public class ConnectionPool {
         return null;
     }
 
-    synchronized void recycle(Connection connection) {
+    synchronized void recycle(RealConnection connection) {
         if (!cleanupRunning) {
             cleanupRunning = true;
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
         }
-        ((RealConnection) connection).setIdle(System.nanoTime());
+        connection.setIdle(System.nanoTime());
         connections.addFirst(connection);
     }
 
@@ -182,10 +180,10 @@ public class ConnectionPool {
      * Close and remove all idle connections in the pool.
      */
     public void evictAll() {
-        List<Connection> evictedConnections = new ArrayList<>();
+        List<RealConnection> evictedConnections = new ArrayList<>();
         synchronized (this) {
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
-                Connection connection = i.next();
+            for (Iterator<RealConnection> i = connections.iterator(); i.hasNext(); ) {
+                RealConnection connection = i.next();
                 evictedConnections.add(connection);
                 i.remove();
             }
@@ -198,15 +196,13 @@ public class ConnectionPool {
 
     long cleanup(long now) {
         int idleConnectionCount;
-        Connection longestIdleConnection = null;
+        RealConnection longestIdleConnection = null;
         long longestIdleDurationNs = Long.MIN_VALUE;
 
         // Find either a connection to evict, or the time that the next eviction is due.
         synchronized (this) {
             idleConnectionCount = connections.size();
-            for (Iterator<Connection> i = connections.iterator(); i.hasNext();) {
-                RealConnection connection = (RealConnection) i.next();
-
+            for (RealConnection connection : connections) {
                 // If the connection is ready to be evicted, we're done.
                 long idleDurationNs = now - connection.idleAtNanos();
                 if (idleDurationNs > longestIdleDurationNs) {
@@ -216,7 +212,7 @@ public class ConnectionPool {
             }
 
             if (longestIdleDurationNs >= this.keepAliveDurationNs ||
-                        idleConnectionCount > this.maxIdleConnections) {
+                    idleConnectionCount > this.maxIdleConnections) {
                 // We've found a connection to evict. Remove it from the list, then close it below (outside
                 // of the synchronized block).
                 connections.remove(longestIdleConnection);

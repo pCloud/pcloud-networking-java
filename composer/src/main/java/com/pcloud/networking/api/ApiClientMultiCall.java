@@ -21,6 +21,7 @@ import com.pcloud.networking.client.Response;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -77,9 +78,8 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
             throw new IllegalArgumentException("Callback argument cannot be null.");
         }
 
-        final int responseCount = requests.size();
-        final List<R> results = new ArrayList<>(responseCount);
-        growSize(results, responseCount);
+        // Ensure that the "results" list will have valid [0, requests.size()) indexes.
+        @SuppressWarnings("unchecked") final List<R> results = Arrays.asList((R[]) new Object[requests.size()]);
 
         rawCall.enqueue(new com.pcloud.networking.client.MultiCallback() {
 
@@ -93,7 +93,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
 
             @Override
             public void onResponse(com.pcloud.networking.client.MultiCall call, int key,
-                                   Response response) throws IOException {
+                                   Response response) {
                 if (!isCancelled()) {
                     try {
                         R result = adapt(response);
@@ -109,7 +109,7 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
 
             @Override
             public void onComplete(com.pcloud.networking.client.MultiCall call,
-                                   MultiResponse response) throws IOException {
+                                   MultiResponse response) {
                 if (!isCancelled()) {
                     callback.onComplete(ApiClientMultiCall.this, Collections.unmodifiableList(results));
                 }
@@ -197,20 +197,12 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
                 } catch (Exception e) {
                     closeQuietly(response);
                     throw new RuntimeException(
-                            String.format("Error while calling ResponseInterceptor of type '%s'",
-                                    interceptor.getClass()), e
+                            String.format("Error while calling ResponseInterceptor of type '%s' for '%s' call.",
+                                    interceptor.getClass(), methodName()), e
                     );
                 }
             }
         }
         return result;
-    }
-
-    private static void growSize(List<?> list, int count) {
-        if (count > 0) {
-            for (int i = 0; i < count; i++) {
-                list.add(null);
-            }
-        }
     }
 }

@@ -37,6 +37,7 @@ public @interface Method {
      *<p>
      * Assigns and returns the API method's name, e.g. like "userinfo",
      * or "listfolder".
+     * @return method name
      */
     String value() default "";
 }

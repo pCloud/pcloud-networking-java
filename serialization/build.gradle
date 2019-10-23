@@ -15,4 +15,8 @@ ext {
     artifactId = 'serialization'
 }
 
+findbugs {
+    reportLevel 'medium'
+}
+
 apply from: rootProject.file('bintray.gradle')

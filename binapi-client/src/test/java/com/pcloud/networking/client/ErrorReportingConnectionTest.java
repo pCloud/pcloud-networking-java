@@ -27,7 +27,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertSame;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -65,7 +65,6 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void source_Read_Reports_Errors_To_EndpointProvider() throws Exception {
         Connection connection = createConnection(Endpoint.DEFAULT);
         IOException exception = new IOException();
@@ -76,12 +75,11 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
         } catch (IOException e) {
             assertSame(e, exception);
         }
-        verify(endpointProvider).endpointConnectionError(eq(connection.endpoint()), refEq(exception));
+        verify(endpointProvider).endpointReadError(eq(connection.endpoint()), refEq(exception));
         verifyNoMoreInteractions(endpointProvider);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void sink_Write_Reports_Errors_To_EndpointProvider() throws Exception {
         Connection connection = createConnection(Endpoint.DEFAULT);
         IOException exception = new IOException();
@@ -93,12 +91,11 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
         } catch (IOException e) {
             assertSame(e, exception);
         }
-        verify(endpointProvider).endpointConnectionError(eq(connection.endpoint()), refEq(exception));
+        verify(endpointProvider).endpointWriteError(eq(connection.endpoint()), refEq(exception));
         verifyNoMoreInteractions(endpointProvider);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void sink_Flush_Reports_Errors_To_EndpointProvider() throws Exception {
         Connection connection = createConnection(Endpoint.DEFAULT);
         IOException exception = new IOException();
@@ -109,7 +106,7 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
         } catch (IOException e) {
             assertSame(e, exception);
         }
-        verify(endpointProvider).endpointConnectionError(eq(connection.endpoint()), refEq(exception));
+        verify(endpointProvider).endpointWriteError(eq(connection.endpoint()), refEq(exception));
         verifyNoMoreInteractions(endpointProvider);
     }
 

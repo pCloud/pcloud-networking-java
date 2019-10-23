@@ -59,8 +59,7 @@ abstract class ClassFactory<T> {
                 @Override
                 public T newInstance() throws IllegalAccessException, InvocationTargetException,
                         InstantiationException {
-                    Object[] args = null;
-                    return (T) constructor.newInstance(args);
+                    return (T) constructor.newInstance((Object[]) null);
                 }
 
                 @Override
@@ -154,7 +153,7 @@ abstract class ClassFactory<T> {
                     return rawType.getName();
                 }
             };
-        } catch (Exception ignored) {
+        } catch (Throwable ignored) {
             //Empty
         }
 

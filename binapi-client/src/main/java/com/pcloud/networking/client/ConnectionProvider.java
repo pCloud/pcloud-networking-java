@@ -59,30 +59,44 @@ class ConnectionProvider {
     }
 
     Connection obtainConnection(Endpoint endpoint) throws IOException {
-        RealConnection connection;
-        while ((connection = (RealConnection) connectionPool.get(endpoint)) != null) {
-            if (connection.isHealthy(eagerlyCheckConnectivity)) {
+        ErrorReportingConnection result = null;
+        RealConnection cachedConnection;
+        while ((cachedConnection = connectionPool.get(endpoint)) != null) {
+            if (cachedConnection.isHealthy(eagerlyCheckConnectivity)) {
+                if (!(cachedConnection instanceof ErrorReportingConnection)) {
+                    throw new IllegalStateException("Invalid cached connection type.");
+                }
+                result = (ErrorReportingConnection) cachedConnection;
                 break;
             } else {
-                closeQuietly(connection);
+                closeQuietly(cachedConnection);
             }
         }
 
-        if (connection == null) {
+        if (result == null) {
             // No pooled connections available, just build a new one.
-            connection = new ErrorReportingConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
-            ((ErrorReportingConnection) connection).endpointProvider(endpointProvider);
-            connection.connect(connectTimeout, TimeUnit.MILLISECONDS);
-            connection.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
-            connection.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
-            return connection;
+            boolean connected = false;
+            try {
+                result = new ErrorReportingConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+                result.connect(connectTimeout, TimeUnit.MILLISECONDS);
+                result.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+                result.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
+                connected = true;
+            } finally {
+                if (!connected) {
+                    closeQuietly(result);
+                }
+            }
         }
-        ((ErrorReportingConnection) connection).endpointProvider(endpointProvider);
-        return connection;
+        result.endpointProvider(endpointProvider);
+        return result;
     }
 
     void recycleConnection(Connection connection) {
+        if (!(connection instanceof ErrorReportingConnection)) {
+            throw new IllegalStateException("Cannot recycle an unknown connection.");
+        }
         ((ErrorReportingConnection) connection).endpointProvider(null);
-        connectionPool.recycle(connection);
+        connectionPool.recycle((RealConnection) connection);
     }
 }

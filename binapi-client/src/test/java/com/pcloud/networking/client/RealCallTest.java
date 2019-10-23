@@ -27,7 +27,12 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
@@ -36,9 +41,9 @@ import static org.mockito.Mockito.*;
 public class RealCallTest {
 
     private static final String MOCK_HOST = "mockbinapi@pcloud.com";
-    private static final int    MOCK_PORT = 123;
-    private static final int    MOCK_TIMEOUT_TIME = 250;
-    private static final byte[] MOCK_EMPTY_ARRAY_RESPONSE = new byte[] {2, 0, 0, 0, 16, -1};
+    private static final int MOCK_PORT = 123;
+    private static final int MOCK_TIMEOUT_TIME = 250;
+    private static final byte[] MOCK_EMPTY_ARRAY_RESPONSE = new byte[]{2, 0, 0, 0, 16, -1};
 
 
     private ExecutorService executor;
@@ -148,7 +153,7 @@ public class RealCallTest {
 
         Response response = call.enqueueAndWait();
         verify(connectionProvider).obtainConnection(endpoint);
-        readResponse((BytesReader)response.responseBody().reader());
+        readResponse((BytesReader) response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).recycleConnection(connection);
@@ -189,15 +194,15 @@ public class RealCallTest {
         final RealCall call = getMockRealCall(request, executor);
 
         Callback callback = mock(Callback.class);
-        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
+        doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
                 Runnable runnable = (Runnable) args[0];
                 runnable.run();
-                return new FutureTask<Void>(runnable, null);
+                return null;
             }
-        });
+        }).when(executor).execute(notNull(Runnable.class));
 
         call.enqueue(callback);
 
@@ -216,15 +221,15 @@ public class RealCallTest {
         final RealCall call = getMockRealCall(request, executor);
 
         Callback callback = mock(Callback.class);
-        when(executor.submit(any(Runnable.class))).thenAnswer(new Answer<Object>() {
+        doAnswer(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 Object[] args = invocation.getArguments();
                 Runnable runnable = (Runnable) args[0];
                 runnable.run();
-                return new FutureTask<Void>(runnable, null);
+                return null;
             }
-        });
+        }).when(executor).execute(notNull(Runnable.class));
 
         call.enqueue(callback);
 
@@ -261,7 +266,7 @@ public class RealCallTest {
 
         Response response = call.execute();
 
-        readResponse((BytesReader)response.responseBody().reader());
+        readResponse((BytesReader) response.responseBody().reader());
         response.responseBody().close();
 
         verify(connectionProvider).recycleConnection(connection);
@@ -324,7 +329,7 @@ public class RealCallTest {
 
     private void readResponse(BytesReader reader) throws IOException {
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             reader.skipValue();
         }
         reader.endObject();
@@ -336,7 +341,7 @@ public class RealCallTest {
     }
 
     private Connection createDummyConnection(Endpoint endpoint, byte[] data) {
-       return spy(new DummyConnection(endpoint, data));
+        return spy(new DummyConnection(endpoint, data));
     }
 
     private RealCall getMockRealCall(Request request, ExecutorService executor) {

@@ -63,7 +63,6 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
         }
     };
 
-
     private final Type responseType;
 
     RxObservableCallAdapter(Type responseType) {
@@ -90,7 +89,6 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
                     observer.onNext(callClone.execute());
                     observer.onCompleted();
                 } catch (Throwable throwable) {
-                    throwable.addSuppressed(new RuntimeException(errorMessage(callClone.methodName())));
                     observer.onError(throwable);
                 }
             }
@@ -102,17 +100,13 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
         }));
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public Observable<T> adapt(final MultiCall<?, T> call) {
         return Observable.create(AsyncOnSubscribe.createSingleState(new Func0<Interactor<T>>() {
             @Override
             public Interactor<T> call() {
-                try {
-                    return call.clone().start();
-                } catch (Throwable e) {
-                    e.addSuppressed(new RuntimeException(errorMessage(call.methodName())));
-                    throw e;
-                }
+                return call.clone().start();
             }
         }, new Action3<Interactor<T>, Long, Observer<Observable<? extends T>>>() {
             @Override
@@ -132,7 +126,6 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
                                 }
                                 emitter.onCompleted();
                             } catch (Throwable e) {
-                                e.addSuppressed(new RuntimeException(errorMessage(call.methodName())));
                                 emitter.onError(e);
                             }
                         }
@@ -145,9 +138,5 @@ public class RxObservableCallAdapter<T> implements CallAdapter<T, Observable<T>>
                 interactor.close();
             }
         }));
-    }
-
-    private static String errorMessage(String methodName) {
-        return "Failed to execute \"" + methodName + "\".";
     }
 }

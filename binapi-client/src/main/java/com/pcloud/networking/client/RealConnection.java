@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 import static com.pcloud.utils.IOUtils.closeQuietly;
 import static com.pcloud.utils.IOUtils.isAndroidGetsocknameError;
 
-class RealConnection extends BaseConnection {
+class RealConnection implements Connection {
 
     private static final boolean RUNNING_ON_ANDROID;
     private static final int VERSION_INT_OREO = 26;
@@ -67,7 +67,11 @@ class RealConnection extends BaseConnection {
 
     private long idleAtNanos;
     private Endpoint endpoint;
-    private boolean connected;
+    private volatile boolean connected;
+    private volatile boolean closed;
+
+    private int readTimeout = NO_TIMEOUT;
+    private int writeTimeout = NO_TIMEOUT;
 
     RealConnection(SocketFactory socketFactory,
                    SSLSocketFactory sslSocketFactory,
@@ -80,18 +84,36 @@ class RealConnection extends BaseConnection {
     }
 
     void connect(int connectTimeout, TimeUnit timeUnit) throws IOException {
+        checkNotClosed();
+        Socket rawSocket = null;
+        SSLSocket socket = null;
+        boolean connected = false;
         try {
-            this.rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
-            this.socket = upgradeSocket(rawSocket, endpoint);
-            this.source = Okio.buffer(createSource(socket));
-            this.sink = Okio.buffer(createSink(socket));
-            this.inputStream = source.inputStream();
-            this.outputStream = sink.outputStream();
+            rawSocket = createSocket(endpoint, (int) timeUnit.toMillis(connectTimeout));
+            socket = upgradeSocket(rawSocket, endpoint);
             socket.setSoTimeout(0);
             connected = true;
         } finally {
             if (!connected) {
-                close();
+                closeQuietly(rawSocket);
+                closeQuietly(socket);
+            }
+        }
+
+        synchronized (this) {
+            if (closed) {
+                closeQuietly(rawSocket);
+                closeQuietly(socket);
+            } else {
+                this.rawSocket = rawSocket;
+                this.socket = socket;
+                this.source = Okio.buffer(createSource(socket));
+                this.sink = Okio.buffer(createSink(socket));
+                this.inputStream = source.inputStream();
+                this.outputStream = sink.outputStream();
+                this.connected = true;
+                readTimeout(readTimeout(), TimeUnit.MILLISECONDS);
+                writeTimeout(writeTimeout(), TimeUnit.MILLISECONDS);
             }
         }
     }
@@ -106,16 +128,18 @@ class RealConnection extends BaseConnection {
 
     @Override
     public InputStream inputStream() throws IOException {
+        checkConnected();
         synchronized (this) {
-            checkState();
+            checkConnected();
             return inputStream;
         }
     }
 
     @Override
     public OutputStream outputStream() throws IOException {
+        checkConnected();
         synchronized (this) {
-            checkState();
+            checkConnected();
             return outputStream;
         }
     }
@@ -127,30 +151,36 @@ class RealConnection extends BaseConnection {
 
     @Override
     public BufferedSource source() throws IOException {
+        checkConnected();
         synchronized (this) {
-            checkState();
+            checkConnected();
             return source;
         }
     }
 
     @Override
     public BufferedSink sink() throws IOException {
+        checkConnected();
         synchronized (this) {
-            checkState();
+            checkConnected();
             return sink;
         }
     }
 
     boolean isHealthy(boolean doExtensiveChecks) {
-        if (!connected) {
-            return false;
-        }
-
         Socket socket;
         BufferedSource source;
+
+        if (!connected || closed) {
+            return false;
+        }
         synchronized (this) {
-            socket = this.socket;
-            source = this.source;
+            if (!connected) {
+                return false;
+            } else {
+                socket = this.socket;
+                source = this.source;
+            }
         }
         if (socket == null ||
                 source == null ||
@@ -162,6 +192,7 @@ class RealConnection extends BaseConnection {
 
         if (doExtensiveChecks) {
             try {
+                checkNotClosed();
                 int readTimeout = socket.getSoTimeout();
                 try {
                     socket.setSoTimeout(1);
@@ -192,6 +223,42 @@ class RealConnection extends BaseConnection {
     }
 
     @Override
+    public void readTimeout(long timeout, TimeUnit timeUnit) throws IOException {
+        synchronized (this) {
+            readTimeout = (int) timeUnit.toMillis(timeout);
+            BufferedSource source = source();
+            if (source != null) {
+                source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
+            }
+        }
+    }
+
+    @Override
+    public void writeTimeout(long timeout, TimeUnit timeUnit) throws IOException {
+        synchronized (this) {
+            writeTimeout = (int) timeUnit.toMillis(timeout);
+            BufferedSink sink = sink();
+            if (sink != null) {
+                sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
+            }
+        }
+    }
+
+    @Override
+    public int readTimeout() {
+        synchronized (this) {
+            return readTimeout;
+        }
+    }
+
+    @Override
+    public int writeTimeout() {
+        synchronized (this) {
+            return writeTimeout;
+        }
+    }
+
+    @Override
     public void close() {
         /*
          * Close only the raw socket, all other Closeable
@@ -201,17 +268,27 @@ class RealConnection extends BaseConnection {
          * some synchronous IO in SSLSocket.close() based on
          * the underlying implementation (namely OpenSSL on Android).
          * */
-        synchronized (this) {
-            connected = false;
-            closeQuietly(rawSocket);
-            inputStream = null;
-            outputStream = null;
-            rawSocket = null;
-            socket = null;
-            source = null;
-            sink = null;
-            endpoint = null;
+        if (!closed) {
+            synchronized (this) {
+                if (!closed) {
+                    connected = false;
+                    closeQuietly(rawSocket);
+                    inputStream = null;
+                    outputStream = null;
+                    rawSocket = null;
+                    socket = null;
+                    source = null;
+                    sink = null;
+                    endpoint = null;
+                    closed = true;
+                }
+            }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Connection(\"" + endpoint() + "\")";
     }
 
     private Socket createSocket(Endpoint endpoint, int connectTimeout) throws IOException {
@@ -262,11 +339,16 @@ class RealConnection extends BaseConnection {
         SSLSocket socket = null;
         boolean connectionSucceeded = false;
         try {
-            socket = (SSLSocket) sslSocketFactory.createSocket(
+            Socket newSocket = sslSocketFactory.createSocket(
                     rawSocket,
                     endpoint.host(),
                     endpoint.port(),
                     true /*close wrapped socket*/);
+            if (!(newSocket instanceof SSLSocket)) {
+                closeQuietly(newSocket);
+                throw new IllegalStateException("The SSLSocketFactory did not return a SSLSocket. ");
+            }
+            socket = (SSLSocket) newSocket;
 
             socket.startHandshake();
             if (!hostnameVerifier.verify(endpoint.host(), socket.getSession())) {
@@ -285,8 +367,14 @@ class RealConnection extends BaseConnection {
         }
     }
 
-    private void checkState() throws IOException {
+    private void checkConnected() throws IOException {
         if (!connected) {
+            throw new IOException("Connection is not connected.");
+        }
+    }
+
+    private void checkNotClosed() throws IOException {
+        if (closed) {
             throw new IOException("Connection is closed.");
         }
     }

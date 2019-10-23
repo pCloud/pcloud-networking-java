@@ -72,9 +72,10 @@ public class FileOperationTest extends ApiIntegrationTest {
     }
 
     @Test
-    public void downloadThumb_ShouldNotFailOnWrongFileName() throws Exception {
+    public void downloadThumb_ShouldFailOnWrongFileName() throws Exception {
         DataApiResponse response = downloadApi.getThumb("/abc", "64x64");
         assertNotNull(response);
+        assertFalse(response.isSuccessful());
         assertNull(response.responseData());
     }
 

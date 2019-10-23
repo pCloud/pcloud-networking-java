@@ -21,8 +21,8 @@ class RealApiChannel implements ApiChannel {
     private ProtocolRequestWriter writer;
     private ProtocolResponseReader reader;
     private final Endpoint endpoint;
-    private volatile long completedRequests;
-    private volatile long completedResponses;
+    private long completedRequests = 0L;
+    private long completedResponses = 0L;
     private volatile boolean closed;
 
     private final Object counterLock = new Object();

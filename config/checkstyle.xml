@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE module PUBLIC
-        "-//Puppy Crawl//DTD Check Configuration 1.2//EN"
-        "http://www.puppycrawl.com/dtds/configuration_1_2.dtd">
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <module name="Checker">
     <module name="NewlineAtEndOfFile">
@@ -12,13 +12,21 @@
 
     <!-- Trailing spaces -->
     <module name="RegexpSingleline">
-        <property name="format" value="\s+$"/>
+        <property name="format" value="^(?!\s+\* $).*?\s+$"/>
         <property name="message" value="Line has trailing spaces."/>
     </module>
-    <!-- Use //CHECKSTYLE:OFF to turn off and //CHECKSTYLE:ON to turn the tool back on -->
-    <module name="SuppressionCommentFilter"/>
+
+    <!-- Checks for Size Violations.                    -->
+    <!-- See http://checkstyle.sf.net/config_sizes.html -->
+    <module name="LineLength">
+        <property name="max" value="120"/>
+        <!-- this alien black magic ignores the length restriction for javadoc comments with the following conditions -
+            one or more whitespaces at the start of the line, one * symbol followed by 1 whitespace and then
+            one or more whitespace or non whitespace characters-->
+        <property name="ignorePattern" value="^\s+[*]\s[\S|\s]+$"/>
+    </module>
+
     <module name="TreeWalker">
-        <module name="FileContentsHolder"/>
         <!-- Checks for Javadoc comments.                     -->
         <!-- See http://checkstyle.sf.net/config_javadoc.html -->
         <module name="JavadocMethod">
@@ -57,28 +65,17 @@
         <module name="UnusedImports">
             <property name="processJavadoc" value="true"/>
         </module>
-
-
-        <!-- Checks for Size Violations.                    -->
-        <!-- See http://checkstyle.sf.net/config_sizes.html -->
-        <module name="LineLength">
-            <property name="max" value="120"/>
-            <!-- this alien black magic ignores the length restriction for javadoc comments with the following conditions -
-                one or more whitespaces at the start of the line, one * symbol followed by 1 whitespace and then
-                one or more whitespace or non whitespace characters-->
-            <property name="ignorePattern" value="^\s+[*]\s[\S|\s]+$"/>
-        </module>
         <module name="MethodLength">
             <property name="max" value="100"/>
             <property name="countEmpty" value="false"/>
         </module>
-        <!--module name="ParameterNumber"/-->
-
 
         <!-- Checks for whitespace                               -->
         <!-- See http://checkstyle.sf.net/config_whitespace.html -->
         <module name="GenericWhitespace"/>
-        <module name="EmptyForIteratorPad"/>
+        <module name="EmptyForInitializerPad">
+            <property name="option" value="space"/>
+        </module>
         <module name="MethodParamPad"/>
         <module name="NoWhitespaceAfter">
             <property name="tokens" value="BNOT, DEC, DOT, INC, LNOT, UNARY_MINUS, UNARY_PLUS"/>
@@ -152,4 +149,8 @@
             <property name="caseIndent" value="4"/>
         </module>
     </module>
+
+    <!-- Use //CHECKSTYLE:OFF to turn off and //CHECKSTYLE:ON to turn the tool back on -->
+    <module name="SuppressWithPlainTextCommentFilter"/>
 </module>
+
