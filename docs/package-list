@@ -1,9 +1,4 @@
 com.pcloud.networking.api
-com.pcloud.networking.api.adapters
 com.pcloud.networking.client
-com.pcloud.networking.client.internal
-com.pcloud.networking.client.internal.tls
 com.pcloud.networking.protocol
 com.pcloud.networking.serialization
-com.pcloud.networking.serialization.adapters
-com.pcloud.utils

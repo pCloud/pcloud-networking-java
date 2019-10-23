@@ -1,6 +1,48 @@
 Changelog
 ==========
 
+Version 2.3.0 (23.10.2019)
+--------------------------
+
+#### Composer
+
+- Add the `methodName()` property to `Call<T>` to allow for better error reporting.
+- Add the API method name in the stacktrace when an error is thrown via an `Observable` created with a RxJava adapter.
+- Add the ability to override the target endpoint of a `Call<T>` is being made by adding a single `Endpoint` method
+ parameter. Example: 
+     ```java
+    interface MyInterface {
+        @Method("someapicall")
+        Call<ResponseBody> getResponseBody(Endpoint endpoint);
+    
+        @Method("someapicallwithparams")
+        Call<ResponseBody> getResponseBody(@Request SomeRequest request, Endpoint endpoint);
+    }
+    ```   
+  - Extract the composer-related annotations in a separate module and the `composer-annotations`  maven artifact.
+  
+#### Client
+
+- Add an `endpoint()` property to `ResponseData` that returns the source `Endpoint`.
+
+#### Serialization
+
+- Give a better error message when trying to serialize a type as a request parameter not resulting in a single value.
+
+#### Protocol
+
+- Update to Okio 1.17.4
+- Drop the peeking source implementation in favor of the one shipped with Okio.
+- `BytesReader` instances returned from `BytesReader.peek()` will not close their parent when being closed.
+- `BytesReader` instances returned from `BytesReader.peek()` will throw exceptions if used when their
+parent has bytes consumed beyond the peek start point.
+
+#### General
+
+- Update to Gradle 5.6.2
+- Refactor the project build scripts
+
+
 Version 2.2.3 (19.09.2018)
 --------------------------
 
@@ -107,11 +149,11 @@ Example:
 
 Calling:
 ```java
-	collectionAdapter.serialize(writer, collection);
+   collectionAdapter.serialize(writer, collection);
 ```
 is equivalent to:
 ```java
-    writer.writeValue("some value,some value,some value");
+writer.writeValue("some value,some value,some value");
 ```
 
 #### Composer

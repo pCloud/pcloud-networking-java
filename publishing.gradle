@@ -1,8 +1,8 @@
 ext {
     isCi = System.getenv().containsKey('CI')
 
-    versionName = "2.2.3"
-    versionCode = 19
+    versionName = "2.3.0"
+    versionCode = 20
     libraryName = "pcloud-networking-java"
     groupId = "com.pcloud.pcloud-networking-java"
     description = "A Network Stack for pCloud's API written in Java"
