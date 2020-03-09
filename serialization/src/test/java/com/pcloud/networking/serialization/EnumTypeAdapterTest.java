@@ -16,11 +16,7 @@
 
 package com.pcloud.networking.serialization;
 
-import com.pcloud.networking.protocol.BytesReader;
-import com.pcloud.networking.protocol.ProtocolReader;
-import com.pcloud.networking.protocol.ProtocolResponseReader;
-import com.pcloud.networking.protocol.ResponseBytesWriter;
-import com.pcloud.networking.protocol.SerializationException;
+import com.pcloud.networking.protocol.*;
 import okio.Buffer;
 import okio.ByteString;
 import org.junit.Rule;
@@ -126,7 +122,6 @@ public class EnumTypeAdapterTest {
 
     @Test
     public void throws_On_Invalid_Protocol_Type1() throws Exception {
-
         ProtocolReader reader = readerWithValues(false, true, false);
         TypeAdapter<NumberEnumType> adapter = new EnumTypeAdapter<>(NumberEnumType.class);
         expectedException.expect(SerializationException.class);
@@ -143,7 +138,9 @@ public class EnumTypeAdapterTest {
 
     private static ProtocolReader readerWithValues(Object... values) throws IOException {
         ByteString response = ResponseBytesWriter.empty()
+                .beginObject()
                 .writeValue("values", values)
+                .endObject()
                 .bytes();
         ProtocolResponseReader reader = new BytesReader(new Buffer().write(response));
         reader.beginResponse();

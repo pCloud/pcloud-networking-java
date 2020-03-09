@@ -36,13 +36,17 @@ public class BytesReaderTest {
     private Buffer buffer;
 
     private static final ByteString MOCK_RESPONSE = new ResponseBytesWriter()
+            .beginObject()
             .writeValue("result", 0L)
+            .endObject()
             .bytes();
     private static final ByteString MOCK_DATA = ByteString.encodeUtf8("some data");
     private static final ByteString MOCK_DATA_RESPONSE = new ResponseBytesWriter()
+            .beginObject()
             .writeValue("result", 0L)
             .writeValue("somefield", "someData")
             .setData(MOCK_DATA)
+            .endObject()
             .bytes();
 
     @Rule
@@ -177,16 +181,6 @@ public class BytesReaderTest {
         reader.readBoolean();
     }
 
-    @Test
-    public void peek_Should_Not_Change_Buffer_Size() throws Exception {
-
-        reader.beginResponse();
-        long sizeBefore = buffer.size();
-        reader.peek();
-        long sizeAfter = buffer.size();
-        assertEquals(sizeBefore, sizeAfter);
-    }
-
     private void setIncomingResponse(ByteString responseBytes) {
         buffer.clear();
         buffer.write(responseBytes);
@@ -197,7 +191,7 @@ public class BytesReaderTest {
 
         reader.beginResponse();
 
-        while(reader.hasNext()){
+        while (reader.hasNext()) {
             reader.skipValue();
         }
 
@@ -212,7 +206,6 @@ public class BytesReaderTest {
         //the reader should have SCOPE_NONE at the beginning
         assertEquals(reader.currentScope(), BytesReader.SCOPE_NONE);
     }
-
 
     @Test
     public void scope_Should_Be_SCOPE_RESPONSE_After_beginResponse() throws Exception {
@@ -351,8 +344,77 @@ public class BytesReaderTest {
     }
 
     @Test
+    public void peek_Should_Not_Change_Buffer_Size() throws Exception {
+        reader.beginResponse();
+        long sizeBefore = buffer.size();
+        reader.peek();
+        long sizeAfter = buffer.size();
+        assertEquals(sizeBefore, sizeAfter);
+    }
+
+    @Test
     public void peekingReader_Should_Not_Close_The_Real_Buffer() throws Exception {
         reader.newPeekingReader().close();
         Mockito.verify(source, Mockito.never()).close();
+    }
+
+    @Test
+    public void peek_throws_IllegalStateException_If_Called_Outside_Response_Scope() throws Exception {
+        expectedException.expect(IllegalStateException.class);
+        reader.peek();
+    }
+
+    @Test
+    public void peek_Returns_Begin_Object_After_beginResponse_Called() throws Exception {
+        reader.beginResponse();
+        assertEquals(TypeToken.BEGIN_OBJECT, reader.peek());
+    }
+
+    @Test
+    public void peek_Returns_Begin_Object_After_beginObject_Called() throws Exception {
+
+        reader.beginResponse();
+        assertEquals(TypeToken.BEGIN_OBJECT, reader.peek());
+    }
+
+    @Test
+    public void peek_Returns_Begin_Object_Before_Reading_Nested_Object() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("object").beginObject()
+                .endObject()
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.beginObject();
+        while (reader.hasNext()) {
+            if ("object".equals(reader.readString())) {
+                assertEquals(TypeToken.BEGIN_OBJECT, reader.peek());
+                return;
+            } else {
+                reader.skipValue();
+            }
+        }
+    }
+
+    @Test
+    public void peek_Returns_Begin_Array_Before_Reading_Array_Value() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("object").beginArray().endArray()
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.beginObject();
+        while (reader.hasNext()) {
+            if ("object".equals(reader.readString())) {
+                assertEquals(TypeToken.BEGIN_ARRAY, reader.peek());
+                return;
+            } else {
+                reader.skipValue();
+            }
+        }
     }
 }

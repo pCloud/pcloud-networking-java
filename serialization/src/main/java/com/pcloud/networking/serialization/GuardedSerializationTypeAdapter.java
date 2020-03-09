@@ -23,7 +23,7 @@ import com.pcloud.networking.protocol.SerializationException;
 import java.io.IOException;
 
 /**
- * А {@linkplain TypeAdapter} implementation that enforces a "single" serialization rule
+ * A {@linkplain TypeAdapter} implementation that enforces a "single" serialization rule
  * <p>
  * This implementation is useful for wrapping other {@linkplain TypeAdapter} instances and
  * ensuring that the objects supplied to the adapter will be serialized to a single value.

@@ -63,8 +63,10 @@ public class ClassTypeAdapterTest {
     public void boolean_Fields_Deserialize_Correctly() throws Exception {
         boolean expected = true;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aBooleanObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Booleans instance = transformer.getTypeAdapter(Booleans.class).deserialize(reader);
@@ -75,6 +77,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void boolean_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Booleans instance = transformer.getTypeAdapter(Booleans.class).deserialize(reader);
@@ -122,8 +126,10 @@ public class ClassTypeAdapterTest {
     public void byte_Fields_Deserialize_Correctly() throws Exception {
         byte expected = 0x32;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aByteObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Bytes instance = transformer.getTypeAdapter(Bytes.class).deserialize(reader);
@@ -134,6 +140,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void byte_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Bytes instance = transformer.getTypeAdapter(Bytes.class).deserialize(reader);
@@ -181,8 +189,10 @@ public class ClassTypeAdapterTest {
     public void short_Fields_Deserialize_Correctly() throws Exception {
         short expected = Short.MAX_VALUE / 2;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aShortObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Shorts instance = transformer.getTypeAdapter(Shorts.class).deserialize(reader);
@@ -193,6 +203,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void short_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Shorts instance = transformer.getTypeAdapter(Shorts.class).deserialize(reader);
@@ -240,8 +252,10 @@ public class ClassTypeAdapterTest {
     public void integer_Fields_Deserialize_Correctly() throws Exception {
         int expected = Integer.MAX_VALUE / 2;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("anIntObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Integers instance = transformer.getTypeAdapter(Integers.class).deserialize(reader);
@@ -252,6 +266,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void integer_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Integers instance = transformer.getTypeAdapter(Integers.class).deserialize(reader);
@@ -299,8 +315,10 @@ public class ClassTypeAdapterTest {
     public void long_Fields_Deserialize_Correctly() throws Exception {
         long expected = Long.MAX_VALUE / 2;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aLongObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Longs instance = transformer.getTypeAdapter(Longs.class).deserialize(reader);
@@ -311,6 +329,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void long_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Longs instance = transformer.getTypeAdapter(Longs.class).deserialize(reader);
@@ -358,8 +378,10 @@ public class ClassTypeAdapterTest {
     public void float_Fields_Deserialize_Correctly() throws Exception {
         float expected = Float.MAX_VALUE / 2.f;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aFloatObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Floats instance = transformer.getTypeAdapter(Floats.class).deserialize(reader);
@@ -370,6 +392,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void float_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Floats instance = transformer.getTypeAdapter(Floats.class).deserialize(reader);
@@ -417,8 +441,10 @@ public class ClassTypeAdapterTest {
     public void double_Fields_Deserialize_Correctly() throws Exception {
         double expected = Double.MAX_VALUE / 2.d;
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aDoubleObject", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Doubles instance = transformer.getTypeAdapter(Doubles.class).deserialize(reader);
@@ -429,6 +455,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void double_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Doubles instance = transformer.getTypeAdapter(Doubles.class).deserialize(reader);
@@ -472,8 +500,10 @@ public class ClassTypeAdapterTest {
     public void string_Fields_Deserialize_Correctly() throws Exception {
         String expected = "Pink Elephants";
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aStringDefaultName", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Strings instance = transformer.getTypeAdapter(Strings.class).deserialize(reader);
@@ -484,6 +514,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void string_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         Strings instance = transformer.getTypeAdapter(Strings.class).deserialize(reader);
@@ -536,8 +568,10 @@ public class ClassTypeAdapterTest {
     public void customType_Fields_Deserialize_Correctly() throws Exception {
         String expected = "Pink Elephants";
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
                 .writeValue(PARAMETER_NAME, expected)
                 .writeValue("aCustomTypeDefaultName", expected)
+                .endObject()
                 .createReader();
         reader.beginResponse();
         CustomTypes instance = transformer.getTypeAdapter(CustomTypes.class).deserialize(reader);
@@ -548,6 +582,8 @@ public class ClassTypeAdapterTest {
     @Test
     public void customType_Fields_Deserialize_Correctly_With_Missing_Values() throws Exception {
         ProtocolResponseReader reader = new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
                 .createReader();
         reader.beginResponse();
         CustomTypes instance = transformer.getTypeAdapter(CustomTypes.class).deserialize(reader);
