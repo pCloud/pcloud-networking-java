@@ -23,6 +23,8 @@ import okio.ByteString;
 import java.io.IOException;
 import java.util.Map;
 
+import static com.pcloud.networking.protocol.Protocol.*;
+
 @SuppressWarnings("WeakerAccess,unused")
 public class ResponseBytesWriter {
 
@@ -38,12 +40,55 @@ public class ResponseBytesWriter {
         return bytesBuilder;
     }
 
+    private Buffer valuesBuffer;
+    private ByteString data;
+    private final IntStack scopeStack;
+
+    private final ArrayWriter arrayWriter = new ArrayWriter() {
+        @Override
+        public ArrayWriter write(Object value) throws IOException {
+            checkScope(ProtocolReader.SCOPE_ARRAY);
+            ResponseBytesWriter.this.write(value);
+            return this;
+        }
+
+        @Override
+        public ArrayWriter write(String value) throws IOException {
+            checkScope(ProtocolReader.SCOPE_ARRAY);
+            ResponseBytesWriter.this.write(value);
+            return this;
+        }
+
+        @Override
+        public ArrayWriter write(long value) throws IOException {
+            checkScope(ProtocolReader.SCOPE_ARRAY);
+            ResponseBytesWriter.this.write(value);
+            return this;
+        }
+
+        @Override
+        public ArrayWriter write(boolean value) throws IOException {
+            checkScope(ProtocolReader.SCOPE_ARRAY);
+            ResponseBytesWriter.this.write(value);
+            return this;
+        }
+
+        @Override
+        public ResponseBytesWriter endArray() throws IOException {
+            checkScope(ProtocolReader.SCOPE_ARRAY);
+            return ResponseBytesWriter.this.endArray();
+        }
+    };
+
     private ResponseBytesWriter(ResponseBytesWriter responseBytesWriter) {
         this.valuesBuffer = responseBytesWriter.valuesBuffer.clone();
+        this.data = responseBytesWriter.data;
+        this.scopeStack = new IntStack(responseBytesWriter.scopeStack);
     }
 
     public ResponseBytesWriter() {
         this.valuesBuffer = new Buffer();
+        this.scopeStack = new IntStack();
     }
 
     public interface ArrayWriter {
@@ -58,84 +103,86 @@ public class ResponseBytesWriter {
         ResponseBytesWriter endArray() throws IOException;
     }
 
-    private Buffer valuesBuffer;
-    private ByteString data;
+    private int currentScope() {
+        return scopeStack.isEmpty() ? ProtocolReader.SCOPE_NONE : scopeStack.peek();
+    }
 
-    private final ArrayWriter arrayWriter = new ArrayWriter() {
-        @Override
-        public ArrayWriter write(Object value) throws IOException {
-            ResponseBytesWriter.this.write(value);
-            return this;
+    private void checkScope(int expected) {
+        if (currentScope() != expected) {
+            throw new IllegalStateException("Invalid scope");
         }
-
-        @Override
-        public ArrayWriter write(String value) throws IOException {
-            ResponseBytesWriter.this.write(value);
-            return this;
-        }
-
-        @Override
-        public ArrayWriter write(long value) throws IOException {
-            ResponseBytesWriter.this.write(value);
-            return this;
-        }
-
-        @Override
-        public ArrayWriter write(boolean value) throws IOException {
-            ResponseBytesWriter.this.write(value);
-            return this;
-        }
-
-        @Override
-        public ResponseBytesWriter endArray() throws IOException {
-            return ResponseBytesWriter.this.endArray();
-        }
-    };
+    }
 
     public ResponseBytesWriter beginObject() {
-        valuesBuffer.writeByte(16);
+        switch (currentScope()) {
+            case ProtocolReader.SCOPE_ARRAY:
+            case ProtocolReader.SCOPE_NONE:
+            case ProtocolReader.SCOPE_OBJECT:
+                break;
+            default:
+                throw new IllegalStateException("Invalid scope.");
+        }
+        scopeStack.push(ProtocolReader.SCOPE_OBJECT);
+        valuesBuffer.writeByte(TYPE_BEGIN_OBJECT);
         return this;
     }
 
     public ResponseBytesWriter endObject() {
-        valuesBuffer.writeByte(0xFF);
+        checkScope(ProtocolReader.SCOPE_OBJECT);
+        scopeStack.pop();
+        valuesBuffer.writeByte(TYPE_END_ARRAY_OBJECT);
         return this;
     }
 
     public ArrayWriter beginArray() {
-        valuesBuffer.writeByte(17);
+        checkScope(ProtocolReader.SCOPE_OBJECT);
+        scopeStack.push(ProtocolReader.SCOPE_ARRAY);
+        valuesBuffer.writeByte(TYPE_BEGIN_ARRAY);
         return arrayWriter;
     }
 
     public ResponseBytesWriter endArray() {
-        return endObject();
+        checkScope(ProtocolReader.SCOPE_ARRAY);
+        scopeStack.pop();
+        valuesBuffer.writeByte(TYPE_END_ARRAY_OBJECT);
+        return this;
     }
 
-    public ResponseBytesWriter writeValues(Map<String,?> values) {
-        for (Map.Entry<String,?> entry : values.entrySet()) {
+    public ResponseBytesWriter writeValues(Map<String, ?> values) {
+        for (Map.Entry<String, ?> entry : values.entrySet()) {
             writeValue(entry.getKey(), entry.getValue());
         }
         return this;
     }
 
     public ResponseBytesWriter writeValue(String key, String value) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
         return write(key).write(value);
     }
 
     public ResponseBytesWriter writeValue(String key, long value) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
         return write(key).write(value);
     }
 
     public ResponseBytesWriter writeValue(String key, boolean value) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
         return write(key).write(value);
     }
 
     public ResponseBytesWriter writeValue(String key, Object value) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
         return write(key).write(value);
     }
 
+    public ResponseBytesWriter writeKey(String key) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
+        return write(key);
+    }
+
     public ResponseBytesWriter setData(ByteString data) {
-        if (data == null) {
+        checkScope(ProtocolReader.SCOPE_OBJECT);
+        if (this.data != null) {
             throw new IllegalStateException("setData() already called.");
         }
         this.data = data;
@@ -143,21 +190,20 @@ public class ResponseBytesWriter {
     }
 
     private ResponseBytesWriter write(Object value) {
-        final Class valueType = value.getClass();
+        final Class<?> valueType = value.getClass();
         if (valueType == String.class) {
             return write((String) value);
-        } else if (valueType == Long.class || valueType == long.class) {
+        } else if (valueType == Long.class) {
             return write((long) value);
-        } else if (valueType == Integer.class || valueType == int.class) {
+        } else if (valueType == Integer.class) {
             return write((int) value);
-        } else if (valueType == Short.class || valueType == short.class) {
+        } else if (valueType == Short.class) {
             return write((short) value);
-        } else if (valueType == Byte.class || valueType == byte.class) {
+        } else if (valueType == Byte.class) {
             return write((byte) value);
-        } else if (valueType == Boolean.class || valueType == boolean.class) {
+        } else if (valueType == Boolean.class) {
             return write((boolean) value);
-        } else if (valueType == Float.class || valueType == float.class ||
-                valueType == Double.class || valueType == double.class) {
+        } else if (valueType == Float.class || valueType == Double.class) {
             return write(String.valueOf(value));
         } else if (valueType.isArray()) {
             beginArray();
@@ -186,25 +232,25 @@ public class ResponseBytesWriter {
     }
 
     private ResponseBytesWriter write(String value) {
-        valuesBuffer.writeByte(3);
+        valuesBuffer.writeByte(TYPE_STRING_END);
         valuesBuffer.writeIntLe(value.length());
         valuesBuffer.writeUtf8(value);
         return this;
     }
 
     private ResponseBytesWriter write(long value) {
-        valuesBuffer.writeByte(15);
+        valuesBuffer.writeByte(TYPE_NUMBER_END);
         valuesBuffer.writeLongLe(value);
         return this;
     }
 
     private ResponseBytesWriter write(boolean value) {
-        valuesBuffer.writeByte(value ? 19 : 18);
+        valuesBuffer.writeByte(value ? TYPE_BOOLEAN_TRUE : TYPE_BOOLEAN_FALSE);
         return this;
     }
 
     private ResponseBytesWriter writeDataSize(long size) {
-        valuesBuffer.writeByte(20);
+        valuesBuffer.writeByte(TYPE_DATA);
         valuesBuffer.writeLongLe(size);
         return this;
     }
@@ -226,15 +272,8 @@ public class ResponseBytesWriter {
         Buffer values = valuesBuffer.clone();
 
         // Write response size
-        sink.writeIntLe((int) values.size() + 2);
-        if (values.size() > 0) {
-            sink.writeByte(16); // Begin object
-            sink.writeAll(values);
-        } else {
-            sink.writeByte(17); // Begin array
-        }
-        sink.writeByte(0XFF); // End object
-
+        sink.writeIntLe((int) values.size());
+        sink.writeAll(values);
         if (data != null) {
             sink.write(data);
         }
@@ -246,7 +285,9 @@ public class ResponseBytesWriter {
             writeTo(buffer);
             ProtocolResponseReader responseReader = new BytesReader(buffer);
             responseReader.beginResponse();
-            return new ValueReader().readObject(responseReader);
+            Map<String, ?> values = new ValueReader().readObject(responseReader);
+            responseReader.endResponse();
+            return values;
         } catch (IOException e) {
             throw new AssertionError(e);
         }

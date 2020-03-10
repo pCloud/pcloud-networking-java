@@ -113,13 +113,17 @@ public class RealApiChannelTest {
 
     private ByteString mockResponse() throws IOException {
         return new ResponseBytesWriter()
+                .beginObject()
                 .writeValue("result", 5000)
+                .endObject()
                 .bytes();
     }
 
     private ByteString mockDataResponse() throws IOException {
         return new ResponseBytesWriter()
+                .beginObject()
                 .setData(ByteString.encodeUtf8("Some data"))
+                .endObject()
                 .bytes();
     }
 
@@ -212,7 +216,7 @@ public class RealApiChannelTest {
     public void Reader_beginArray_Throws_ClosedChannelException_On_Closed_Instance() throws Exception {
         ApiChannel apiChannel = createChannelInstance();
         connection.readBuffer().write(mockResponse());
-                apiChannel.reader().beginResponse();
+        apiChannel.reader().beginResponse();
         apiChannel.close();
         expectException(apiChannel.reader(), ClosedChannelException.class).beginArray();
     }
@@ -221,14 +225,18 @@ public class RealApiChannelTest {
     public void Reader_endArray_Throws_ClosedChannelException_On_Closed_Instance() throws Exception {
         ApiChannel apiChannel = createChannelInstance();
         connection.readBuffer().write(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("array")
                 .beginArray()
                 .write("1")
                 .endArray()
+                .endObject()
                 .bytes());
 
         ProtocolResponseReader reader = apiChannel.reader();
         reader.beginResponse();
         reader.beginObject();
+        reader.readString();
         reader.beginArray();
         apiChannel.close();
         expectException(reader, ClosedChannelException.class).endArray();

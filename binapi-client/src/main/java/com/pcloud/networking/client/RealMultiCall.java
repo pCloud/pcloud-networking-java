@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import com.pcloud.networking.protocol.ProtocolRequestWriter;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
 import com.pcloud.utils.IOUtils;
 import okio.Buffer;
+import okio.BufferedSink;
 import okio.BufferedSource;
 import okio.ByteString;
 import okio.Okio;
@@ -458,6 +459,11 @@ class RealMultiCall implements MultiCall {
         }
 
         @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            source.readAll(sink);
+        }
+
+        @Override
         public void close() {
             source.close();
         }
@@ -506,6 +512,11 @@ class RealMultiCall implements MultiCall {
         @Override
         public Endpoint endpoint() {
             return endpoint;
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            bufferedSource.readAll(sink);
         }
 
         @Override

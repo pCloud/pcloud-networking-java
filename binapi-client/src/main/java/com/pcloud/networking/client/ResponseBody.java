@@ -18,6 +18,7 @@ package com.pcloud.networking.client;
 
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ValueReader;
+import okio.BufferedSink;
 import okio.ByteString;
 
 import java.io.Closeable;
@@ -96,6 +97,14 @@ public abstract class ResponseBody implements Closeable {
      * @return non-null {@linkplain Endpoint}
      */
     public abstract Endpoint endpoint();
+
+    /**
+     * Write the body content to a {@linkplain BufferedSink}
+     *
+     * @param sink the receiver of the data
+     * @throws IOException on failed IO operations
+     */
+    public abstract void writeTo(BufferedSink sink) throws IOException;
 
     @Override
     public String toString() {
