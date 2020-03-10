@@ -1,6 +1,18 @@
 Changelog
 ==========
 
+Version 2.4.0 (10.03.2020)
+--------------------------
+
+## Client
+
+- Add the `ResponseBody.writeTo(BufferedSink)` method.
+
+## Protocol
+
+- Fix a bug in `BytesReader.peek()` where an `TypeToken.END_ARRAY` instead of a `TypeToken.END_OBJECT` would be returned.
+- Reduce memory allocations in `BytesReader` by replacing the internal structure storing scopes.
+
 Version 2.3.0 (23.10.2019)
 --------------------------
 
