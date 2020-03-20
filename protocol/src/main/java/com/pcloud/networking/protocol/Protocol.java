@@ -45,16 +45,4 @@ class Protocol {
     }
 
 
-    static String scopeName(final int scope) {
-        switch (scope) {
-            case ProtocolResponseReader.SCOPE_RESPONSE:
-                return "Response";
-            case ProtocolReader.SCOPE_ARRAY:
-                return "Array";
-            case ProtocolReader.SCOPE_OBJECT:
-                return "Object";
-            default:
-                return "Unknown";
-        }
-    }
 }
