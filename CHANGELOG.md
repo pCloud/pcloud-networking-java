@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 2.4.1 (20.03.2020)
+--------------------------
+
+## Protocol
+
+- Fix a bug in `BytesReader.skipValue()`.
+- Make read scope checks more consistent in `BytesReader`
+
 Version 2.4.0 (10.03.2020)
 --------------------------
 
