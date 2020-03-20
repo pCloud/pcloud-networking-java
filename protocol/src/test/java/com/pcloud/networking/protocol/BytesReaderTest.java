@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -74,10 +74,22 @@ public class BytesReaderTest {
     }
 
     @Test
-    public void beginResponse_Throws_If_Called_Twice_In_A_Row() throws Exception {
+    public void beginResponse_Changes_Scope_To_SCOPE_RESPONSE() throws Exception {
+        reader.beginResponse();
+        assertEquals(ProtocolResponseReader.SCOPE_RESPONSE, reader.currentScope());
+    }
+
+    @Test
+    public void beginResponse_Throws_IllegalStateException_If_Called_Outside_SCOPE_NONE() throws Exception {
+        reader.beginResponse();
         expectedException.expect(IllegalStateException.class);
         reader.beginResponse();
-        reader.beginResponse();
+    }
+
+    @Test
+    public void beginResponse_Returns_Byte_Length_Of_Response() throws Exception {
+        long responseSize = MOCK_RESPONSE.size() - 4L; // The token that stores the response size is 4 bytes
+        assertEquals(responseSize, reader.beginResponse());
     }
 
     @Test
@@ -87,17 +99,174 @@ public class BytesReaderTest {
     }
 
     @Test
-    public void beginObject_Throws_If_Called_Before_beginResponse() throws Exception {
+    public void endResponse_Returns_False_If_Response_Does_Not_Have_Data() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.skipValue();
+        assertFalse(reader.endResponse());
+        assertEquals(ProtocolResponseReader.SCOPE_NONE, reader.currentScope());
+    }
 
+    @Test
+    public void endResponse_Returns_True_If_Response_Has_Data() throws Exception {
+        ByteString data = ByteString.encodeUtf8("Response Data");
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .setData(data)
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.skipValue();
+        assertTrue(reader.endResponse());
+        assertEquals(data.size(), reader.dataContentLength());
+        assertEquals(ProtocolResponseReader.SCOPE_DATA, reader.currentScope());
+        Buffer sink = new Buffer();
+        reader.readData(sink);
+        assertEquals(data, sink.readByteString());
+    }
+
+    @Test
+    public void beginObject_Throws_IllegalStateException_If_Called_Before_beginResponse() throws Exception {
+        expectedException.expect(IllegalStateException.class);
+        reader.beginObject();
+    }
+
+
+    @Test
+    public void beginObject_Throws_SerializationException_If_Next_Token_Is_Not_Begin_Object() throws Exception {
+        reader.beginResponse();
+        reader.beginObject();
+        expectedException.expect(SerializationException.class);
+        reader.beginObject();
+    }
+
+    @Test
+    public void beginObject_Throws_IllegalStateException_If_Called_After_endResponse() throws Exception {
+        reader.beginResponse();
+        reader.endResponse();
         expectedException.expect(IllegalStateException.class);
         reader.beginObject();
     }
 
     @Test
-    public void beginArray_Throws_If_Called_Before_beginResponse() throws Exception {
+    public void begin_Object_Reads_Empty_Objects_Serialized_As_Empty_Array() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("emptyObject").beginArray().endArray()
+                .endObject()
+                .bytes()
+        );
 
+        reader.beginResponse();
+        reader.beginObject();
+        reader.readString();
+        reader.beginObject();
+        while (reader.hasNext()) {
+            reader.skipValue();
+        }
+        reader.endObject();
+    }
+
+
+    @Test
+    public void beginArray_Throws_IllegalStateException_If_Called_Before_beginResponse() throws Exception {
         expectedException.expect(IllegalStateException.class);
         reader.beginArray();
+    }
+
+    @Test
+    public void beginArray_Throws_SerializationException_If_Next_Token_Is_Not_Begin_Object() throws Exception {
+        reader.beginResponse();
+        reader.beginObject();
+        expectedException.expect(SerializationException.class);
+        reader.beginArray();
+    }
+
+    @Test
+    public void beginArray_Throws_IllegalStateException_If_Called_After_endResponse() throws Exception {
+        reader.beginResponse();
+        reader.endResponse();
+        expectedException.expect(IllegalStateException.class);
+        reader.beginArray();
+    }
+
+    @Test
+    public void endObject_Throws_SerializationException_If_Next_Token_Is_Not_End_Object() throws Exception {
+        reader.beginResponse();
+        reader.beginObject();
+        expectedException.expect(SerializationException.class);
+        reader.endObject();
+    }
+
+    @Test
+    public void endObject_Throws_IllegalStateException_If_Called_Outside_SCOPE_OBJECT() throws Exception {
+        expectedException.expect(IllegalStateException.class);
+        reader.endObject();
+    }
+
+    @Test
+    public void endObject_Throws_IllegalStateException_If_Called_Outside_SCOPE_OBJECT1() throws Exception {
+        reader.beginResponse();
+        expectedException.expect(IllegalStateException.class);
+        reader.endObject();
+    }
+
+    @Test
+    public void endObject_Throws_IllegalStateException_If_Called_Outside_SCOPE_OBJECT2() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("array").beginArray().endArray()
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.beginObject();
+        reader.readString();
+        reader.beginArray();
+        expectedException.expect(IllegalStateException.class);
+        reader.endObject();
+    }
+
+    @Test
+    public void endArray_Throws_SerializationException_If_Next_Token_Is_Not_End_Array() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("array").beginArray().write(1).write(2).endArray()
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.beginObject();
+        reader.readString();
+        reader.beginArray();
+        expectedException.expect(SerializationException.class);
+        reader.endArray();
+    }
+
+    @Test
+    public void endArray_Throws_IllegalStateException_If_Called_Outside_SCOPE_ARRAY() throws Exception {
+        expectedException.expect(IllegalStateException.class);
+        reader.endArray();
+    }
+
+    @Test
+    public void endArray_Throws_IllegalStateException_If_Called_Outside_SCOPE_ARRAY1() throws Exception {
+        reader.beginResponse();
+        expectedException.expect(IllegalStateException.class);
+        reader.endArray();
+    }
+
+    @Test
+    public void endArray_Throws_IllegalStateException_If_Called_Outside_SCOPE_ARRAY2() throws Exception {
+        reader.beginResponse();
+        reader.beginObject();
+        expectedException.expect(IllegalStateException.class);
+        reader.endArray();
     }
 
     @Test
@@ -119,27 +288,6 @@ public class BytesReaderTest {
 
         expectedException.expect(IllegalStateException.class);
         reader.readString();
-    }
-
-    @Test
-    public void endObject_Throws_If_Called_Before_beginResponse() throws Exception {
-
-        expectedException.expect(IllegalStateException.class);
-        reader.endObject();
-    }
-
-    @Test
-    public void endArray_Throws_If_Called_Before_beginResponse() throws Exception {
-
-        expectedException.expect(IllegalStateException.class);
-        reader.endArray();
-    }
-
-    @Test
-    public void skipValue_Throws_If_Called_Before_beginResponse() throws Exception {
-
-        expectedException.expect(IllegalStateException.class);
-        reader.skipValue();
     }
 
     @Test
@@ -173,17 +321,11 @@ public class BytesReaderTest {
 
     @Test
     public void readBoolean_Throws_On_Wrong_Type() throws Exception {
-
-        expectedException.expect(SerializationException.class);
         reader.beginResponse();
         reader.beginObject();
         //the next element is a String so this should throw
+        expectedException.expect(SerializationException.class);
         reader.readBoolean();
-    }
-
-    private void setIncomingResponse(ByteString responseBytes) {
-        buffer.clear();
-        buffer.write(responseBytes);
     }
 
     @Test
@@ -344,18 +486,18 @@ public class BytesReaderTest {
     }
 
     @Test
+    public void peekingReader_Should_Not_Close_The_Real_Buffer() throws Exception {
+        reader.newPeekingReader().close();
+        Mockito.verify(source, Mockito.never()).close();
+    }
+
+    @Test
     public void peek_Should_Not_Change_Buffer_Size() throws Exception {
         reader.beginResponse();
         long sizeBefore = buffer.size();
         reader.peek();
         long sizeAfter = buffer.size();
         assertEquals(sizeBefore, sizeAfter);
-    }
-
-    @Test
-    public void peekingReader_Should_Not_Close_The_Real_Buffer() throws Exception {
-        reader.newPeekingReader().close();
-        Mockito.verify(source, Mockito.never()).close();
     }
 
     @Test
@@ -417,4 +559,36 @@ public class BytesReaderTest {
             }
         }
     }
+
+    @Test
+    public void skipValue_Throws_If_Called_Before_beginResponse() throws Exception {
+
+        expectedException.expect(IllegalStateException.class);
+        reader.skipValue();
+    }
+
+    @Test
+    public void skip_Skips_Values() throws Exception {
+        setIncomingResponse(new ResponseBytesWriter()
+                .beginObject()
+                .writeKey("intArray").beginArray().write(1).write(2).write(-1).endArray()
+                .writeKey("floatArray").beginArray().write(1d).write(2d).write(-1d).endArray()
+                .writeKey("stringArray").beginArray().write("1").write("2").write("").endArray()
+                .writeKey("booleanArray").beginArray().write(true).write(false).endArray()
+                .writeKey("emptyArray").beginArray().endArray()
+                .writeKey("emptyObject").beginObject().endObject()
+                .setData(MOCK_DATA)
+                .endObject()
+                .bytes()
+        );
+        reader.beginResponse();
+        reader.skipValue();
+        reader.endResponse();
+    }
+
+    private void setIncomingResponse(ByteString responseBytes) {
+        buffer.clear();
+        buffer.write(responseBytes);
+    }
+
 }

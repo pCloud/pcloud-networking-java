@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,34 +91,22 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public TypeToken peek() throws IOException {
-        if (currentScope == SCOPE_NONE) {
-            throw new IllegalStateException("Cannot peek, first call beginResponse().");
-        }
+        checkScopeIsAtLeast(currentScope, SCOPE_RESPONSE);
         return getToken(peekType());
     }
 
     @Override
     public long beginResponse() throws IOException {
-        if (currentScope == SCOPE_NONE) {
-            pushScope(SCOPE_RESPONSE);
-            stringCache = new String[DEFAULT_STRING_CACHE_SIZE];
-            lastStringId = 0;
-            return pullNumber(Protocol.SIZE_RESPONSE_LENGTH);
-        }
-        throw new IllegalStateException("An already started response or data after it has not been fully read.");
+        checkScope(currentScope, SCOPE_NONE);
+        pushScope(SCOPE_RESPONSE);
+        stringCache = new String[DEFAULT_STRING_CACHE_SIZE];
+        lastStringId = 0;
+        return pullNumber(Protocol.SIZE_RESPONSE_LENGTH);
     }
 
     @Override
     public boolean endResponse() throws IOException {
-        if (currentScope != SCOPE_RESPONSE) {
-            if (currentScope == SCOPE_NONE) {
-                throw new IllegalStateException("Trying to end a response " +
-                        "but none is being read, first call beginResponse()");
-            } else {
-                throw new IllegalStateException("Trying to end a response, " +
-                        "but current scope is " + Protocol.scopeName(currentScope));
-            }
-        }
+        checkScope(currentScope, SCOPE_RESPONSE);
 
         // Check if anything was read and skip it until end.
         if (previousScope == SCOPE_NONE) {
@@ -139,6 +127,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public void beginObject() throws IOException {
+        checkScopeIsAtLeast(currentScope, SCOPE_RESPONSE);
         int type = pullType();
         if (type == Protocol.TYPE_BEGIN_OBJECT ||
                 (type == Protocol.TYPE_BEGIN_ARRAY &&
@@ -151,6 +140,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public void beginArray() throws IOException {
+        checkScopeIsAtLeast(currentScope, SCOPE_OBJECT);
         int type = pullType();
         if (type == Protocol.TYPE_BEGIN_ARRAY) {
             pushScope(SCOPE_ARRAY);
@@ -161,14 +151,10 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public void endArray() throws IOException {
+        checkScope(currentScope, SCOPE_ARRAY);
         int type = pullType();
         if (type == Protocol.TYPE_END_ARRAY_OBJECT) {
-            if (currentScope == SCOPE_ARRAY) {
-                popScope();
-            } else {
-                throw new IllegalStateException("Trying to close an array, but current scope is " +
-                        Protocol.scopeName(currentScope));
-            }
+            popScope();
         } else {
             throw typeMismatchError(TYPE_AGGREGATE_END_ARRAY, type);
         }
@@ -176,14 +162,10 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public void endObject() throws IOException {
+        checkScope(currentScope, SCOPE_OBJECT);
         int type = pullType();
         if (type == Protocol.TYPE_END_ARRAY_OBJECT) {
-            if (currentScope == SCOPE_OBJECT) {
-                popScope();
-            } else {
-                throw new IllegalStateException("Trying to close an object, but current scope is " +
-                        Protocol.scopeName(currentScope));
-            }
+            popScope();
         } else {
             throw typeMismatchError(TYPE_AGGREGATE_END_OBJECT, type);
         }
@@ -191,6 +173,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public boolean readBoolean() throws IOException {
+        checkScopeIsAtLeast(currentScope, SCOPE_OBJECT);
         int type = pullType();
         if (type == Protocol.TYPE_BOOLEAN_TRUE) {
             return true;
@@ -203,6 +186,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public String readString() throws IOException {
+        checkScopeIsAtLeast(currentScope, SCOPE_OBJECT);
         int type = pullType();
         if (type >= Protocol.TYPE_STRING_START && type <= Protocol.TYPE_STRING_END) {
             // String
@@ -231,7 +215,12 @@ public class BytesReader implements ProtocolResponseReader {
 
     private void cacheString(String string) {
         if (stringCache.length == lastStringId + 1) {
-            stringCache = Arrays.copyOf(stringCache, stringCache.length * 2);
+            int newCapacity = stringCache.length << 1;
+            if (newCapacity < 0) {
+                throw new IllegalStateException("String cache size too big.");
+            }
+
+            stringCache = Arrays.copyOf(stringCache, newCapacity);
         }
 
         stringCache[lastStringId++] = string;
@@ -239,6 +228,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long readNumber() throws IOException {
+        checkScopeIsAtLeast(currentScope, SCOPE_OBJECT);
         int type = pullType();
         if (type >= Protocol.TYPE_NUMBER_START && type <= Protocol.TYPE_NUMBER_END) {
             // Number, may a 1-8 byte long integer.
@@ -259,9 +249,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public long dataContentLength() {
-        if (currentScope != SCOPE_DATA) {
-            throw new IllegalStateException("No byte data is being read.");
-        }
+        checkScope(currentScope, SCOPE_DATA);
         return dataLength;
     }
 
@@ -302,11 +290,7 @@ public class BytesReader implements ProtocolResponseReader {
 
     @Override
     public void skipValue() throws IOException {
-
-        if (currentScope == SCOPE_NONE || currentScope == SCOPE_DATA) {
-            throw new IllegalStateException("Trying to skipValue, but currentScope is " +
-                    Protocol.scopeName(currentScope) + ".");
-        }
+        checkScopeIsAtLeast(currentScope, SCOPE_RESPONSE);
 
         final int type = peekType();
         if (type >= Protocol.TYPE_NUMBER_START && type <= Protocol.TYPE_NUMBER_END) {
@@ -345,10 +329,10 @@ public class BytesReader implements ProtocolResponseReader {
         } else if (type == Protocol.TYPE_END_ARRAY_OBJECT) {
             int scope = currentScope();
             switch (scope) {
-                case Protocol.TYPE_BEGIN_OBJECT:
+                case ProtocolReader.SCOPE_OBJECT:
                     endObject();
                     break;
-                case Protocol.TYPE_BEGIN_ARRAY:
+                case ProtocolReader.SCOPE_ARRAY:
                 default:
                     endArray();
 
@@ -394,9 +378,6 @@ public class BytesReader implements ProtocolResponseReader {
     }
 
     private int pullType() throws IOException {
-        if (currentScope == SCOPE_NONE) {
-            throw new IllegalStateException("First call beginResponse().");
-        }
         int type = bufferedSource.readByte() & HEX_255;
         if (type == Protocol.TYPE_DATA) {
             dataLength = IOUtils.peekNumberLe(bufferedSource, Protocol.SIZE_DATA_BYTESIZE);
@@ -476,6 +457,41 @@ public class BytesReader implements ProtocolResponseReader {
         }
 
         return typeToken.toString().toUpperCase(Locale.ENGLISH);
+    }
+
+    private static void checkScope(int current, int expected) {
+        if (current != expected) {
+            throw new IllegalStateException(
+                    String.format("Expected to be called when scope is `%s`, current is `%s`.",
+                            scopeName(expected),
+                            scopeName(current)));
+        }
+    }
+
+    private static void checkScopeIsAtLeast(int current, int expected) {
+        if (current < expected) {
+            throw new IllegalStateException(
+                    String.format("Expected to be called when scope is at least `%s`, current is `%s`.",
+                            scopeName(expected),
+                            scopeName(current)));
+        }
+    }
+
+    private static String scopeName(final int scope) {
+        switch (scope) {
+            case SCOPE_RESPONSE:
+                return "SCOPE_RESPONSE";
+            case SCOPE_ARRAY:
+                return "SCOPE_ARRAY";
+            case SCOPE_OBJECT:
+                return "SCOPE_OBJECT";
+            case SCOPE_DATA:
+                return "SCOPE_DATA";
+            case SCOPE_NONE:
+                return "SCOPE_NONE";
+            default:
+                return "<UNKNOWN>";
+        }
     }
 
     private static class PeekingByteReader extends BytesReader {
