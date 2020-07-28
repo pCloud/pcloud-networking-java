@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package com.pcloud.networking.client;
 
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ValueReader;
+import okio.Buffer;
 import okio.BufferedSink;
 import okio.ByteString;
 
@@ -43,15 +44,26 @@ public abstract class ResponseBody implements Closeable {
     public abstract ProtocolReader reader();
 
     /**
-     * Return the body content as a immutable {@linkplain ByteString}
+     * Consume the body content as an immutable {@linkplain ByteString}
      * <p>
      * Note that the method will read an entire response body
      * in memory, which potentially may cause an {@linkplain OutOfMemoryError}
      *
      * @return a {@linkplain ByteString} with the bytes of the body
-     * @throws IOException on failed IO operations
+     * @throws IOException           on failed IO operations
+     * @throws IllegalStateException if the response is already partially read
+     *                               * through the exposed {@linkplain ProtocolReader}.
+     * @deprecated The one-shot stream of data being held by a {@linkplain ResponseBody}
+     * needs to be decoded by a {@linkplain ProtocolReader} which is already configured
+     * and ready for reading. The method brings some behavior ambiguity in cases where
+     * the stream may be partially consumed through the exposed {@linkplain ProtocolReader}.
      */
-    public abstract ByteString valuesBytes() throws IOException;
+    @Deprecated
+    public ByteString valuesBytes() throws IOException {
+        Buffer sink = new Buffer();
+        writeTo(sink);
+        return sink.readByteString();
+    }
 
     /**
      * Return the body content as a byte array
@@ -59,9 +71,12 @@ public abstract class ResponseBody implements Closeable {
      * Note that the method will read an entire response body
      * in memory, which potentially may cause an {@linkplain OutOfMemoryError}
      *
+     * @deprecated See {@linkplain #valuesBytes()}
+     *
      * @return a byte array with the bytes of the body
      * @throws IOException on failed IO operations
      */
+    @Deprecated
     public final byte[] valuesByteArray() throws IOException {
         return valuesBytes().toByteArray();
     }
@@ -101,9 +116,17 @@ public abstract class ResponseBody implements Closeable {
     /**
      * Write the body content to a {@linkplain BufferedSink}
      *
+     * @deprecated The one-shot stream of data being held by a {@linkplain ResponseBody}
+     * needs to be decoded by a {@linkplain ProtocolReader} which is already configured
+     * and ready for reading. The method brings some behavior ambiguity in cases where
+     * the stream may be partially consumed through the exposed {@linkplain ProtocolReader}.
+     *      *
      * @param sink the receiver of the data
      * @throws IOException on failed IO operations
+     * @throws IllegalStateException if the response is already partially read
+     * through the exposed {@linkplain ProtocolReader}.
      */
+    @Deprecated
     public abstract void writeTo(BufferedSink sink) throws IOException;
 
     @Override

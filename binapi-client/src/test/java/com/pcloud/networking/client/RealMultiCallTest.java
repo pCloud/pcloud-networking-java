@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,11 @@ package com.pcloud.networking.client;
 import com.pcloud.networking.protocol.ResponseBytesWriter;
 import okio.ByteString;
 import org.assertj.core.api.ThrowableAssert;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
@@ -27,8 +31,17 @@ import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.*;
@@ -84,7 +97,7 @@ public class RealMultiCallTest {
         multiCall.execute();
 
         assertTrue(multiCall.isExecuted());
-        verify(connectionProvider).obtainConnection(endpoint);
+        verify(connectionProvider, times(1)).obtainConnection(endpoint);
     }
 
     @Test
@@ -95,8 +108,8 @@ public class RealMultiCallTest {
         MultiCall multiCall = createMultiCall(connection, executor);
 
         multiCall.execute();
-
-        verify(connectionProvider).recycleConnection(connection);
+        verifyConnectionObtained();
+        verifyConnectionRecycled(connection);
     }
 
     @Test
@@ -161,9 +174,8 @@ public class RealMultiCallTest {
 
         multiCall.enqueueAndWait();
 
-        verify(connectionProvider).obtainConnection();
-        verify(connectionProvider).recycleConnection(connection);
-        verify(connection, never()).close();
+        verifyConnectionObtained();
+        verifyConnectionRecycled(connection);
     }
 
     @Test
@@ -215,13 +227,29 @@ public class RealMultiCallTest {
         ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 
         verify(callback).onComplete(eq(call), notNull(MultiResponse.class));
-        verify(connectionProvider).recycleConnection(connection);
         verify(callback, times(call.requests().size())).onResponse(eq(call), captor.capture(), any(Response.class));
 
         List<Integer> values = captor.getAllValues();
         for (int i = 0; i < values.size(); i++) {
             assertTrue(values.contains(i));
         }
+
+        verifyConnectionObtained();
+        verifyConnectionRecycled(connection);
+    }
+
+    private void verifyConnectionRecycled(Connection connection) {
+        verify(connectionProvider, times(1)).recycleConnection(connection);
+        verify(connection, never()).close();
+    }
+
+    private void verifyConnectionClosed(Connection connection) {
+        verify(connectionProvider, never()).recycleConnection(connection);
+        verify(connection, times(1)).close();
+    }
+
+    private void verifyConnectionObtained() throws IOException {
+        verify(connectionProvider, times(1)).obtainConnection();
     }
 
     @Test
@@ -252,8 +280,9 @@ public class RealMultiCallTest {
         verify(callback).onResponse(eq(call), eq(0), notNull(Response.class));
         verify(callback, never()).onComplete(eq(call), notNull(MultiResponse.class));
         verify(callback).onFailure(eq(call), notNull(IOException.class), notNull(List.class));
-        verify(connectionProvider, never()).recycleConnection(connection);
-        verify(connection).close();
+
+        verifyConnectionObtained();
+        verifyConnectionClosed(connection);
     }
 
     @Test
@@ -302,23 +331,25 @@ public class RealMultiCallTest {
         Connection connection = spy(new DummyConnection());
         retrofitConnectionProvider(connection);
         MultiCall call = createMultiCall(request1, request2);
-        Interactor interactor = call.start();
+        try (Interactor interactor = call.start()) {
+            RequestBytesWriter requestBytesWriter = new RequestBytesWriter();
+            assertEquals(interactor.submitRequests(1), 1);
+            assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest1));
 
-        RequestBytesWriter requestBytesWriter = new RequestBytesWriter();
-        assertEquals(interactor.submitRequests(1), 1);
-        assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest1));
+            assertEquals(interactor.submitRequests(1), 1);
+            assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest2));
 
-        assertEquals(interactor.submitRequests(1), 1);
-        assertEquals(connection.sink().buffer().readByteString(), requestBytesWriter.bytes(expectedRequest2));
-
-        assertFalse(interactor.hasMoreRequests());
-        assertEquals(interactor.submitRequests(Integer.MAX_VALUE), 0);
+            assertFalse(interactor.hasMoreRequests());
+            assertEquals(interactor.submitRequests(Integer.MAX_VALUE), 0);
+        }
     }
 
     @Test
     public void start_Returns_NonNull_Interactor() throws IOException {
         MultiCall call = createMultiCall(Request.create().methodName("something").build());
-        assertNotNull(call.start());
+        try (Interactor interactor = call.start()) {
+            assertNotNull(interactor);
+        }
     }
 
     @Test
@@ -335,10 +366,10 @@ public class RealMultiCallTest {
         Connection connection = spy(DummyConnection.withResponses());
         retrofitConnectionProvider(connection);
         MultiCall call = createMultiCall(request1);
-        Interactor interactor = call.start();
-
-        expectedException.expect(IllegalStateException.class);
-        interactor.nextResponse();
+        try (Interactor interactor = call.start()) {
+            expectedException.expect(IllegalStateException.class);
+            interactor.nextResponse();
+        }
     }
 
     @Test
@@ -371,18 +402,21 @@ public class RealMultiCallTest {
         retrofitConnectionProvider(connection);
 
         MultiCall call = createMultiCall(request1, request1, request1);
-        Interactor interactor = call.start();
-        interactor.submitRequests(Integer.MAX_VALUE);
+        try (Interactor interactor = call.start()) {
+            interactor.submitRequests(Integer.MAX_VALUE);
 
-        while (interactor.hasNextResponse()) {
-            assertContainsResponse(expectedResponses, interactor.nextResponse());
+
+            while (interactor.hasNextResponse()) {
+                assertContainsResponse(expectedResponses, interactor.nextResponse());
+            }
+
+            assertFalse(interactor.hasNextResponse());
+
+            expectedException.expect(IllegalStateException.class);
+            interactor.nextResponse();
         }
-
-        assertFalse(interactor.hasNextResponse());
-        verify(connectionProvider, times(1)).recycleConnection(eq(connection));
-
-        expectedException.expect(IllegalStateException.class);
-        interactor.nextResponse();
+        verifyConnectionObtained();
+        verifyConnectionRecycled(connection);
     }
 
     private static void assertContainsResponse(Collection<ResponseBytesWriter> responses, Response response) throws IOException {

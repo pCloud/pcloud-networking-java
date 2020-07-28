@@ -23,7 +23,6 @@ import com.pcloud.networking.protocol.ProtocolResponseReader;
 import com.pcloud.utils.IOUtils;
 import okio.BufferedSink;
 import okio.BufferedSource;
-import okio.ByteString;
 import okio.Okio;
 
 import java.io.IOException;
@@ -35,21 +34,23 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static com.pcloud.networking.client.ResponseBodyUtils.checkNotAlreadyRead;
+import static com.pcloud.networking.client.ResponseBodyUtils.skipRemainingValues;
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class RealCall implements Call {
 
     private static final int RESPONSE_LENGTH = 4;
 
-    private Request request;
+
+    private final Request request;
+    private final ExecutorService callExecutor;
+    private final ConnectionProvider connectionProvider;
+    private final List<RequestInterceptor> interceptors;
+
     private volatile boolean cancelled;
     private volatile boolean executed;
-
     private Connection connection;
-
-    private ExecutorService callExecutor;
-    private ConnectionProvider connectionProvider;
-    private List<RequestInterceptor> interceptors;
 
     RealCall(Request request, ExecutorService callExecutor,
              List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider) {
@@ -76,6 +77,7 @@ class RealCall implements Call {
                 }
             }).get();
         } catch (ExecutionException e) {
+            cancel();
             Throwable cause = e.getCause();
             if (cause instanceof IOException) {
                 throw (IOException) cause;
@@ -83,6 +85,7 @@ class RealCall implements Call {
                 throw new RuntimeException(cause);
             }
         } catch (CancellationException e) {
+            cancel();
             throw new IOException(e);
         }
     }
@@ -91,19 +94,26 @@ class RealCall implements Call {
     public Response enqueueAndWait(long timeout, TimeUnit timeUnit)
             throws IOException, InterruptedException, TimeoutException {
         checkAndMarkExecuted();
+        boolean success = false;
         try {
-            return callExecutor.submit(new Callable<Response>() {
+            Response response = callExecutor.submit(new Callable<Response>() {
                 @Override
                 public Response call() throws IOException {
                     return getResponse();
                 }
             }).get(timeout, timeUnit);
+            success = true;
+            return response;
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof IOException) {
                 throw (IOException) cause;
             } else {
                 throw new RuntimeException(cause);
+            }
+        } finally {
+            if (!success) {
+                cancel();
             }
         }
     }
@@ -117,15 +127,22 @@ class RealCall implements Call {
                 if (!isCancelled()) {
                     boolean callingCallback = false;
                     Response response = null;
+                    boolean success = false;
                     try {
                         response = getResponse();
                         callingCallback = true;
                         callback.onResponse(RealCall.this, response);
+                        callingCallback = false;
+                        success = true;
                     } catch (IOException e) {
                         if (!callingCallback) {
                             callback.onFailure(RealCall.this, e);
                         }
-                        closeQuietly(response);
+                    } finally {
+                        if (!success) {
+                            cancel();
+                            closeQuietly(response);
+                        }
                     }
                 }
             }
@@ -147,8 +164,12 @@ class RealCall implements Call {
     public void cancel() {
         if (!cancelled) {
             cancelled = true;
+            Connection connection;
+            synchronized (this) {
+                connection = this.connection;
+                this.connection = null;
+            }
             closeQuietly(connection);
-            connection = null;
         }
     }
 
@@ -178,7 +199,9 @@ class RealCall implements Call {
         Connection connection = request.endpoint() != null ?
                 connectionProvider.obtainConnection(request.endpoint()) :
                 connectionProvider.obtainConnection();
-        this.connection = connection;
+        synchronized (this) {
+            this.connection = connection;
+        }
         boolean success = false;
         try {
             ProtocolRequestWriter writer = new BytesWriter(connection.sink());
@@ -207,7 +230,9 @@ class RealCall implements Call {
             if (!success) {
                 closeQuietly(connection);
             }
-            this.connection = null;
+            synchronized (this) {
+                this.connection = null;
+            }
         }
     }
 
@@ -217,22 +242,17 @@ class RealCall implements Call {
         final FixedLengthSource responseParametersSource = new AutoCloseSource(connection, responseLength);
         final BufferedSource source = Okio.buffer(responseParametersSource);
         final ProtocolResponseReader reader = new SelfEndingBytesReader(source);
-        final Endpoint endpoint = connection.endpoint();
 
         reader.beginResponse();
         return new ResponseBody() {
 
+            private final Endpoint endpoint = connection.endpoint();
             private ResponseData data;
             private FixedLengthSource dataSource;
 
             @Override
             public ProtocolReader reader() {
                 return reader;
-            }
-
-            @Override
-            public ByteString valuesBytes() throws IOException {
-                return source.readByteString();
             }
 
             @Override
@@ -247,7 +267,10 @@ class RealCall implements Call {
 
             @Override
             public void writeTo(BufferedSink sink) throws IOException {
-                source.readAll(sink);
+                checkNotAlreadyRead(this);
+                source.peek().readAll(sink);
+                reader.beginObject();
+                skipRemainingValues(this);
             }
 
             @Override
@@ -278,12 +301,12 @@ class RealCall implements Call {
                     dataSource = this.dataSource;
                 }
                 boolean responseReadFully = currentScope == ProtocolResponseReader.SCOPE_NONE;
-                if (responseReadFully || (dataSource != null && dataSource.bytesRemaining() == 0L)) {
+                if (responseReadFully && (dataSource == null || dataSource.bytesRemaining() == 0L)) {
                     // All possible data has been read, safe to reuse the connection.
                     connectionProvider.recycleConnection(connection);
                 } else {
                     // It is unknown whether all data from the response has been read, no connection reuse is possible.
-                    connection.close();
+                    closeQuietly(connection);
                 }
             }
         };

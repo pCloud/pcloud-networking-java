@@ -44,6 +44,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.pcloud.networking.client.ResponseBodyUtils.checkNotAlreadyRead;
+import static com.pcloud.networking.client.ResponseBodyUtils.skipRemainingValues;
 import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class RealMultiCall implements MultiCall {
@@ -87,8 +89,10 @@ class RealMultiCall implements MultiCall {
         Connection connection = endpoint != null ?
                 connectionProvider.obtainConnection(endpoint) :
                 connectionProvider.obtainConnection();
-        this.connection = connection;
-        boolean success = false;
+        synchronized (this) {
+            this.connection = connection;
+        }
+        boolean allResponsesRead = false;
         Map<Integer, Response> responseMap = new TreeMap<>();
         try {
 
@@ -99,20 +103,22 @@ class RealMultiCall implements MultiCall {
             final int expectedCount = requests.size();
             initializeResponseMap(responseMap, expectedCount);
             int completedCount = 0;
-            while (completedCount < expectedCount) {
+            while (completedCount < expectedCount && !isCancelled()) {
                 readNextBufferedResponse(connection, responseMap);
                 completedCount++;
             }
 
-            success = true;
+            allResponsesRead = completedCount == expectedCount;
         } finally {
-            if (success) {
+            if (allResponsesRead) {
                 connectionProvider.recycleConnection(connection);
             } else {
                 closeAndClearCompletedResponses(responseMap);
                 closeQuietly(connection);
             }
-            this.connection = null;
+            synchronized (this) {
+                this.connection = null;
+            }
         }
 
         return new MultiResponse(new ArrayList<>(responseMap.values()));
@@ -172,50 +178,61 @@ class RealMultiCall implements MultiCall {
                 initializeResponseMap(responseMap, expectedCount);
 
                 Connection connection = null;
-                boolean success = false;
-                boolean callingCallback = false;
+                boolean allResponsesRead = false;
+                boolean callingCallbackMethod = false;
                 try {
                     throwIfCancelled();
 
                     connection = endpoint != null ?
                             connectionProvider.obtainConnection(endpoint) :
                             connectionProvider.obtainConnection();
-                    RealMultiCall.this.connection = connection;
+                    synchronized (this) {
+                        RealMultiCall.this.connection = connection;
+                    }
 
                     //Write the requests.
                     writeRequests(connection);
 
                     int completedCount = 0;
-                    while (completedCount < expectedCount) {
+                    while (completedCount < expectedCount && !isCancelled()) {
                         int key = readNextBufferedResponse(connection, responseMap);
                         completedCount++;
                         // Guard against calling onFailure() for IOException errors
                         // thrown inside the callback method.
-                        callingCallback = true;
-                        callback.onResponse(RealMultiCall.this, key, responseMap.get(key));
-                        callingCallback = false;
+                        if (!isCancelled()) {
+                            callingCallbackMethod = true;
+                            callback.onResponse(RealMultiCall.this, key, responseMap.get(key));
+                            callingCallbackMethod = false;
+                        }
                     }
+                    allResponsesRead = expectedCount == completedCount;
 
-                    success = true;
-                    RealMultiCall.this.connection = null;
-                    MultiResponse response = new MultiResponse(new ArrayList<>(responseMap.values()));
-                    callingCallback = true;
-                    callback.onComplete(RealMultiCall.this, response);
+                    if (!isCancelled()) {
+                        MultiResponse response = new MultiResponse(new ArrayList<>(responseMap.values()));
+                        callingCallbackMethod = true;
+                        callback.onComplete(RealMultiCall.this, response);
+                        callingCallbackMethod = false;
+                    }
                 } catch (IOException e) {
                     List<Response> completedResponses =
                             Collections.unmodifiableList(new ArrayList<>(responseMap.values()));
-                    if (!callingCallback) {
-                        callback.onFailure(RealMultiCall.this, e, completedResponses);
+                    if (!callingCallbackMethod) {
+                        if (!isCancelled()) {
+                            callback.onFailure(RealMultiCall.this, e, completedResponses);
+                        }
                     } else {
                         // Some of the callbacks has failed, do cleanup by closing all responses.
                         closeAndClearCompletedResponses(responseMap);
                     }
                 } finally {
-                    if (success) {
+                    if (allResponsesRead) {
                         connectionProvider.recycleConnection(connection);
                     } else {
                         closeQuietly(connection);
                         closeAndClearCompletedResponses(responseMap);
+                    }
+                    synchronized (this) {
+                        RealMultiCall.this.connection = null;
                     }
                 }
             }
@@ -236,9 +253,11 @@ class RealMultiCall implements MultiCall {
     @Override
     public void cancel() {
         if (!cancelled) {
-            cancelled = true;
-            closeQuietly(connection);
-            connection = null;
+            synchronized (this) {
+                cancelled = true;
+                closeQuietly(connection);
+                connection = null;
+            }
         }
     }
 
@@ -319,15 +338,6 @@ class RealMultiCall implements MultiCall {
         return id;
     }
 
-    private Response nextUnsafeResponse(Connection connection, boolean recycleOnClose) throws IOException {
-        FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection, recycleOnClose);
-        int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
-        return Response.create()
-                .request(requests.get(id))
-                .responseBody(responseBody)
-                .build();
-    }
-
     private BufferedResponseBody createBufferedResponseBody(final Connection connection) throws IOException {
         final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
 
@@ -337,28 +347,6 @@ class RealMultiCall implements MultiCall {
         final BytesReader reader = new SelfEndingBytesReader(responseBuffer);
         checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
         return new BufferedResponseBody(responseBuffer, reader, responseLength, connection.endpoint());
-    }
-
-    private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection,
-                                                             final boolean recycleOnClose) throws IOException {
-        final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
-
-        final FixedLengthSource source = new FixedLengthSource(connection.source(),
-                responseLength + RESPONSE_LENGTH,
-                0, TimeUnit.MILLISECONDS) {
-            @Override
-            protected void exhausted(boolean reuseSource) {
-                if (reuseSource && recycleOnClose) {
-                    connectionProvider.recycleConnection(connection);
-                    RealMultiCall.this.connection = null;
-                }
-            }
-        };
-
-        final BufferedSource bufferedSource = Okio.buffer(source);
-        final BytesReader reader = new NoDataBytesReader(bufferedSource);
-        checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
-        return new FixedLengthResponseBody(bufferedSource, source, reader, responseLength, connection.endpoint());
     }
 
     private int scanResponseParameters(ProtocolResponseReader reader, boolean readUntilEnd) throws IOException {
@@ -439,6 +427,7 @@ class RealMultiCall implements MultiCall {
 
         @Override
         public ByteString valuesBytes() throws IOException {
+            checkNotAlreadyRead(this);
             return source.readByteString();
         }
 
@@ -460,7 +449,10 @@ class RealMultiCall implements MultiCall {
 
         @Override
         public void writeTo(BufferedSink sink) throws IOException {
-            source.readAll(sink);
+            checkNotAlreadyRead(this);
+            source.peek().readAll(sink);
+            reader.beginObject();
+            skipRemainingValues(this);
         }
 
         @Override
@@ -494,11 +486,6 @@ class RealMultiCall implements MultiCall {
         }
 
         @Override
-        public ByteString valuesBytes() throws IOException {
-            return bufferedSource.readByteString();
-        }
-
-        @Override
         public long contentLength() {
             return contentLength;
         }
@@ -516,7 +503,10 @@ class RealMultiCall implements MultiCall {
 
         @Override
         public void writeTo(BufferedSink sink) throws IOException {
-            bufferedSource.readAll(sink);
+            checkNotAlreadyRead(this);
+            bufferedSource.peek().readAll(sink);
+            reader.beginObject();
+            skipRemainingValues(this);
         }
 
         @Override
@@ -555,18 +545,20 @@ class RealMultiCall implements MultiCall {
                 throw new IllegalArgumentException("Count parameter cannot be a negative number.");
             }
 
+            final Connection connection;
             synchronized (this) {
-                if (!isCancelled() && !closed && connection == null) {
-                    connection = endpoint != null ?
+                if (!isCancelled() && !closed && RealMultiCall.this.connection == null) {
+                    RealMultiCall.this.connection = endpoint != null ?
                             connectionProvider.obtainConnection(endpoint) :
                             connectionProvider.obtainConnection();
                 }
+                connection = RealMultiCall.this.connection;
             }
             throwIfCancelled();
             throwIfClosed();
 
             int sent = 0;
-            while (remainingRequests.get() > 0 && sent < count) {
+            while (remainingRequests.get() > 0 && sent < count && !isCancelled()) {
                 int key = (requestCount - remainingRequests.get());
                 writeRequest(connection, key, requests.get(key));
                 remainingRequests.decrementAndGet();
@@ -604,7 +596,11 @@ class RealMultiCall implements MultiCall {
             }
 
             try {
-                Response result = nextUnsafeResponse(connection, handledResponses.get() >= (requestCount - 1));
+                Connection connection;
+                synchronized (this) {
+                    connection = RealMultiCall.this.connection;
+                }
+                Response result = nextUnsafeResponse(connection);
                 lastResultReference.set(result);
                 handledResponses.incrementAndGet();
                 readSuccess = true;
@@ -622,21 +618,54 @@ class RealMultiCall implements MultiCall {
 
         @Override
         public void close() {
-            synchronized (this) {
-                closed = true;
-                if (connection != null) {
-                    // Check if the last response was being read.
-                    Response lastResponse;
-                    if (!hasNextResponse() && (lastResponse = lastResultReference.get()) != null) {
-                        FixedLengthResponseBody body = (FixedLengthResponseBody) lastResponse.responseBody();
-                        if (body.bytesRemaining() == 0L) {
-                            connectionProvider.recycleConnection(connection);
+            if (!closed) {
+                synchronized (this) {
+                    closed = true;
+                    if (connection != null) {
+                        // Check if the last response was being read.
+                        Response lastResponse;
+                        if (!hasNextResponse() && (lastResponse = lastResultReference.get()) != null) {
+                            FixedLengthResponseBody body = (FixedLengthResponseBody) lastResponse.responseBody();
+                            if (body.bytesRemaining() == 0L) {
+                                connectionProvider.recycleConnection(connection);
+                                connection = null;
+                                return;
+                            }
                         }
+                        closeQuietly(connection);
+                        connection = null;
                     }
                 }
-                closeQuietly(connection);
-                connection = null;
             }
+        }
+
+        private Response nextUnsafeResponse(Connection connection) throws IOException {
+            FixedLengthResponseBody responseBody = createUnsafeResponseBody(connection);
+            int id = scanResponseParameters((ProtocolResponseReader) responseBody.reader(), true);
+            return Response.create()
+                    .request(requests.get(id))
+                    .responseBody(responseBody)
+                    .build();
+        }
+
+        private FixedLengthResponseBody createUnsafeResponseBody(final Connection connection) throws IOException {
+            final long responseLength = IOUtils.peekNumberLe(connection.source(), RESPONSE_LENGTH);
+
+            final FixedLengthSource source = new FixedLengthSource(connection.source(),
+                    responseLength + RESPONSE_LENGTH,
+                    0, TimeUnit.MILLISECONDS) {
+                @Override
+                protected void exhausted(boolean reuseSource) {
+                    if (!reuseSource) {
+                        closeQuietly(connection);
+                    }
+                }
+            };
+
+            final BufferedSource bufferedSource = Okio.buffer(source);
+            final BytesReader reader = new NoDataBytesReader(bufferedSource);
+            checkPeekAndActualContentLengths(responseLength, reader.beginResponse());
+            return new FixedLengthResponseBody(bufferedSource, source, reader, responseLength, connection.endpoint());
         }
 
         private void throwIfClosed() throws IOException {

@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2020 pCloud AG
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.pcloud.networking.client;
 
 import com.pcloud.networking.protocol.BytesReader;
@@ -14,6 +30,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.ClosedChannelException;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 class RealApiChannel implements ApiChannel {
 
     private ConnectionProvider connectionProvider;
@@ -21,6 +39,8 @@ class RealApiChannel implements ApiChannel {
     private ProtocolRequestWriter writer;
     private ProtocolResponseReader reader;
     private final Endpoint endpoint;
+    private long startedRequests = 0L;
+    private long startedResponses = 0L;
     private long completedRequests = 0L;
     private long completedResponses = 0L;
     private volatile boolean closed;
@@ -58,7 +78,9 @@ class RealApiChannel implements ApiChannel {
     @Override
     public boolean isIdle() {
         synchronized (counterLock) {
-            return completedRequests == completedResponses;
+            return startedRequests == completedRequests &&
+                    startedResponses == completedResponses &&
+                    completedRequests == completedResponses;
         }
     }
 
@@ -73,7 +95,7 @@ class RealApiChannel implements ApiChannel {
                     if (isIdle()) {
                         connectionProvider.recycleConnection(connection);
                     } else {
-                        connection.close();
+                        closeQuietly(connection);
                     }
                     connection = null;
                 }
@@ -87,15 +109,27 @@ class RealApiChannel implements ApiChannel {
         }
     }
 
-    private void completeResponse() {
+    private void startRequest() {
         synchronized (counterLock) {
-            completedResponses++;
+            startedRequests++;
         }
     }
 
     private void completeRequest() {
         synchronized (counterLock) {
             completedRequests++;
+        }
+    }
+
+    private void startResponse() {
+        synchronized (counterLock) {
+            startedResponses++;
+        }
+    }
+
+    private void completeResponse() {
+        synchronized (counterLock) {
+            completedResponses++;
         }
     }
 
@@ -111,6 +145,7 @@ class RealApiChannel implements ApiChannel {
         @Override
         public ProtocolRequestWriter beginRequest() throws IOException {
             apiChannel.checkNotClosed();
+            apiChannel.startRequest();
             super.beginRequest();
             return this;
         }
@@ -209,6 +244,7 @@ class RealApiChannel implements ApiChannel {
         @Override
         public long beginResponse() throws IOException {
             apiChannel.checkNotClosed();
+            apiChannel.startResponse();
             return super.beginResponse();
         }
 
