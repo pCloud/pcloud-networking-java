@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.utils.IOUtils.closeQuietly;
@@ -54,9 +55,11 @@ class RealConnection implements Connection {
         }
     }
 
-    private SocketFactory socketFactory;
-    private SSLSocketFactory sslSocketFactory;
-    private HostnameVerifier hostnameVerifier;
+    private final SocketFactory socketFactory;
+    private final SSLSocketFactory sslSocketFactory;
+    private final HostnameVerifier hostnameVerifier;
+    private final Endpoint endpoint;
+    private final UUID id = UUID.randomUUID();
 
     private Socket rawSocket;
     private SSLSocket socket;
@@ -66,7 +69,6 @@ class RealConnection implements Connection {
     private OutputStream outputStream;
 
     private long idleAtNanos;
-    private Endpoint endpoint;
     private volatile boolean connected;
     private volatile boolean closed;
 
@@ -279,7 +281,6 @@ class RealConnection implements Connection {
                     socket = null;
                     source = null;
                     sink = null;
-                    endpoint = null;
                     closed = true;
                 }
             }
@@ -377,5 +378,23 @@ class RealConnection implements Connection {
         if (closed) {
             throw new IOException("Connection is closed.");
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        RealConnection that = (RealConnection) o;
+
+        if (!endpoint.equals(that.endpoint)) return false;
+        return id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = endpoint.hashCode();
+        result = 31 * result + id.hashCode();
+        return result;
     }
 }

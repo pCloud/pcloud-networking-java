@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2017 pCloud AG
+ * Copyright (c) 2020 pCloud AG
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,9 +19,9 @@ package com.pcloud.networking.client;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.ListIterator;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
@@ -86,7 +86,7 @@ public class ConnectionPool {
         }
     };
 
-    private final LinkedList<RealConnection> connections = new LinkedList<>();
+    private final Set<RealConnection> connections = new LinkedHashSet<>();
     private boolean cleanupRunning;
 
     /**
@@ -155,9 +155,9 @@ public class ConnectionPool {
          * Iterate the connections in reverse order
          * and take the first connection having the same endpoint.
          * */
-        ListIterator<RealConnection> iterator = connections.listIterator(connections.size());
-        while (iterator.hasPrevious()) {
-            RealConnection connection = iterator.previous();
+        Iterator<RealConnection> iterator = connections.iterator();
+        while (iterator.hasNext()) {
+            RealConnection connection = iterator.next();
             if (connection.endpoint().equals(endpoint)) {
                 iterator.remove();
                 return connection;
@@ -173,7 +173,7 @@ public class ConnectionPool {
             CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
         }
         connection.setIdle(System.nanoTime());
-        connections.addFirst(connection);
+        connections.add(connection);
     }
 
     /**
