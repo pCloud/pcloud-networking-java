@@ -1,6 +1,32 @@
 Changelog
 ==========
 
+Version 2.5.0 (28.07.2020)
+--------------------------
+
+## Client
+
+- Deprecate `ResponseBody.writeTo()`, `ResponseBody.valuesBytes()`,
+ `ResponseBody.valuesByteArray()`.
+ 
+     The one-shot stream of data being held by a `ResponseBody`
+     needs to be decoded by a `ProtocolReader` before use. `ResponseBody.reader()`
+     returns such an instance which is already configured
+     and ready for reading making these methods redundant.
+     Also the aforementioned methods bring some behavior ambiguity in cases where
+     the stream may be partially consumed through the exposed `ProtocolReader`.
+     
+     **The methods will now throw an `IllegalStateException` if
+     called when the response has been partially read via a `ProtocolReader`.**
+     
+     **The methods will be removed in the next major release of the library.**
+ 
+- Fix potential connection leaks in `Call.enqueue()`
+and `Call.enqueueAndWait()` implementations.
+- Review connection closing/recycling in the `MultiCall` implementation
+- Add more assertions regarding connection recycling/closure in `Call`,
+`MultiCall` unit tests.
+
 Version 2.4.1 (20.03.2020)
 --------------------------
 
