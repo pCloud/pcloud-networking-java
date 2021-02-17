@@ -1,31 +1,30 @@
 Changelog
 ==========
 
+Version 2.5.1 (17.02.2021)
+--------------------------
+
+## Composer
+
+- Fix a case in `DataApiResponseAdapter` where an API call with a non-success result code being adapted to a `DataApiResponse` will result in the underlying `Response` and `Connection` not being closed (and potentially reused).
+
 Version 2.5.0 (28.07.2020)
 --------------------------
 
 ## Client
 
-- Deprecate `ResponseBody.writeTo()`, `ResponseBody.valuesBytes()`,
- `ResponseBody.valuesByteArray()`.
+- Deprecate `ResponseBody.writeTo()`, `ResponseBody.valuesBytes()`, `ResponseBody.valuesByteArray()`.
  
-     The one-shot stream of data being held by a `ResponseBody`
-     needs to be decoded by a `ProtocolReader` before use. `ResponseBody.reader()`
-     returns such an instance which is already configured
-     and ready for reading making these methods redundant.
-     Also the aforementioned methods bring some behavior ambiguity in cases where
-     the stream may be partially consumed through the exposed `ProtocolReader`.
+     The one-shot stream of data being held by a `ResponseBody` needs to be decoded by a `ProtocolReader` before use. `ResponseBody.reader()` returns such an instance which is already configured and ready for reading making these methods redundant.
+     Also the aforementioned methods bring some behavior ambiguity in cases where the stream may be partially consumed through the exposed `ProtocolReader`.
      
-     **The methods will now throw an `IllegalStateException` if
-     called when the response has been partially read via a `ProtocolReader`.**
+     **The methods will now throw an `IllegalStateException` if called when the response has been partially read via a `ProtocolReader`.**
      
      **The methods will be removed in the next major release of the library.**
  
-- Fix potential connection leaks in `Call.enqueue()`
-and `Call.enqueueAndWait()` implementations.
-- Review connection closing/recycling in the `MultiCall` implementation
-- Add more assertions regarding connection recycling/closure in `Call`,
-`MultiCall` unit tests.
+- Fix potential connection leaks in `Call.enqueue()` and `Call.enqueueAndWait()` implementations.
+- Review connection closing/recycling in the `MultiCall` implementation.
+- Add more assertions regarding connection recycling/closure in `Call` and `MultiCall` unit tests.
 
 Version 2.4.1 (20.03.2020)
 --------------------------
@@ -154,13 +153,13 @@ Version 2.0.0 (05.01.2018)
 * Internal optimizations in `BytesWriter` to minimize allocations
 * More unit tests for `BytesWriter`
 * ProtocolResponseReader can now directly read the data after data-enriched responses.
-* Added the `SCOPE_DATA` scope in `ProtocolResponseReader` will be entered after all the values of a data-enriched       response are read and the `ProtocolResponseReader` is at the begging of the attached data bytes.
+* Added the `SCOPE_DATA` scope in `ProtocolResponseReader` will be entered after all the values of a data-enriched response are read and the `ProtocolResponseReader` is at the begging of the attached data bytes.
 * Add delegating implementations for `ProtocolReader`, `ProtocolResponseReader`, `ProtocolRequestWriter`and `ProtocolWriter`.
 
 #### Client
 
 * Add the `ApiChannel` low-level interface for writing and reading binary-encoded data to an API connection.
-	- This addition exposes the lowest possible level of detail when writing/reading messages from the API by still   	abstracting away the details of connection establishment, TLS handshaking and so on.
+	- This addition exposes the lowest possible level of detail when writing/reading messages from the API by still abstracting away the details of connection establishment, TLS handshaking and so on.
 	- The interface allows for pipelining of requests and reading/writing on separate threads.
 	- Instances of the interface can be opened via `PCloudApiClient.newChannel()`.
 
