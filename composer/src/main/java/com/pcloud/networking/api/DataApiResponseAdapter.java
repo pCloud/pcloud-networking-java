@@ -17,7 +17,6 @@
 package com.pcloud.networking.api;
 
 import com.pcloud.networking.client.Response;
-import com.pcloud.networking.client.ResponseData;
 import com.pcloud.networking.serialization.TypeAdapter;
 
 import java.io.IOException;
@@ -26,7 +25,7 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class DataApiResponseAdapter<T> implements ResponseAdapter<T> {
 
-    private TypeAdapter<? extends DataApiResponse> typeAdapter;
+    private final TypeAdapter<? extends DataApiResponse> typeAdapter;
 
     DataApiResponseAdapter(TypeAdapter<? extends DataApiResponse> typeAdapter) {
         this.typeAdapter = typeAdapter;
@@ -38,8 +37,12 @@ class DataApiResponseAdapter<T> implements ResponseAdapter<T> {
         boolean success = false;
         try {
             DataApiResponse result = typeAdapter.deserialize(response.responseBody().reader());
-            ResponseData data = result.isSuccessful() ? response.responseBody().data() : null;
-            result.setResponseData(data);
+            if (result.isSuccessful()) {
+                result.setResponseData(response.responseBody().data());
+            } else {
+                result.setResponseData(null);
+                closeQuietly(response);
+            }
             success = true;
             return (T) result;
         } finally {
