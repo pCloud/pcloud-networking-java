@@ -1,6 +1,14 @@
 Changelog
 ==========
 
+Version 2.5.2 (22.02.2021)
+--------------------------
+
+## Composer
+
+- Fix a NPE when `close()` is called on non-successful DataApiResponse instances.
+
+
 Version 2.5.1 (17.02.2021)
 --------------------------
 
