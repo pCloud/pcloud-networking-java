@@ -20,6 +20,8 @@ import com.pcloud.networking.client.ResponseData;
 
 import java.io.Closeable;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 /**
  * An implementation to house the {@linkplain ResponseData} for the response of a network call
  *
@@ -53,7 +55,7 @@ public class DataApiResponse extends ApiResponse implements Closeable {
      */
     final void setResponseData(ResponseData data) {
         if (this.responseData != null) {
-            throw new AssertionError("ResponseData already set to instance.");
+            throw new IllegalStateException("ResponseData already set to instance.");
         }
         this.responseData = data;
     }
@@ -69,6 +71,6 @@ public class DataApiResponse extends ApiResponse implements Closeable {
 
     @Override
     public void close() {
-        responseData.close();
+        closeQuietly(responseData);
     }
 }
