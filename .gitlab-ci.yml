@@ -65,13 +65,13 @@ tests:
       junit:
         - "*/build/test-results/test/TEST-*.xml"
 
-upload-artifacts-bintray:
+upload-artifacts-mavenCentral:
   stage: deploy
   only:
     - tags
   tags:
     - java
   script:
-    - ./gradlew install bintrayUpload
+    - ./gradlew install publishReleasePublicationToSonatypeRepository
   dependencies: []
 

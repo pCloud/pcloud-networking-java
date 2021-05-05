@@ -24,4 +24,4 @@ dependencies {
     compileOnly project(':binapi-client')
 }
 
-apply from: rootProject.file('bintray.gradle')
+apply from: rootProject.file('publish-mavencentral.gradle')
