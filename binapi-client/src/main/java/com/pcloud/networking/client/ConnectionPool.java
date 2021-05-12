@@ -22,13 +22,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static com.pcloud.utils.IOUtils.closeQuietly;
 
 /**
  * An implementation to provide a pool structure for connections.
@@ -39,35 +33,14 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
 @SuppressWarnings("WeakerAccess")
 public class ConnectionPool {
 
-    private static final long DEFAULT_KEEP_ALIVE_TIME_MS = 60;
     private static final long NANOS_TO_MILLIS_COEF = 1000000L;
     private static final int MAX_IDLE_CONN_COUNT = 5;
     private static final long MAX_KEEP_ALIVE_DURATION = 5;
 
-    private static final Executor CLEANUP_THREAD_EXECUTOR;
-
-    static {
-        ThreadFactory threadFactory = new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable runnable) {
-                Thread result = new Thread(runnable, "PCloudAPI ConnectionPool");
-                result.setDaemon(true);
-                return result;
-            }
-        };
-
-        CLEANUP_THREAD_EXECUTOR =
-                new ThreadPoolExecutor(0 /* corePoolSize */,
-                        Integer.MAX_VALUE /* maximumPoolSize */,
-                        DEFAULT_KEEP_ALIVE_TIME_MS /* keepAliveTime */,
-                        TimeUnit.SECONDS,
-                        new SynchronousQueue<Runnable>(),
-                        threadFactory);
-    }
-
     private final int maxIdleConnections;
     private final long keepAliveDurationNs;
     private final Runnable cleanupRunnable = new Runnable() {
+        @SuppressWarnings("BusyWait")
         @Override
         public void run() {
             while (true) {
@@ -95,7 +68,6 @@ public class ConnectionPool {
      * By default the pool will be created with 5 maximum idle connections and it will keep
      * idle connections alive for 5 minutes before disposing of them.
      */
-    @SuppressWarnings("unused")
     public ConnectionPool() {
         this(MAX_IDLE_CONN_COUNT, MAX_KEEP_ALIVE_DURATION, TimeUnit.MINUTES);
     }
@@ -141,7 +113,6 @@ public class ConnectionPool {
      *
      * @return The number of connections in the pool
      */
-    @SuppressWarnings("unused")
     public synchronized int connectionCount() {
         return connections.size();
     }
@@ -189,8 +160,8 @@ public class ConnectionPool {
             }
         }
 
-        for (Connection connection : evictedConnections) {
-            closeQuietly(connection);
+        for (RealConnection connection : evictedConnections) {
+            connection.close();
         }
     }
 
@@ -222,13 +193,15 @@ public class ConnectionPool {
             } else {
                 // No connections, idle or in use.
                 cleanupRunning = false;
-                return -1;
+                return -1L;
             }
         }
 
-        closeQuietly(longestIdleConnection);
+        if (longestIdleConnection != null) {
+            longestIdleConnection.close(true);
+        }
 
         // Cleanup again immediately.
-        return 0;
+        return 0L;
     }
 }
