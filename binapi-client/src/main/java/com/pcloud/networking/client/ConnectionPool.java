@@ -139,12 +139,17 @@ public class ConnectionPool {
     }
 
     synchronized void recycle(RealConnection connection) {
-        if (!cleanupRunning) {
-            cleanupRunning = true;
-            CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
+        if (maxIdleConnections > 0) {
+            if (!cleanupRunning) {
+                cleanupRunning = true;
+                Connections.CLEANUP_THREAD_EXECUTOR.execute(cleanupRunnable);
+            }
+            connection.setIdle(System.nanoTime());
+            connections.add(connection);
+        } else {
+            // No idle connections allowed, close immediately.
+            connection.close(false);
         }
-        connection.setIdle(System.nanoTime());
-        connections.add(connection);
     }
 
     /**
