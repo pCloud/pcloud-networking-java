@@ -27,6 +27,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.concurrent.TimeUnit;
 
+import static com.pcloud.networking.client.Utils.IMMEDIATE_EXECUTOR;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
@@ -44,7 +45,13 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
 
     @Override
     protected RealConnection createConnection(Endpoint endpoint, int timeoutMs) throws Exception {
-        ErrorReportingConnection connection = new ErrorReportingConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+        ErrorReportingConnection connection = new ErrorReportingConnection(
+                socketFactory,
+                sslSocketFactory,
+                hostnameVerifier,
+                endpoint,
+                cleanupExecutor
+        );
         connection.endpointProvider(endpointProvider);
         connection.connect(timeoutMs, TimeUnit.MILLISECONDS);
         return spy(connection);
@@ -54,7 +61,7 @@ public class ErrorReportingConnectionTest extends RealConnectionTest {
     public void connect_Reports_Errors_To_EndpointProvider() throws Exception {
         RealConnection connection = createConnection(Endpoint.DEFAULT);
         UnknownHostException exception = new UnknownHostException();
-        doThrow(exception).when(socket).connect(any(SocketAddress.class), anyInt());
+        doThrow(exception).when(rawSocket).connect(any(SocketAddress.class), anyInt());
         try {
             connection.connect(1, TimeUnit.MINUTES);
         } catch (IOException e) {

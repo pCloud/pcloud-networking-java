@@ -19,26 +19,17 @@ package com.pcloud.networking.client;
 import com.pcloud.utils.DummyBufferedSink;
 import com.pcloud.utils.DummyBufferedSource;
 import com.pcloud.utils.DummySocket;
-import okio.Buffer;
-import okio.BufferedSink;
-import okio.BufferedSource;
-import okio.ByteString;
-import okio.Okio;
-import okio.Sink;
-import okio.Source;
+import okio.*;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Matchers;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.*;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.Socket;
@@ -58,18 +49,19 @@ public class RealConnectionTest {
     protected SSLSocketFactory sslSocketFactory;
     protected HostnameVerifier hostnameVerifier;
     protected SSLSocket sslSocket;
-    protected DummySocket socket;
+    protected DummySocket rawSocket;
     protected BufferedSource osSource;
     protected BufferedSink osSink;
+    protected Utils.TestExecutor cleanupExecutor;
 
     @Before
     public void setUp() throws Exception {
         osSource = spy(new DummyBufferedSource());
         osSink = spy(new DummyBufferedSink());
         DummySocket dummySocket = new DummySocket(osSource, osSink);
-        socket = spy(dummySocket);
+        rawSocket = spy(dummySocket);
         socketFactory = mock(SocketFactory.class);
-        when(socketFactory.createSocket()).thenReturn(socket);
+        when(socketFactory.createSocket()).thenReturn(rawSocket);
 
         sslSocket = mock(SSLSocket.class);
         when(sslSocket.getInputStream()).thenReturn(dummySocket.getInputStream());
@@ -81,6 +73,7 @@ public class RealConnectionTest {
 
         hostnameVerifier = mock(HostnameVerifier.class);
         when(hostnameVerifier.verify(anyString(), any(SSLSession.class))).thenReturn(true);
+        cleanupExecutor = spy(new Utils.TestExecutor());
     }
 
     @Test
@@ -90,7 +83,7 @@ public class RealConnectionTest {
         createConnection(TEST_ENDPOINT, timeout);
 
         verify(socketFactory).createSocket();
-        verify(socket).connect(eq(TEST_ENDPOINT.socketAddress()), eq(timeout));
+        verify(rawSocket).connect(eq(TEST_ENDPOINT.socketAddress()), eq(timeout));
     }
 
     @Test
@@ -98,7 +91,7 @@ public class RealConnectionTest {
         createConnection(TEST_ENDPOINT);
 
         verify(sslSocketFactory).createSocket(
-                eq(socket),
+                eq(rawSocket),
                 eq(TEST_ENDPOINT.host()),
                 eq(TEST_ENDPOINT.port()),
                 eq(true));
@@ -145,10 +138,21 @@ public class RealConnectionTest {
     }
 
     @Test
-    public void close_Calls_Close_On_Raw_Socket() throws Exception {
+    public void close_Closes_Sockets() throws Exception {
         RealConnection connection = createConnection();
+        verify(sslSocket, never()).close();
+        verify(rawSocket, never()).close();
+
         connection.close();
-        verify(socket, atLeastOnce()).close();
+
+        verify(rawSocket, atLeastOnce()).close();
+        verify(sslSocket, never()).close();
+        verify(cleanupExecutor).execute(Matchers.<Runnable>any());
+
+        // Verify that the runnable on the executor will call close()
+        // on the SSLSocket
+        cleanupExecutor.flush();
+        verify(sslSocket, times(1)).close();
     }
 
     @Test
@@ -240,7 +244,7 @@ public class RealConnectionTest {
     }
 
     protected RealConnection createConnection(Endpoint endpoint, int timeoutMs) throws Exception {
-        RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+        RealConnection connection = new RealConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint, cleanupExecutor);
         connection.connect(timeoutMs, TimeUnit.MILLISECONDS);
         return spy(connection);
     }

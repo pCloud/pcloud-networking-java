@@ -125,7 +125,7 @@ public class UserInfoTest extends ApiIntegrationTest {
 
     @Test
     public void getUserInfoOnEndpoint_Should_Execute_Call_OnProvided_Endpoint() throws Exception {
-        Endpoint expected = new Endpoint("binapi359.pcloud.com", 443);
+        Endpoint expected = new Endpoint("binapiams1.pcloud.com", 443);
 
         try (ResponseBody body = userApi.getUserInfoOnEndpoint(expected).execute()) {
             assertEquals(expected, body.endpoint());

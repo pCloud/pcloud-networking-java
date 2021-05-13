@@ -22,19 +22,17 @@ import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import static com.pcloud.utils.IOUtils.closeQuietly;
-
 class ConnectionProvider {
 
-    private ConnectionPool connectionPool;
-    private EndpointProvider endpointProvider;
-    private SocketFactory socketFactory;
-    private SSLSocketFactory sslSocketFactory;
-    private HostnameVerifier hostnameVerifier;
-    private int connectTimeout;
-    private int readTimeout;
-    private int writeTimeout;
-    private boolean eagerlyCheckConnectivity;
+    private final ConnectionPool connectionPool;
+    private final EndpointProvider endpointProvider;
+    private final SocketFactory socketFactory;
+    private final SSLSocketFactory sslSocketFactory;
+    private final HostnameVerifier hostnameVerifier;
+    private final int connectTimeout;
+    private final int readTimeout;
+    private final int writeTimeout;
+    private final boolean eagerlyCheckConnectivity;
 
     ConnectionProvider(ConnectionPool connectionPool,
                        EndpointProvider endpointProvider,
@@ -69,7 +67,7 @@ class ConnectionProvider {
                 result = (ErrorReportingConnection) cachedConnection;
                 break;
             } else {
-                closeQuietly(cachedConnection);
+                cachedConnection.close(true);
             }
         }
 
@@ -77,14 +75,21 @@ class ConnectionProvider {
             // No pooled connections available, just build a new one.
             boolean connected = false;
             try {
-                result = new ErrorReportingConnection(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+                result = new ErrorReportingConnection(
+                        socketFactory,
+                        sslSocketFactory,
+                        hostnameVerifier,
+                        endpoint,
+                        Connections.CLEANUP_THREAD_EXECUTOR);
                 result.connect(connectTimeout, TimeUnit.MILLISECONDS);
                 result.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
                 result.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
                 connected = true;
             } finally {
                 if (!connected) {
-                    closeQuietly(result);
+                    if (result != null) {
+                        result.close(true);
+                    }
                 }
             }
         }

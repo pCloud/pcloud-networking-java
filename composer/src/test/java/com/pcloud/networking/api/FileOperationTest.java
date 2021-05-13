@@ -28,14 +28,14 @@ import static org.junit.Assert.*;
 public class FileOperationTest extends ApiIntegrationTest {
 
     private static final String TEST_IMAGE_FILE_NAME = "Nyan_cat_250px_frame.PNG";
-    private static final String REMOTE_IMAGE_URL = "https://filedn.com/lmAEeoTE4jMmdP3fKVL5swu/pcloud-networking/" + TEST_IMAGE_FILE_NAME;
+    private static final String REMOTE_IMAGE_URL = "https://filedn.com/lmAEeoTE4jMmdP3fKVL5swu/" + TEST_IMAGE_FILE_NAME;
 
     @Test
     public void downloadFile_ShouldNotFail() throws Exception {
-
         FileResponse response = downloadApi.downloadRemoteUrl(REMOTE_IMAGE_URL, 0L);
 
         assertNotNull(response);
+        assertTrue(response.message(), response.isSuccessful());
         assertEquals(0, response.getMetadata().get(0).getFolderid());
         assertEquals(TEST_IMAGE_FILE_NAME, response.getMetadata().get(0).getName());
     }
@@ -62,8 +62,9 @@ public class FileOperationTest extends ApiIntegrationTest {
     @Test
     public void downloadThumb_ShouldNotFailOnCorrectParameters() throws Exception {
         DataApiResponse response = downloadApi.getThumb("/" + TEST_IMAGE_FILE_NAME, "64x64");
+
         assertNotNull(response);
-        assertEquals(response.message(), response.resultCode(), 0L);
+        assertTrue(response.message(), response.isSuccessful());
         assertNotNull(response.responseData());
 
         Buffer buffer = new Buffer();

@@ -27,12 +27,15 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static com.pcloud.utils.IOUtils.closeQuietly;
@@ -60,6 +63,7 @@ class RealConnection implements Connection {
     private final HostnameVerifier hostnameVerifier;
     private final Endpoint endpoint;
     private final UUID id = UUID.randomUUID();
+    private final Executor cleanupExecutor;
 
     private Socket rawSocket;
     private SSLSocket socket;
@@ -78,11 +82,13 @@ class RealConnection implements Connection {
     RealConnection(SocketFactory socketFactory,
                    SSLSocketFactory sslSocketFactory,
                    HostnameVerifier hostnameVerifier,
-                   Endpoint endpoint) {
+                   Endpoint endpoint,
+                   Executor cleanupExecutor) {
         this.socketFactory = socketFactory;
         this.sslSocketFactory = sslSocketFactory;
         this.hostnameVerifier = hostnameVerifier;
         this.endpoint = endpoint;
+        this.cleanupExecutor = cleanupExecutor;
     }
 
     void connect(int connectTimeout, TimeUnit timeUnit) throws IOException {
@@ -262,30 +268,74 @@ class RealConnection implements Connection {
 
     @Override
     public void close() {
+        close(false);
+    }
+
+    void close(boolean mayBlock) {
         /*
-         * Close only the raw socket, all other Closeable
-         * properties wrap around it and would get closed too.
-         * Also closing the plain socket is non-blocking,
-         * while the SSL socket may block as it may be doing
-         * some synchronous IO in SSLSocket.close() based on
-         * the underlying implementation (namely OpenSSL on Android).
+         * Connection.close() should not block so that it
+         * can safely be called from time-sensitive threads
+         * (Main Thread, Schedulers, Dispatchers,...).
+         *
+         * Immediately close only the raw socket as it is non-blocking,
+         * all other Closeable properties wrap around it
+         * and would get closed too.
+         * SSLSocket.close() may block (synchronous IO,
+         * waiting for state changes, native code cleanup)
+         *  based on the underlying implementation
+         * (namely OpenSSL-based implementations on Android).
          * */
         if (!closed) {
             synchronized (this) {
                 if (!closed) {
                     connected = false;
                     closeQuietly(rawSocket);
+                    rawSocket = null;
                     inputStream = null;
                     outputStream = null;
-                    rawSocket = null;
-                    socket = null;
                     source = null;
                     sink = null;
                     closed = true;
+                    if (socket != null) {
+                        closeSSLSocket(socket, mayBlock);
+                        socket = null;
+                    }
                 }
             }
         }
     }
+
+    private void closeSSLSocket(SSLSocket socket, boolean mayBlock) {
+        if (!mayBlock) {
+            /*
+             * Try to offload SSLSocket.close() to another thread
+             * and if the schedule gets rejected (normally not possible on the target Executor)
+             * as a last resort close the SSLSocket on the same thread to avoid resource or
+             * native memory leaks.
+             * */
+            try {
+                cleanupExecutor.execute(new CloseOperation(socket));
+            } catch (RejectedExecutionException e) {
+                closeQuietly(socket);
+            }
+        } else {
+            closeQuietly(socket);
+        }
+    }
+
+    private static class CloseOperation implements Runnable {
+        private final Closeable closeable;
+
+        CloseOperation(Closeable closeable) {
+            this.closeable = closeable;
+        }
+
+        @Override
+        public void run() {
+            closeQuietly(closeable);
+        }
+    }
+
 
     @Override
     public String toString() {

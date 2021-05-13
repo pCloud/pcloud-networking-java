@@ -27,6 +27,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 class ErrorReportingConnection extends RealConnection {
@@ -37,8 +38,9 @@ class ErrorReportingConnection extends RealConnection {
             SocketFactory socketFactory,
             SSLSocketFactory sslSocketFactory,
             HostnameVerifier hostnameVerifier,
-            Endpoint endpoint) {
-        super(socketFactory, sslSocketFactory, hostnameVerifier, endpoint);
+            Endpoint endpoint,
+            Executor cleanupExecutor) {
+        super(socketFactory, sslSocketFactory, hostnameVerifier, endpoint, cleanupExecutor);
     }
 
     @Override
