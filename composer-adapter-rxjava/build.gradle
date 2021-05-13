@@ -13,5 +13,5 @@ ext {
     artifactId = 'composer-adapter-rxjava'
 }
 
-apply from: rootProject.file('bintray.gradle')
+apply from: rootProject.file('publish-mavencentral.gradle')
 

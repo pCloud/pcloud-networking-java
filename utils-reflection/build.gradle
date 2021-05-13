@@ -12,4 +12,4 @@ tasks.withType(FindBugs) {
     enabled false
 }
 
-apply from: rootProject.file('bintray.gradle')
+apply from: rootProject.file('publish-mavencentral.gradle')

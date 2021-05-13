@@ -1,11 +1,6 @@
-repositories {
-    mavenCentral()
-}
-
 buildscript {
 
     repositories {
-        jcenter()
         mavenCentral()
         maven {
             url "https://plugins.gradle.org/m2/"
@@ -13,19 +8,21 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
+plugins {
+    id("io.github.gradle-nexus.publish-plugin") version '1.0.0'
+}
+
+
 allprojects {
     apply from: rootProject.file('dependencies.gradle')
-    apply from: rootProject.file('publishing.gradle')
 }
 
 subprojects { subProject ->
     repositories {
-        jcenter()
         mavenCentral()
     }
 
@@ -37,3 +34,5 @@ subprojects { subProject ->
         subProject.apply from: rootProject.file('static-analysis.gradle')
     }
 }
+
+apply from: rootProject.file('nexus-publish.gradle')

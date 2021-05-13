@@ -9,4 +9,4 @@ ext {
     artifactId = 'serialization-adapter-timestamp'
 }
 
-apply from: rootProject.file('bintray.gradle')
+apply from: rootProject.file('publish-mavencentral.gradle')

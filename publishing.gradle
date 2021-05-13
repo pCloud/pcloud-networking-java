@@ -23,15 +23,27 @@ ext {
     groupId = "com.pcloud.pcloud-networking-java"
     description = "A Network Stack for pCloud's API written in Java"
     siteUrl = 'https://github.com/pCloud/pcloud-networking-java'
-    vcsUrl = 'https://github.com/pCloud/pcloud-networking-java'
+    scmUrl = 'https://github.com/pCloud/pcloud-networking-java.git'
 
     developerId = 'android-pcloud'
     developerName = 'pCloud AG'
     developerEmail = 'android@pcloud.com'
+    developerUrl = 'https://www.pcloud.com'
 
     licenseName = 'The Apache License v2.0'
     licenseUrl = 'https://github.com/pCloud/pcloud-networking-java/LICENSE'
     allLicenses = ["Apache-2.0"]
+}
+
+ext.getPublishProperty = { String valueName ->
+    String value = null
+    if (project.ext.has(valueName)) {
+        value = project.ext.get(valueName)
+    } else if (rootProject.ext.has(valueName)) {
+        value = rootProject.ext.get(valueName)
+    }
+
+    return value
 }
 
 version = ext.versionName
