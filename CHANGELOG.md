@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 2.5.3 (13.05.2021)
+--------------------------
+
+## Client
+- Fix a resource leak due to SSLSocket not being closed properly.
+
+
 Version 2.5.2 (22.02.2021)
 --------------------------
 
