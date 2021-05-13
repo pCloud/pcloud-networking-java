@@ -57,7 +57,7 @@ api.copy(...)
 
 #### Download
 
-[ ![Download](https://img.shields.io/maven-central/v/com.pcloud.pcloud-networking-java/composer/2.5.3?color=%2317bed0&label=Maven%20Central&style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
 
 ```xml
 <dependency>
@@ -85,7 +85,7 @@ The `binapi-client` module contains a network client for composing and executing
 
 #### Download
 
-[ ![Download](https://img.shields.io/maven-central/v/com.pcloud.pcloud-networking-java/binapi-client/2.5.3?color=%2317bed0&label=Maven%20Central&style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
 
 ```xml
 <dependency>
@@ -113,7 +113,7 @@ The `serialization` module contains a library for serializing Java objects to bi
 
 #### Download
 
-[ ![Download](https://img.shields.io/maven-central/v/com.pcloud.pcloud-networking-java/serialization/2.5.3?color=%2317bed0&label=Maven%20Central&style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/serialization/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/serialization/2.5.3/jar)
 
 
 ```xml
@@ -141,7 +141,7 @@ The `protocol` module contains the core logic for writing/reading data in the fo
 
 #### Download
 
-[ ![Download](https://img.shields.io/maven-central/v/com.pcloud.pcloud-networking-java/protocol/2.5.3?color=%2317bed0&label=Maven%20Central&style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge)](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
 
 ```xml
 <dependency>
