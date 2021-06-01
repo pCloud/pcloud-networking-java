@@ -16,6 +16,7 @@
 
 package com.pcloud.networking.protocol;
 
+import java.io.Flushable;
 import java.io.IOException;
 
 /**
@@ -23,7 +24,7 @@ import java.io.IOException;
  *
  * @see BytesWriter
  */
-public interface ProtocolRequestWriter extends ProtocolWriter {
+public interface ProtocolRequestWriter extends ProtocolWriter, Flushable {
 
     /**
      * Start a request

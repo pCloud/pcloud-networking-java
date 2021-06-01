@@ -79,6 +79,12 @@ public class BytesWriterTest {
     }
 
     @Test
+    public void flush_Calls_Flush_On_Wrapped_Sink() throws Exception {
+        writer.flush();
+        verify(dataSink).flush();
+    }
+
+    @Test
     public void close_Closes_Wrapped_Sink() throws Exception {
         writer.close();
         verify(dataSink).close();

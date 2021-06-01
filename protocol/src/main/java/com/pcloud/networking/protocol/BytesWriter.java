@@ -162,6 +162,11 @@ public class BytesWriter implements ProtocolRequestWriter {
     }
 
     @Override
+    public void flush() throws IOException {
+        sink.flush();
+    }
+
+    @Override
     public ProtocolRequestWriter writeData(DataSource source) throws IOException {
         checkRequestStarted();
         checkWriteValueFinished();

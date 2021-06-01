@@ -101,6 +101,11 @@ public abstract class ForwardingProtocolRequestWriter implements ProtocolRequest
     }
 
     @Override
+    public void flush() throws IOException {
+        delegate.flush();
+    }
+
+    @Override
     public void close() {
         delegate.close();
     }
