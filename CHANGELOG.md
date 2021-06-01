@@ -1,6 +1,13 @@
 Changelog
 ==========
 
+Version 2.6.0 (01.06.2021)
+--------------------------
+
+## Protocol
+- Make `ProtocolRequestWriter` implement `Flushable` to allow on-demand sending of already written responses.
+
+
 Version 2.5.3 (13.05.2021)
 --------------------------
 

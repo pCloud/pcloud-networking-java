@@ -2,9 +2,9 @@
 
 A stack of networking libraries for [ pCloud's API][docs] binary protocol by pCloud AG.
 
-[![Maven Central](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge)](https://search.maven.org/search?q=g:com.pcloud.pcloud-networking-java)
-[![Changelog](https://img.shields.io/badge/Changelog-2.5.3-17bed0?style=for-the-badge)](CHANGELOG.md)
-[![JavaDoc](https://img.shields.io/badge/JavaDoc-2.5.3-17bed0?style=for-the-badge)][docs]
+[![Maven Central](https://img.shields.io/badge/Maven_Central-2.6.0-17bed0?style=for-the-badge)](https://search.maven.org/search?q=g:com.pcloud.pcloud-networking-java)
+[![Changelog](https://img.shields.io/badge/Changelog-2.6.0-17bed0?style=for-the-badge)](CHANGELOG.md)
+[![JavaDoc](https://img.shields.io/badge/JavaDoc-2.6.0-17bed0?style=for-the-badge)][docs]
 
 ## Requirements
 
@@ -57,19 +57,19 @@ api.copy(...)
 
 #### Download
 
-[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.6.0-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.6.0/jar)
 
 ```xml
 <dependency>
   <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>composer</artifactId>
-  <version>2.5.3</version>
+  <version>2.6.0</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'com.pcloud.pcloud-networking-java:composer:2.5.3'
+compile 'com.pcloud.pcloud-networking-java:composer:2.6.0'
 ```
 
 ### Client
@@ -85,19 +85,19 @@ The `binapi-client` module contains a network client for composing and executing
 
 #### Download
 
-[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.6.0-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.6.0/jar)
 
 ```xml
 <dependency>
   <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>binapi-client</artifactId>
-  <version>2.5.3</version>
+  <version>2.6.0</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'com.pcloud.pcloud-networking-java:binapi-client:2.5.3'
+compile 'com.pcloud.pcloud-networking-java:binapi-client:2.6.0'
 ```
 
 --------------------------------------------------------------------------------
@@ -113,20 +113,20 @@ The `serialization` module contains a library for serializing Java objects to bi
 
 #### Download
 
-[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/serialization/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.6.0-17bed0?style=for-the-badge) ](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/serialization/2.6.0/jar)
 
 
 ```xml
 <dependency>
   <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>serialization</artifactId>
-  <version>2.5.3</version>
+  <version>2.6.0</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'com.pcloud.pcloud-networking-java:serialization:2.5.3'
+compile 'com.pcloud.pcloud-networking-java:serialization:2.6.0'
 ```
 --------------------------------------------------------------------------------
 ### Protocol
@@ -141,19 +141,19 @@ The `protocol` module contains the core logic for writing/reading data in the fo
 
 #### Download
 
-[ ![Download](https://img.shields.io/badge/Maven_Central-2.5.3-17bed0?style=for-the-badge)](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.5.3/jar)
+[ ![Download](https://img.shields.io/badge/Maven_Central-2.6.0-17bed0?style=for-the-badge)](https://search.maven.org/artifact/com.pcloud.pcloud-networking-java/composer/2.6.0/jar)
 
 ```xml
 <dependency>
   <groupId>com.pcloud.pcloud-networking-java</groupId>
   <artifactId>protocol</artifactId>
-  <version>2.5.3</version>
+  <version>2.6.0</version>
   <type>pom</type>
 </dependency>
 ```
 
 ```groovy
-compile 'com.pcloud.pcloud-networking-java:protocol:2.5.3'
+compile 'com.pcloud.pcloud-networking-java:protocol:2.6.0'
 ```
 
 ## License
