@@ -82,8 +82,6 @@ class ConnectionProvider {
                         endpoint,
                         Connections.CLEANUP_THREAD_EXECUTOR);
                 result.connect(connectTimeout, TimeUnit.MILLISECONDS);
-                result.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
-                result.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
                 connected = true;
             } finally {
                 if (!connected) {
@@ -93,6 +91,10 @@ class ConnectionProvider {
                 }
             }
         }
+
+        result.readTimeout(readTimeout, TimeUnit.MILLISECONDS);
+        result.writeTimeout(writeTimeout, TimeUnit.MILLISECONDS);
+
         result.endpointProvider(endpointProvider);
         return result;
     }
