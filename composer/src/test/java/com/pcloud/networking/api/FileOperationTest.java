@@ -27,8 +27,8 @@ import static org.junit.Assert.*;
 
 public class FileOperationTest extends ApiIntegrationTest {
 
-    private static final String TEST_IMAGE_FILE_NAME = "Nyan_cat_250px_frame.PNG";
-    private static final String REMOTE_IMAGE_URL = "https://filedn.com/lmAEeoTE4jMmdP3fKVL5swu/" + TEST_IMAGE_FILE_NAME;
+    private static final String TEST_IMAGE_FILE_NAME = "pcloud_logo.png";
+    private static final String REMOTE_IMAGE_URL = "https://filedn.com/lmAEeoTE4jMmdP3fKVL5swu/pcloud_logo.png";
 
     @Test
     public void downloadFile_ShouldNotFail() throws Exception {
