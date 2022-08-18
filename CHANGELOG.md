@@ -1,6 +1,12 @@
 Changelog
 ==========
 
+Version 2.6.1 (18.08.2022)
+--------------------------
+
+## Client
+- Set read/write timeouts correctly on cached connections.
+
 Version 2.6.0 (01.06.2021)
 --------------------------
 
