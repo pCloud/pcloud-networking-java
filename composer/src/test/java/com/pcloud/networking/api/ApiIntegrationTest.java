@@ -16,12 +16,13 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.PCloudAPIClient;
 import com.pcloud.networking.client.Request;
-import com.pcloud.networking.client.RequestInterceptor;
 import com.pcloud.networking.client.Response;
-import com.pcloud.networking.protocol.ProtocolWriter;
 import com.pcloud.networking.serialization.Transformer;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -31,13 +32,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static com.pcloud.utils.IOUtils.closeQuietly;
-import static org.mockito.Mockito.spy;
 
 public abstract class ApiIntegrationTest {
 
@@ -62,30 +59,15 @@ public abstract class ApiIntegrationTest {
             resolveTestAccountCredentials();
 
             apiClient = PCloudAPIClient.newClient()
-                    .callExecutor(spy(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
-                            new SynchronousQueue<Runnable>(), new ThreadFactory() {
-                        @Override
-                        public Thread newThread(Runnable r) {
-                            return new Thread(r, "PCloud API Client");
-                        }
-                    })))
-                    .addInterceptor(new RequestInterceptor() {
-                        @Override
-                        public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                            writer.writeName("timeformat").writeValue("timestamp");
-                        }
-                    })
+                    .callExecutor(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                            new SynchronousQueue<>(), r -> new Thread(r, "PCloud API Client")))
+                    .addInterceptor((request, writer) -> writer.writeName("timeformat").writeValue("timestamp"))
                     .create();
             transformer = Transformer.create().build();
 
             final String token = getAuthToken(apiClient, transformer, username, password);
             apiClient = apiClient.newBuilder()
-                    .addInterceptor(new RequestInterceptor() {
-                        @Override
-                        public void intercept(Request request, ProtocolWriter writer) throws IOException {
-                            writer.writeName("auth").writeValue(token);
-                        }
-                    }).create();
+                    .addInterceptor((request, writer) -> writer.writeName("auth").writeValue(token)).create();
             tokenReference.set(token);
 
             apiComposer = ApiComposer.create()

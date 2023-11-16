@@ -80,12 +80,12 @@ public class DummyConnection implements Connection {
     }
 
     @Override
-    public BufferedSource source() {
+    public BufferedSource source() throws IOException {
         return readBuffer;
     }
 
     @Override
-    public BufferedSink sink() {
+    public BufferedSink sink() throws IOException {
         return writeBuffer;
     }
 
@@ -127,7 +127,7 @@ public class DummyConnection implements Connection {
         return connection;
     }
 
-    public static  Connection withResponses(Collection<ResponseBytesWriter> responses) throws IOException {
+    public static Connection withResponses(Collection<ResponseBytesWriter> responses) throws IOException {
         Connection connection = new DummyConnection();
 
         for (ResponseBytesWriter b : responses) {
