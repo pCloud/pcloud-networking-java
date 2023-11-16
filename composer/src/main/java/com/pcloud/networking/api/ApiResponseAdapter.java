@@ -16,28 +16,28 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.Response;
 import com.pcloud.networking.serialization.TypeAdapter;
 
 import java.io.IOException;
+import java.util.Collection;
 
-import static com.pcloud.utils.IOUtils.closeQuietly;
-
-class ApiResponseAdapter<T> implements ResponseAdapter<T> {
+class ApiResponseAdapter<T> extends InterceptingResponseAdapter<T> {
 
     private TypeAdapter<? extends ApiResponse> typeAdapter;
 
-    ApiResponseAdapter(TypeAdapter<? extends ApiResponse> typeAdapter) {
+    ApiResponseAdapter(TypeAdapter<? extends ApiResponse> typeAdapter, Class<T> type, Collection<ResponseInterceptor> interceptors) {
+        super(type, interceptors);
         this.typeAdapter = typeAdapter;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public T adapt(Response response) throws IOException {
-        try {
-            return (T) typeAdapter.deserialize(response.responseBody().reader());
-        } finally {
-            closeQuietly(response);
-        }
+    public T doAdapt(Response response) throws IOException {
+        T result = (T) typeAdapter.deserialize(response.responseBody().reader());
+        closeQuietly(response);
+        return result;
     }
 }

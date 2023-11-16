@@ -72,12 +72,12 @@ abstract class ApiMethod<T> {
             if (ApiResponse.class.isAssignableFrom(returnType)) {
                 TypeAdapter<T> typeAdapter = getTypeAdapter(composer, method, returnType);
                 if (DataApiResponse.class.isAssignableFrom(returnType)) {
-                    return new DataApiResponseAdapter<>((TypeAdapter<? extends DataApiResponse>) typeAdapter);
+                    return new DataApiResponseAdapter<>((TypeAdapter<? extends DataApiResponse>) typeAdapter, returnType, composer.interceptors());
                 } else {
-                    return new ApiResponseAdapter<>((TypeAdapter<? extends ApiResponse>) typeAdapter);
+                    return new ApiResponseAdapter<>((TypeAdapter<? extends ApiResponse>) typeAdapter, returnType, composer.interceptors());
                 }
             } else if (returnType == ResponseBody.class) {
-                return (ResponseAdapter<T>) new ResponseBodyAdapter();
+                return (ResponseAdapter<T>) new ResponseBodyAdapter(composer.interceptors());
             } else {
                 throw apiMethodError(method, "Return type '%s' is not supported," +
                                 " must be or extend from %s, or be '%s'",

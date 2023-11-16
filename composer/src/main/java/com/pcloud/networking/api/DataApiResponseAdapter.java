@@ -16,39 +16,33 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.Response;
 import com.pcloud.networking.serialization.TypeAdapter;
 
 import java.io.IOException;
+import java.util.List;
 
-import static com.pcloud.utils.IOUtils.closeQuietly;
-
-class DataApiResponseAdapter<T> implements ResponseAdapter<T> {
+class DataApiResponseAdapter<T> extends InterceptingResponseAdapter<T> {
 
     private final TypeAdapter<? extends DataApiResponse> typeAdapter;
 
-    DataApiResponseAdapter(TypeAdapter<? extends DataApiResponse> typeAdapter) {
+    public DataApiResponseAdapter(TypeAdapter<? extends DataApiResponse> typeAdapter, Class<T> returnType, List<ResponseInterceptor> interceptors) {
+        super(returnType, interceptors);
         this.typeAdapter = typeAdapter;
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public T adapt(Response response) throws IOException {
-        boolean success = false;
-        try {
-            DataApiResponse result = typeAdapter.deserialize(response.responseBody().reader());
-            if (result.isSuccessful()) {
-                result.setResponseData(response.responseBody().data());
-            } else {
-                result.setResponseData(null);
-                closeQuietly(response);
-            }
-            success = true;
-            return (T) result;
-        } finally {
-            if (!success) {
-                closeQuietly(response);
-            }
+    public T doAdapt(Response response) throws IOException {
+        DataApiResponse result = typeAdapter.deserialize(response.responseBody().reader());
+        if (result.isSuccessful()) {
+            result.setResponseData(response.responseBody().data());
+        } else {
+            result.setResponseData(null);
+            closeQuietly(response);
         }
+        return (T) result;
     }
 }

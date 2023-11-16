@@ -16,11 +16,15 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.Response;
+import com.pcloud.networking.protocol.ProtocolReader;
 
 import java.io.IOException;
+import java.util.Collection;
 
 interface ResponseAdapter<T> {
-
     T adapt(Response response) throws IOException;
 }
+
