@@ -15,8 +15,4 @@ ext {
     artifactId = 'serialization'
 }
 
-findbugs {
-    reportLevel 'medium'
-}
-
 apply from: rootProject.file('publish-mavencentral.gradle')

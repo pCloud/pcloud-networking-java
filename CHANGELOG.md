@@ -1,6 +1,23 @@
 Changelog
 ==========
 
+Version 2.7.0 (16.11.2023)
+--------------------------
+## General
+- Update the project to use Gradle 8.3.
+- Set the java source target to 1.8.
+- Update test dependencies.
+
+## Composer
+- Make `ResponseInterceptor` get called for any response types, not only subclasses of `ApiResponse`. For any return types that are not subclassing from `ApiResponse`, a basic `ApiResponse` with result code and error message (if any), will be peeked and sent to the interceptors.
+- Change the type of `ApiResponse.RESULT_SUCCESS` to `long`.
+- More fixes for potential resource leaks when dealing with callback-based consumption of `Call<T>` and `MultiCall<T>`.
+- More fixes for potential resource leaks while processing cancelled `Call<T>` and `MultiCall<T>` instances.
+
+## Client
+- Remove the deprecation of `ResponseBody.writeTo()` as it is already guarded well from misuse.
+- Update `OkHostnameVerifier` from OkHttp's repo. Pull the latest version of the file in Java (from the 3.14.x branch): https://github.com/square/okhttp/blob/cd84d79c3574de81f23802f832f2ead6ad38a735/okhttp/src/main/java/okhttp3/internal/tls/OkHostnameVerifier.java
+
 Version 2.6.1 (18.08.2022)
 --------------------------
 

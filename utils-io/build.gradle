@@ -11,8 +11,4 @@ ext {
     artifactId = 'utils-io'
 }
 
-findbugs {
-    reportLevel 'medium'
-}
-
 apply from: rootProject.file('publish-mavencentral.gradle')

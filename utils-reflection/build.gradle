@@ -4,12 +4,4 @@ ext {
     artifactId = 'utils-reflection'
 }
 
-tasks.withType(Checkstyle) {
-    enabled false
-}
-
-tasks.withType(FindBugs) {
-    enabled false
-}
-
 apply from: rootProject.file('publish-mavencentral.gradle')

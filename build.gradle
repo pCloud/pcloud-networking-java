@@ -30,8 +30,6 @@ subprojects { subProject ->
         subProject.apply plugin: 'checkstyle'
 
         sourceCompatibility = rootProject.javaSourceCompatibility
-
-        subProject.apply from: rootProject.file('static-analysis.gradle')
     }
 }
 

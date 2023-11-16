@@ -7,7 +7,6 @@ before_script:
 
 stages:
   - build
-  - analyze
   - test
   - deploy
 
@@ -18,35 +17,6 @@ assemble:
   script:
     - ./gradlew assemble
   dependencies: []
-
-checkstyle:
-  stage: analyze
-  tags:
-    - java
-  script:
-    - ./gradlew checkstyleMain
-  dependencies: []
-  artifacts:
-    expire_in: 1 week
-    when: on_failure
-    name: "checkstyle-report-$CI_COMMIT_REF_SLUG"
-    paths:
-      - "*/build/reports/checkstyle/*"
-
-finbugs:
-  stage: analyze
-  allow_failure: true
-  tags:
-    - java
-  script:
-    - ./gradlew findbugsMain
-  dependencies: []
-  artifacts:
-    expire_in: 1 week
-    when: on_failure
-    name: "findbugs-report-$CI_COMMIT_REF_SLUG"
-    paths:
-      - "*/build/reports/spotbugs/*"
 
 tests:
   stage: test
