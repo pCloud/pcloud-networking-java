@@ -90,8 +90,8 @@ public class Response implements Closeable {
         }
     }
 
-    private ResponseBody responseBody;
-    private Request request;
+    private final ResponseBody responseBody;
+    private final Request request;
 
     /**
      * Creates and returns a new instance of the {@linkplain Builder} to construct a new {@linkplain Response}

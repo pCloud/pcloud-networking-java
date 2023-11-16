@@ -34,7 +34,7 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
  */
 public class MultiResponse implements Closeable {
 
-    private List<Response> responses;
+    private final List<Response> responses;
 
     MultiResponse(List<Response> responses) {
         this.responses = Collections.unmodifiableList(responses);

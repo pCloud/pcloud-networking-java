@@ -16,17 +16,16 @@
 
 package com.pcloud.networking.client;
 
+import static com.pcloud.networking.client.ResponseBodyUtils.checkNotAlreadyRead;
+import static com.pcloud.networking.client.ResponseBodyUtils.skipRemainingValues;
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.protocol.BytesReader;
 import com.pcloud.networking.protocol.BytesWriter;
 import com.pcloud.networking.protocol.ProtocolReader;
 import com.pcloud.networking.protocol.ProtocolRequestWriter;
 import com.pcloud.networking.protocol.ProtocolResponseReader;
 import com.pcloud.utils.IOUtils;
-import okio.Buffer;
-import okio.BufferedSink;
-import okio.BufferedSource;
-import okio.ByteString;
-import okio.Okio;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -44,9 +43,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.pcloud.networking.client.ResponseBodyUtils.checkNotAlreadyRead;
-import static com.pcloud.networking.client.ResponseBodyUtils.skipRemainingValues;
-import static com.pcloud.utils.IOUtils.closeQuietly;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.BufferedSource;
+import okio.Okio;
 
 class RealMultiCall implements MultiCall {
 
@@ -57,10 +57,10 @@ class RealMultiCall implements MultiCall {
 
     private final List<Request> requests;
     private Connection connection;
-    private ExecutorService callExecutor;
-    private List<RequestInterceptor> interceptors;
-    private ConnectionProvider connectionProvider;
-    private Endpoint endpoint;
+    private final ExecutorService callExecutor;
+    private final List<RequestInterceptor> interceptors;
+    private final ConnectionProvider connectionProvider;
+    private final Endpoint endpoint;
 
     RealMultiCall(List<Request> requests, ExecutorService callExecutor,
                   List<RequestInterceptor> interceptors, ConnectionProvider connectionProvider, Endpoint endpoint) {
@@ -266,7 +266,7 @@ class RealMultiCall implements MultiCall {
         return cancelled;
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public MultiCall clone() {
         return new RealMultiCall(requests, callExecutor, interceptors, connectionProvider, endpoint);
@@ -402,7 +402,7 @@ class RealMultiCall implements MultiCall {
                 throw new IOException("MultiCalls do not support calls that return data.");
             }
 
-            return hasData;
+            return false;
         }
     }
 
@@ -423,12 +423,6 @@ class RealMultiCall implements MultiCall {
         @Override
         public ProtocolReader reader() {
             return reader;
-        }
-
-        @Override
-        public ByteString valuesBytes() throws IOException {
-            checkNotAlreadyRead(this);
-            return source.readByteString();
         }
 
         @Override

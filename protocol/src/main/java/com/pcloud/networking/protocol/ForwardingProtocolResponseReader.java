@@ -28,7 +28,7 @@ import java.io.OutputStream;
  */
 public abstract class ForwardingProtocolResponseReader implements ProtocolResponseReader {
 
-    private ProtocolResponseReader delegate;
+    private final ProtocolResponseReader delegate;
 
     /**
      * Construct a new {@linkplain ForwardingProtocolResponseReader} instance

@@ -26,7 +26,7 @@ import java.util.Collection;
 
 class ApiResponseAdapter<T> extends InterceptingResponseAdapter<T> {
 
-    private TypeAdapter<? extends ApiResponse> typeAdapter;
+    private final TypeAdapter<? extends ApiResponse> typeAdapter;
 
     ApiResponseAdapter(TypeAdapter<? extends ApiResponse> typeAdapter, Class<T> type, Collection<ResponseInterceptor> interceptors) {
         super(type, interceptors);

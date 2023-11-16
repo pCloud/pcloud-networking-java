@@ -25,7 +25,7 @@ import java.io.IOException;
  */
 public abstract class ForwardingProtocolRequestWriter implements ProtocolRequestWriter {
 
-    private ProtocolRequestWriter delegate;
+    private final ProtocolRequestWriter delegate;
 
     /**
      * Construct a new {@linkplain ForwardingProtocolRequestWriter} instance

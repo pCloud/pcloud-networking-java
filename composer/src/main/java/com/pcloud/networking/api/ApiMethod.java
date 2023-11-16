@@ -85,12 +85,14 @@ abstract class ApiMethod<T> {
             }
         }
 
+        @SuppressWarnings("rawtypes")
         protected static RequestAdapter getRequestAdapter(ApiComposer composer, Method method,
                                                           Type[] parameterTypes,
                                                           Annotation[][] annotations) {
             int argumentCount = parameterTypes.length;
             boolean hasDataParameter = false;
             boolean hasEndpointParameter = false;
+
             ArgumentAdapter[] argumentAdapters = new ArgumentAdapter[argumentCount];
             for (int index = 0; index < argumentCount; index++) {
                 Annotation[] argumentAnnotations = annotations[index];
@@ -105,7 +107,7 @@ abstract class ApiMethod<T> {
                     } else if (annotationType == Parameter.class) {
                         String name = ((Parameter) annotation).value();
                         if (name.equals("")) {
-                            throw apiMethodError(method, "\'@%s\'-annotated method arguments cannot have an " +
+                            throw apiMethodError(method, "'@%s'-annotated method arguments cannot have an " +
                                     "empty parameter name.", Parameter.class.getSimpleName());
                         }
 
@@ -125,7 +127,7 @@ abstract class ApiMethod<T> {
                 if (resolvedAdapter == null && parameterType == Endpoint.class) {
                     if (hasEndpointParameter) {
                         throw apiMethodError(method, "API method cannot have more than one " +
-                                "non-annotated \'%s\' parameter ", Endpoint.class);
+                                "non-annotated '%s' parameter ", Endpoint.class);
                     }
                     hasEndpointParameter = true;
                     resolvedAdapter = ArgumentAdapters.endpoint();
@@ -133,7 +135,7 @@ abstract class ApiMethod<T> {
 
                 if (resolvedAdapter == null) {
                     throw apiMethodError(method, "Each API method parameter must be annotated with one of %s " +
-                                    "or be of type \'%s\'.",
+                                    "or be of type '%s'.",
                             Arrays.<Type>asList(RequestBody.class, Parameter.class, RequestData.class), Endpoint.class);
                 }
 
@@ -157,6 +159,7 @@ abstract class ApiMethod<T> {
         protected static void checkMethodThrowsExceptions(Method method, Type... exceptionTypes) {
             List<Class<?>> declaredExceptions = Arrays.asList(method.getExceptionTypes());
             List<Type> expectedExceptions = Arrays.asList(exceptionTypes);
+            //noinspection SlowListContainsAll,SuspiciousMethodCalls
             if (!declaredExceptions.containsAll(expectedExceptions)) {
                 throw apiMethodError(method, "Method should declare that it throws %s.", expectedExceptions);
             }

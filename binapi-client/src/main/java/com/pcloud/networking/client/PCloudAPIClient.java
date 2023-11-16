@@ -47,6 +47,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @see MultiResponse
  * @see RequestInterceptor
  */
+@SuppressWarnings("unused")
 public class PCloudAPIClient {
 
     private static final long DEFAULT_KEEP_ALIVE_TIME = 60;
@@ -61,9 +62,9 @@ public class PCloudAPIClient {
         }
     };
 
-    private int connectTimeoutMs;
-    private int writeTimeoutMs;
-    private int readTimeoutMs;
+    private final int connectTimeoutMs;
+    private final int writeTimeoutMs;
+    private final int readTimeoutMs;
 
     private final SocketFactory socketFactory;
     private final SSLSocketFactory sslSocketFactory;
@@ -310,7 +311,7 @@ public class PCloudAPIClient {
     /**
      * Get the {@linkplain EndpointProvider} set for this client instance
      * <p>
-     *  This will return the {@linkplain EndpointProvider} instance given in {@linkplain Builder#endpointProvider()}
+     *  This will return the {@linkplain EndpointProvider} instance given in {@linkplain #endpointProvider()}
      *  or {@linkplain EndpointProvider#DEFAULT} if none has been set.
      *
      * @return A non-null {@linkplain EndpointProvider} object
@@ -353,6 +354,7 @@ public class PCloudAPIClient {
     /**
      * Builds instances of the {@linkplain PCloudAPIClient} and allows different properties to be set as needed
      */
+    @SuppressWarnings("unused")
     public static class Builder {
 
         private int connectTimeoutMs;

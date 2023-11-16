@@ -34,10 +34,10 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
 
 class RealApiChannel implements ApiChannel {
 
-    private ConnectionProvider connectionProvider;
+    private final ConnectionProvider connectionProvider;
     private Connection connection;
-    private ProtocolRequestWriter writer;
-    private ProtocolResponseReader reader;
+    private final ProtocolRequestWriter writer;
+    private final ProtocolResponseReader reader;
     private final Endpoint endpoint;
     private long startedRequests = 0L;
     private long startedResponses = 0L;
@@ -135,7 +135,7 @@ class RealApiChannel implements ApiChannel {
 
     private static class CountingProtocolRequestWriter extends ForwardingProtocolRequestWriter {
 
-        private RealApiChannel apiChannel;
+        private final RealApiChannel apiChannel;
 
         CountingProtocolRequestWriter(ProtocolRequestWriter delegate, RealApiChannel apiChannel) {
             super(delegate);
@@ -234,7 +234,7 @@ class RealApiChannel implements ApiChannel {
 
     private static class CountingProtocolResponseReader extends ForwardingProtocolResponseReader {
 
-        private RealApiChannel apiChannel;
+        private final RealApiChannel apiChannel;
 
         CountingProtocolResponseReader(ProtocolResponseReader delegate, RealApiChannel apiChannel) {
             super(delegate);

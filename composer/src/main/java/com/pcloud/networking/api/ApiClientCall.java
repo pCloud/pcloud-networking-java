@@ -16,20 +16,19 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.Response;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static com.pcloud.utils.IOUtils.closeQuietly;
-
 class ApiClientCall<T> implements Call<T> {
 
-    private ApiComposer apiComposer;
-    private com.pcloud.networking.client.Call rawCall;
-    private ResponseAdapter<T> responseAdapter;
+    private final ApiComposer apiComposer;
+    private final com.pcloud.networking.client.Call rawCall;
+    private final ResponseAdapter<T> responseAdapter;
 
     ApiClientCall(ApiComposer apiComposer,
                   com.pcloud.networking.client.Call rawCall,
@@ -105,7 +104,7 @@ class ApiClientCall<T> implements Call<T> {
         return rawCall.isCancelled();
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public Call<T> clone() {
         return new ApiClientCall<>(apiComposer, rawCall.clone(), responseAdapter);

@@ -23,14 +23,15 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
+@SuppressWarnings("rawtypes")
 class CallWrappedApiMethod<T, R> extends ApiMethod<R> {
 
     static final ApiMethod.Factory FACTORY = new Factory();
 
-    private String apiMethodName;
-    private RequestAdapter requestAdapter;
-    private ResponseAdapter<T> returnTypeAdapter;
-    private CallAdapter callAdapter;
+    private final String apiMethodName;
+    private final RequestAdapter requestAdapter;
+    private final ResponseAdapter<T> returnTypeAdapter;
+    private final CallAdapter callAdapter;
 
     private CallWrappedApiMethod(String apiMethodName, RequestAdapter requestAdapter,
                                  ResponseAdapter<T> returnTypeAdapter, CallAdapter callAdapter) {

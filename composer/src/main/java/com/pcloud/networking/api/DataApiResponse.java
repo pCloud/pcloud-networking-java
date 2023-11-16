@@ -29,6 +29,7 @@ import static com.pcloud.utils.IOUtils.closeQuietly;
  * @see ResponseData
  */
 
+@SuppressWarnings("unused")
 public class DataApiResponse extends ApiResponse implements Closeable {
 
     private ResponseData responseData;

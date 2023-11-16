@@ -34,9 +34,9 @@ abstract class FixedLengthSource implements Source {
 
     private long bytesRemaining;
     private boolean closed;
-    private Source source;
-    private ForwardingTimeout timeout;
-    private int discardTimeoutMillis;
+    private final Source source;
+    private final ForwardingTimeout timeout;
+    private final int discardTimeoutMillis;
 
     protected FixedLengthSource(Source source, long contentLength, long discardTimeout, TimeUnit timeUnit) {
         this.source = source;
