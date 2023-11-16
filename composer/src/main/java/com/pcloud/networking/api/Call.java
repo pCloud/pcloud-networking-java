@@ -37,6 +37,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @param <T> the type of the returned result
  */
+@SuppressWarnings("unused")
 public interface Call<T> extends Cloneable {
 
     /**

@@ -27,7 +27,7 @@ public class ApiResponse {
     /**
      * The default result code for a successful request
      */
-    public static final int RESULT_SUCCESS = 0;
+    public static final long RESULT_SUCCESS = 0;
 
     @ParameterValue("result")
     private long resultCode;

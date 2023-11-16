@@ -28,7 +28,7 @@ public enum TypeToken {
     END_OBJECT("End Object"),
     END_ARRAY("End Array");
 
-    private String name;
+    private final String name;
 
     TypeToken(String name) {
         this.name = name;

@@ -19,11 +19,3 @@ apply plugin: 'java-library'
 dependencies {
     implementation project(':protocol')
 }
-
-tasks.withType(Checkstyle) {
-    enabled false
-}
-
-tasks.withType(FindBugs) {
-    enabled false
-}

@@ -49,6 +49,7 @@ public class ResponseData implements Closeable {
      * @return An {@linkplain InputStream} to read the data from the source
      */
     public InputStream byteStream() {
+        //noinspection resource
         return source().inputStream();
     }
 

@@ -16,22 +16,22 @@
 
 package com.pcloud.networking.api;
 
+import static com.pcloud.utils.IOUtils.closeQuietly;
+
 import com.pcloud.networking.client.Response;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static com.pcloud.utils.IOUtils.closeQuietly;
-
 class ApiClientCall<T> implements Call<T> {
 
-    private ApiComposer apiComposer;
-    private com.pcloud.networking.client.Call rawCall;
-    private ResponseAdapter<T> responseAdapter;
+    private final ApiComposer apiComposer;
+    private final com.pcloud.networking.client.Call rawCall;
+    private final ResponseAdapter<T> responseAdapter;
 
-    ApiClientCall(ApiComposer apiComposer, com.pcloud.networking.client.Call rawCall,
+    ApiClientCall(ApiComposer apiComposer,
+                  com.pcloud.networking.client.Call rawCall,
                   ResponseAdapter<T> responseAdapter) {
         this.apiComposer = apiComposer;
         this.rawCall = rawCall;
@@ -57,19 +57,22 @@ class ApiClientCall<T> implements Call<T> {
         rawCall.enqueue(new com.pcloud.networking.client.Callback() {
             @Override
             public void onFailure(com.pcloud.networking.client.Call call, IOException e) {
-                if (!isCancelled()) {
-                    callback.onFailure(ApiClientCall.this, e);
-                }
+                if (!isCancelled()) callback.onFailure(ApiClientCall.this, e);
             }
 
             @Override
             public void onResponse(com.pcloud.networking.client.Call call, Response response) {
-                if (!isCancelled()) {
-                    try {
-                        callback.onResponse(ApiClientCall.this, adapt(response));
-                    } catch (IOException e) {
-                        callback.onFailure(ApiClientCall.this, e);
+                boolean success = false;
+                try {
+                    T result = adapt(response);
+                    if (!isCancelled()) {
+                        callback.onResponse(ApiClientCall.this, result);
+                        success = true;
                     }
+                } catch (IOException e) {
+                    if (!isCancelled()) callback.onFailure(ApiClientCall.this, e);
+                } finally {
+                    if (!success) closeQuietly(response);
                 }
             }
         });
@@ -101,32 +104,25 @@ class ApiClientCall<T> implements Call<T> {
         return rawCall.isCancelled();
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public Call<T> clone() {
         return new ApiClientCall<>(apiComposer, rawCall.clone(), responseAdapter);
     }
 
     protected T adapt(Response response) throws IOException {
-        if (isCancelled()) {
-            throw new IOException("Cancelled");
-        }
-        T result = responseAdapter.adapt(response);
-
-        if (result instanceof ApiResponse) {
-            List<ResponseInterceptor> interceptors = apiComposer.interceptors();
-            for (ResponseInterceptor interceptor : interceptors) {
-                try {
-                    interceptor.intercept((ApiResponse) result);
-                } catch (Exception e) {
-                    closeQuietly(response);
-                    throw new RuntimeException(
-                            String.format("Error while calling ResponseInterceptor of type '%s' for '%s' call.",
-                                    interceptor.getClass(), methodName()), e
-                    );
-                }
+        boolean success = false;
+        try {
+            if (isCancelled()) {
+                throw new IOException("Cancelled");
+            }
+            T result = responseAdapter.adapt(response);
+            success = true;
+            return result;
+        } finally {
+            if (!success) {
+                closeQuietly(response);
             }
         }
-        return result;
     }
 }

@@ -16,8 +16,24 @@
 
 package com.pcloud.networking.client;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.notNull;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.pcloud.networking.protocol.ResponseBytesWriter;
-import okio.ByteString;
+
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -38,14 +54,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import okio.Buffer;
+import okio.ByteString;
 
 public class RealMultiCallTest {
 
@@ -61,13 +75,8 @@ public class RealMultiCallTest {
 
     @BeforeClass
     public static void initialSetup() throws Exception {
-        realExecutor = spy(new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
-                new SynchronousQueue<Runnable>(), new ThreadFactory() {
-            @Override
-            public Thread newThread(Runnable r) {
-                return new Thread(r, "PCloud API Client");
-            }
-        }));
+        realExecutor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+                new SynchronousQueue<>(), r -> new Thread(r, "PCloud API Client"));
     }
 
     @Before
@@ -420,10 +429,10 @@ public class RealMultiCallTest {
     }
 
     private static void assertContainsResponse(Collection<ResponseBytesWriter> responses, Response response) throws IOException {
-        ByteString responseBytes = new okio.Buffer()
-                .writeIntLe((int) response.responseBody().contentLength())
-                .write(response.responseBody().valuesBytes())
-                .snapshot();
+        Buffer buffer = new okio.Buffer()
+                .writeIntLe((int) response.responseBody().contentLength());
+        response.responseBody().writeTo(buffer);
+                ByteString responseBytes = buffer.snapshot();
         for (ResponseBytesWriter writer : responses) {
             ByteString expected = writer.bytes();
             if (expected.equals(responseBytes)) {

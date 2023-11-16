@@ -49,9 +49,9 @@ class DirectApiMethod<T> extends ApiMethod<T> {
         }
     }
 
-    private String apiMethodName;
-    private RequestAdapter requestAdapter;
-    private ResponseAdapter<T> responseAdapter;
+    private final String apiMethodName;
+    private final RequestAdapter requestAdapter;
+    private final ResponseAdapter<T> responseAdapter;
 
     private DirectApiMethod(String apiMethodName, RequestAdapter requestAdapter, ResponseAdapter<T> responseAdapter) {
         this.apiMethodName = apiMethodName;

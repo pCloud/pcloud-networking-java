@@ -15,11 +15,13 @@
  *  limitations under the License.
  */
 
+
 package com.pcloud.networking.client.internal.tls;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+
 import java.security.cert.Certificate;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
@@ -56,12 +58,12 @@ final class OkHostnameVerifier implements HostnameVerifier {
     }
 
     public boolean verify(String host, X509Certificate certificate) {
-        return verifyAsIpAddress(host) ? verifyIpAddress(host, certificate) : verifyHostname(host, certificate);
+        return verifyAsIpAddress(host)
+                ? verifyIpAddress(host, certificate)
+                : verifyHostname(host, certificate);
     }
 
-    /**
-     * Returns true if {@code certificate} matches {@code ipAddress}.
-     */
+    /** Returns true if {@code certificate} matches {@code ipAddress}. */
     private boolean verifyIpAddress(String ipAddress, X509Certificate certificate) {
         List<String> altNames = getSubjectAltNames(certificate, ALT_IPA_NAME);
         for (int i = 0, size = altNames.size(); i < size; i++) {
@@ -72,9 +74,7 @@ final class OkHostnameVerifier implements HostnameVerifier {
         return false;
     }
 
-    /**
-     * Returns true if {@code certificate} matches {@code hostname}.
-     */
+    /** Returns true if {@code certificate} matches {@code hostname}. */
     private boolean verifyHostname(String hostname, X509Certificate certificate) {
         hostname = hostname.toLowerCase(Locale.US);
         List<String> altNames = getSubjectAltNames(certificate, ALT_DNS_NAME);
@@ -128,17 +128,19 @@ final class OkHostnameVerifier implements HostnameVerifier {
      * Returns {@code true} iff {@code hostname} matches the domain name {@code pattern}.
      *
      * @param hostname lower-case host name.
-     * @param pattern  domain name pattern from certificate. May be a wildcard pattern such as {@code
-     *                 *.android.com}.
+     * @param pattern domain name pattern from certificate. May be a wildcard pattern such as {@code
+     * *.android.com}.
      */
     public boolean verifyHostname(String hostname, String pattern) {
         // Basic sanity checks
         // Check length == 0 instead of .isEmpty() to support Java 5.
-        if ((hostname == null) || (hostname.length() == 0) || (hostname.startsWith(".")) || (hostname.endsWith(".."))) {
+        if ((hostname == null) || (hostname.length() == 0) || (hostname.startsWith("."))
+                || (hostname.endsWith(".."))) {
             // Invalid domain name
             return false;
         }
-        if ((pattern == null) || (pattern.length() == 0) || (pattern.startsWith(".")) || (pattern.endsWith(".."))) {
+        if ((pattern == null) || (pattern.length() == 0) || (pattern.startsWith("."))
+                || (pattern.endsWith(".."))) {
             // Invalid pattern/domain name
             return false;
         }
@@ -207,8 +209,8 @@ final class OkHostnameVerifier implements HostnameVerifier {
 
         // Check that asterisk did not match across domain name labels.
         int suffixStartIndexInHostname = hostname.length() - suffix.length();
-        if ((suffixStartIndexInHostname > 0) &&
-                    (hostname.lastIndexOf('.', suffixStartIndexInHostname - 1) != -1)) {
+        if ((suffixStartIndexInHostname > 0)
+                && (hostname.lastIndexOf('.', suffixStartIndexInHostname - 1) != -1)) {
             // Asterisk is matching across domain name labels -- not permitted.
             return false;
         }

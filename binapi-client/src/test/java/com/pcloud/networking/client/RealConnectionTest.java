@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
 
 public class RealConnectionTest {
 
-    private static final Endpoint TEST_ENDPOINT = new Endpoint("somehost.api.com", 123);
+    private static final Endpoint TEST_ENDPOINT = new Endpoint("binapi.pcloud.com", 443);
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -72,7 +72,7 @@ public class RealConnectionTest {
                 .thenReturn(sslSocket);
 
         hostnameVerifier = mock(HostnameVerifier.class);
-        when(hostnameVerifier.verify(anyString(), any(SSLSession.class))).thenReturn(true);
+        when(hostnameVerifier.verify(any(), any())).thenReturn(true);
         cleanupExecutor = spy(new Utils.TestExecutor());
     }
 
@@ -100,7 +100,7 @@ public class RealConnectionTest {
 
     @Test
     public void wrappedWithSSLSocket_Throws_SSLPeerUnverifiedException_If_HostnameVerifier_Returns_false() throws Exception {
-        when(hostnameVerifier.verify(anyString(), any(SSLSession.class))).thenReturn(false);
+        when(hostnameVerifier.verify(any(), any())).thenReturn(false);
         expectedException.expect(SSLPeerUnverifiedException.class);
         createConnection();
     }

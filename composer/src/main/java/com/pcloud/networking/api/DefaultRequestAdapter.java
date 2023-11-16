@@ -21,9 +21,10 @@ import com.pcloud.networking.protocol.ProtocolWriter;
 
 import java.io.IOException;
 
+@SuppressWarnings("rawtypes")
 class DefaultRequestAdapter implements RequestAdapter {
 
-    private ArgumentAdapter[] argumentAdapters;
+    private final ArgumentAdapter[] argumentAdapters;
 
     DefaultRequestAdapter(ArgumentAdapter[] argumentAdapters) {
         this.argumentAdapters = argumentAdapters;

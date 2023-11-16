@@ -70,11 +70,10 @@ public class ApiComposer {
             DirectCallAdapter.FACTORY
     );
 
-    private PCloudAPIClient apiClient;
-    private Transformer transformer;
-    private List<ResponseInterceptor> interceptors;
-
-    private boolean loadEagerly;
+    private final PCloudAPIClient apiClient;
+    private final Transformer transformer;
+    private final List<ResponseInterceptor> interceptors;
+    private final boolean loadEagerly;
     private final Map<Method, ApiMethod<?>> apiMethodsCache = new ConcurrentHashMap<>();
     private final List<ApiMethod.Factory> factories = new ArrayList<>(BUILT_IN_API_METHOD_FACTORIES);
     private final List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(BUILT_IN_CALL_ADAPTER_FACTORIES);

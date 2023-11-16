@@ -94,16 +94,20 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
             @Override
             public void onResponse(com.pcloud.networking.client.MultiCall call, int key,
                                    Response response) {
-                if (!isCancelled()) {
-                    try {
-                        R result = adapt(response);
+                boolean success = false;
+
+                try {
+                    R result = adapt(response);
+                    if (!isCancelled()){
                         results.set(key, result);
                         callback.onResponse(ApiClientMultiCall.this, key, result);
-                    } catch (IOException e) {
-                        callback.onFailure(ApiClientMultiCall.this, e, results);
-                        // Cancel the wrapped MultiCall to stop receiving other responses.
-                        rawCall.cancel();
+                        success = true;
                     }
+                } catch (IOException e) {
+                    if (!isCancelled()) callback.onFailure(ApiClientMultiCall.this, e, results);
+                } finally {
+                    // Cancel the wrapped MultiCall to stop receiving other responses.
+                    if (!success) rawCall.cancel();
                 }
             }
 
@@ -184,25 +188,18 @@ class ApiClientMultiCall<T, R> implements MultiCall<T, R> {
     }
 
     private R adapt(Response response) throws IOException {
-        if (isCancelled()) {
-            throw new IOException("Cancelled");
-        }
-        R result = responseAdapter.adapt(response);
-
-        if (result instanceof ApiResponse) {
-            List<ResponseInterceptor> interceptors = apiComposer.interceptors();
-            for (ResponseInterceptor interceptor : interceptors) {
-                try {
-                    interceptor.intercept((ApiResponse) result);
-                } catch (Exception e) {
-                    closeQuietly(response);
-                    throw new RuntimeException(
-                            String.format("Error while calling ResponseInterceptor of type '%s' for '%s' call.",
-                                    interceptor.getClass(), methodName()), e
-                    );
-                }
+        boolean success = false;
+        try {
+            if (isCancelled()) {
+                throw new IOException("Cancelled");
+            }
+            R result = responseAdapter.adapt(response);
+            success = true;
+            return result;
+        } finally {
+            if (!success) {
+                closeQuietly(response);
             }
         }
-        return result;
     }
 }

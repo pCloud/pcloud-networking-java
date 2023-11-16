@@ -42,12 +42,12 @@ class MultiCallWrappedApiMethod<T, R> extends ApiMethod<R> {
         List<R> convert(T requestsContainer);
     }
 
-    private String apiMethodName;
+    private final String apiMethodName;
 
-    private RequestContainerAdapter<Object, T> argumentsRequestContainerAdapter;
-    private RequestAdapter requestAdapter;
-    private ResponseAdapter<R> returnTypeAdapter;
-    private CallAdapter callAdapter;
+    private final RequestContainerAdapter<Object, T> argumentsRequestContainerAdapter;
+    private final RequestAdapter requestAdapter;
+    private final ResponseAdapter<R> returnTypeAdapter;
+    private final CallAdapter callAdapter;
 
     private MultiCallWrappedApiMethod(String apiMethodName,
                                       RequestContainerAdapter<Object, T> argumentsRequestContainerAdapter,

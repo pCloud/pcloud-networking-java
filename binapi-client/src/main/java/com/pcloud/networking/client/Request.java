@@ -37,10 +37,10 @@ public class Request {
         return new Builder();
     }
 
-    private Endpoint endpoint;
-    private String methodName;
-    private RequestBody body;
-    private DataSource dataSource;
+    private final Endpoint endpoint;
+    private final String methodName;
+    private final RequestBody body;
+    private final DataSource dataSource;
 
     Request(Builder builder) {
         this.methodName = builder.methodName;
@@ -97,7 +97,7 @@ public class Request {
 
     @Override
     public String toString() {
-        return String.format("Method:\'%s\', hasData=%s%n%s", methodName, dataSource != null, body.toString());
+        return String.format("Method:'%s', hasData=%s%n%s", methodName, dataSource != null, body.toString());
     }
 
     /**

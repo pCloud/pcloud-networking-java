@@ -178,7 +178,7 @@ class RealCall implements Call {
         return cancelled;
     }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone")
+    @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public Call clone() {
         return new RealCall(request, callExecutor, interceptors, connectionProvider);
@@ -314,8 +314,8 @@ class RealCall implements Call {
 
     private static class RecyclingFixedLengthSource extends FixedLengthSource {
 
-        private ConnectionProvider connectionPool;
-        private Connection connection;
+        private final ConnectionProvider connectionPool;
+        private final Connection connection;
 
         private RecyclingFixedLengthSource(ConnectionProvider pool,
                                            Connection connection,

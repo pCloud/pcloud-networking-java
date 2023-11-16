@@ -234,7 +234,7 @@ class RealConnection implements Connection {
     public void readTimeout(long timeout, TimeUnit timeUnit) throws IOException {
         synchronized (this) {
             readTimeout = (int) timeUnit.toMillis(timeout);
-            BufferedSource source = source();
+            @SuppressWarnings("resource") BufferedSource source = source();
             if (source != null) {
                 source.timeout().timeout(readTimeout, TimeUnit.MILLISECONDS);
             }
@@ -245,7 +245,7 @@ class RealConnection implements Connection {
     public void writeTimeout(long timeout, TimeUnit timeUnit) throws IOException {
         synchronized (this) {
             writeTimeout = (int) timeUnit.toMillis(timeout);
-            BufferedSink sink = sink();
+            @SuppressWarnings("resource") BufferedSink sink = sink();
             if (sink != null) {
                 sink.timeout().timeout(writeTimeout, TimeUnit.MILLISECONDS);
             }

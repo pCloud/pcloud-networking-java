@@ -19,11 +19,17 @@ package com.pcloud.networking.api;
 import com.pcloud.networking.client.Response;
 import com.pcloud.networking.client.ResponseBody;
 
+import java.util.List;
 
-class ResponseBodyAdapter implements ResponseAdapter<ResponseBody> {
+
+class ResponseBodyAdapter extends InterceptingResponseAdapter<ResponseBody> {
+
+    public ResponseBodyAdapter(List<ResponseInterceptor> interceptors) {
+        super(ResponseBody.class, interceptors);
+    }
 
     @Override
-    public ResponseBody adapt(Response response) {
+    public ResponseBody doAdapt(Response response) {
         return response.responseBody();
     }
 }
